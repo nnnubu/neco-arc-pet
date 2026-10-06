@@ -2,6 +2,7 @@
 // 协议见 voice/voice_server.py：-> {"id":1,"text":"..."}  <- {"event":"ready"} / {"id":1,"ok":true,"wav":"..."}
 const { ipcMain } = require('electron');
 const path = require('path');
+const fs = require('fs');
 const { spawn } = require('child_process');
 const { getWin } = require('./window');
 
@@ -13,7 +14,10 @@ function ensureVoiceServer() {
   if (voiceProc) return;
   const py = path.join(__dirname, '..', 'voice-env310', 'Scripts', 'python.exe');
   const script = path.join(__dirname, '..', 'voice', 'voice_server.py');
-  voiceProc = spawn(py, [script], { cwd: path.join(__dirname, '..', 'voice') });
+  // stderr 重定向到日志文件：GPU 版加载时日志量大（faiss/RMVPE 等），
+  // 若走 stdout 管道且消费不及时会填满 Windows 管道缓冲，把 Python 进程卡死
+  const logFile = fs.openSync(path.join(__dirname, '..', 'voice', 'voice_server.log'), 'a');
+  voiceProc = spawn(py, [script], { cwd: path.join(__dirname, '..', 'voice'), stdio: ['pipe', 'pipe', logFile] });
   voiceReady = false;
   let buf = '';
   voiceProc.stdout.on('data', (chunk) => {
@@ -39,10 +43,6 @@ function ensureVoiceServer() {
         if (getWin() && !getWin().isDestroyed()) getWin().webContents.send('speak-state', { state: 'error', error: msg.error });
       }
     }
-  });
-  voiceProc.stderr.on('data', (d) => {
-    const s = d.toString().trim();
-    if (s) console.error('[voice:err]', s);
   });
   voiceProc.on('exit', () => { voiceReady = false; voiceProc = null; });
 }
