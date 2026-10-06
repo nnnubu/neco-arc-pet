@@ -53,8 +53,12 @@ DEFAULT_MODEL = "agg"  # 用户已验收：Aggressive 600e + 原音高
 def _resolve_auto_device():
     """自动选择推理设备：优先 CUDA（NVIDIA GPU 加速），否则 CPU。
     注意：DirectML（dml:0）虽可运行但实测比 CPU 慢 3 倍以上，故不作为自动选项。"""
-    if torch.cuda.is_available():
-        return "cuda:0"
+    try:
+        import torch
+        if torch.cuda.is_available():
+            return "cuda:0"
+    except Exception:
+        pass
     return None
 
 
