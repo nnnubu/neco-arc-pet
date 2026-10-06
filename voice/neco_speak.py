@@ -50,11 +50,26 @@ DEFAULT_VOICE = "zh-CN-XiaoxiaoNeural"
 DEFAULT_MODEL = "agg"  # 用户已验收：Aggressive 600e + 原音高
 
 
+def _resolve_auto_device():
+    """自动选择推理设备：优先 CUDA（NVIDIA GPU 加速），否则 CPU。
+    注意：DirectML（dml:0）虽可运行但实测比 CPU 慢 3 倍以上，故不作为自动选项。"""
+    if torch.cuda.is_available():
+        return "cuda:0"
+    return None
+
+
 def build_tts(model=DEFAULT_MODEL, voice=DEFAULT_VOICE, device=None, is_half=None):
     """创建 TTS_RVC 实例（首次调用会加载 RVC 模型 + hubert + rmvpe，较慢）
-    device: None=自动（有 NVIDIA GPU 用 cuda，否则 cpu）
+    device: None=自动（优先 DirectML GPU，其次 CUDA，最后 CPU）
     is_half: None=自动（GPU 自动用 FP16 加速，CPU 用 FP32）"""
     from tts_with_rvc import TTS_RVC
+    import torch as _torch
+    if device is None:
+        device = _resolve_auto_device()
+    # DirectML 模式下 rmvpe 走 ONNX Runtime，需要 rmvpe_root 指向含 rmvpe.onnx 的目录
+    rmvpe_root = os.path.join(os.path.dirname(os.path.abspath(__file__)), "models", "rmvpe")
+    if os.path.exists(os.path.join(rmvpe_root, "rmvpe.onnx")):
+        os.environ["rmvpe_root"] = rmvpe_root
 
     if model not in MODEL_PATHS:
         raise SystemExit(f"未知模型：{model}，可选 {list(MODEL_PATHS)}")
