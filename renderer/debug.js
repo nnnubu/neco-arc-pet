@@ -22,7 +22,14 @@ window.DebugSeq = (() => {
     await shot('walk-c');
     shared.keys.right = false;
     await wait(400);
-    await shot('walk-stop');    // 抬键回待机
+    await shot('walk-stop');    // 抬键回待机（朝右站立）
+
+    // 向左走停：站立应朝左（验证移动后朝向跟随）
+    shared.keys.left = true;
+    await wait(800);
+    shared.keys.left = false;
+    await wait(400);
+    await shot('walk-stop-left');
 
     // Shift 跑步循环验证：按住 3.5 秒抽 8 帧，循环内应只有跑姿帧（无起跑/收尾/站立帧）
     shared.keys.right = true;

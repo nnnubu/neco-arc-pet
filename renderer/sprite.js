@@ -23,6 +23,7 @@ window.SpriteCore = (() => {
     oneshotLeft: 0, // 一次性动作剩余播放轮数
     nextActionAt: 0,
     facing: 1, // 站立朝向：1=右，-1=左（standing 翻转实现）
+    lastMoveX: 0, // 最后水平移动方向（抬键后 vx 已归零，需在移动中记录）
     noRandom: false, // 调试：禁用随机乱跑/随机动作（PET_DEBUG 序列用）
   };
   // 需重复播放 3 遍的动作（thinking/push/star/pose1/hide/lie）；其余动作播放一遍即回待机
@@ -152,6 +153,8 @@ window.SpriteCore = (() => {
     if (moving) {
       // 用户按键：打断随机乱跑，完全由用户控制
       roam = null;
+      // 记录最后水平移动方向（抬键后 vx 归零，朝向更新要用它）
+      if (vx !== 0) SPRITE.lastMoveX = vx;
       // 按住方向键持续移动，动画循环播放直至抬键
       const run = keys.shift;
       const spd = run ? 430 : 260;
@@ -183,9 +186,12 @@ window.SpriteCore = (() => {
         SPRITE.nextRoamAt = now + rand(15000, 30000);
       }
     } else if (SPRITE.state === 'walk') {
-      // 抬键：立即回待机，站立朝向 = 最后移动方向
+      // 抬键：立即回待机，站立朝向 = 最后移动方向（vx 已归零，用移动中记录的 lastMoveX）
       SPRITE.state = 'idle';
-      if (vx !== 0) SPRITE.facing = vx > 0 ? 1 : -1;
+      if (SPRITE.lastMoveX !== 0) {
+        SPRITE.facing = SPRITE.lastMoveX > 0 ? 1 : -1;
+        SPRITE.lastMoveX = 0;
+      }
       spriteShow('standing', true, SPRITE.facing === -1);
     }
 
