@@ -27,16 +27,18 @@
     maxScale: 3,    // 最大缩放（由主进程按屏幕工作区计算）
   };
   window.pet.getMaxScale().then((m) => { shared.maxScale = m; });
-  // 主进程回传实际缩放值：立即应用到全部精灵（否则窗口已变、精灵还是旧尺寸 → 裁剪/断裂）
-  window.pet.onScaleApplied((s) => {
-    shared.petScale = s;
-    window.SpriteCore.applyPetScale();
-    window.VoiceUI.updatePosition(s); // 输入框跟随桌宠脚底（固定间隙）
+  // 主进程回传实际缩放值 + 目标窗口尺寸：立即用目标尺寸对齐 canvas 与精灵，
+  // 避免窗口已变、画布还停在旧尺寸造成的闪烁/裁剪（同尺寸时 resizeRenderer 内部去重）
+  window.pet.onScaleApplied((info) => {
+    shared.petScale = info.scale;
+    window.SpriteCore.resizeRenderer(info.width, info.height);
+    window.SpriteCore.applyPetScale(info.width, info.height);
+    window.VoiceUI.updatePosition(info.scale); // 输入框跟随桌宠脚底（固定间隙）
   });
   // 主进程缩放窗口后主动通知：canvas 立即跟随窗口尺寸（Electron frameless 的 resize 事件不可靠）
   window.pet.onPetWindowResized(({ width, height }) => {
     window.SpriteCore.resizeRenderer(width, height);
-    window.SpriteCore.applyPetScale();
+    window.SpriteCore.applyPetScale(width, height);
     window.VoiceUI.updatePosition(shared.petScale);
     // 验证用：对比通知尺寸与实际 canvas 尺寸（仅 PET_DEBUG 输出）
     const cv = document.querySelector('#stage canvas');

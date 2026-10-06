@@ -2,9 +2,12 @@
 const { BrowserWindow, ipcMain, screen } = require('electron');
 const path = require('path');
 
-// 桌宠基础窗口尺寸 = 最小尺寸（0.5 倍，像素帧 218x260 的 2 倍显示），初始即最小
-const WIN_W = 220;
-const WIN_H = 265;
+// 桌宠基准窗口尺寸 = 1.0 倍（像素帧 218x260 的 2 倍显示：436x520，含少量边距）
+// 初始即最小：0.5 倍 = 220x265
+const WIN_W = 440;
+const WIN_H = 530;
+const INIT_W = 220;
+const INIT_H = 265;
 
 let win = null;
 const dragState = { dragging: false, startMouse: null, startWin: null };
@@ -16,8 +19,8 @@ function getWin() {
 
 function createWindow() {
   win = new BrowserWindow({
-    width: WIN_W,
-    height: WIN_H,
+    width: INIT_W,
+    height: INIT_H,
     transparent: true,
     frame: false,
     resizable: false,
@@ -40,8 +43,8 @@ function createWindow() {
   // 初始位置：主显示器右下角
   const { workArea } = screen.getPrimaryDisplay();
   win.setPosition(
-    Math.round(workArea.x + workArea.width - WIN_W - 40),
-    Math.round(workArea.y + workArea.height - WIN_H - 60)
+    Math.round(workArea.x + workArea.width - INIT_W - 40),
+    Math.round(workArea.y + workArea.height - INIT_H - 60)
   );
 
   if (process.env.PET_DEBUG === '1') {
@@ -125,7 +128,9 @@ function registerWindowIpc() {
     console.log(`[scale] req=${scale} applied=${s} bounds=(${nx},${ny},${w},${h})`);
     win.setBounds({ x: nx, y: ny, width: w, height: h });
     console.log(`[scale] after setBounds: bounds=${JSON.stringify(win.getBounds())}`);
-    win.webContents.send('pet-scale-applied', s);
+    // 把"实际缩放值 + 目标窗口尺寸"一起给渲染层：渲染层立即用目标尺寸 resize canvas 与精灵，
+    // 避免窗口已变、canvas 还停留在旧尺寸造成的闪烁/裁剪
+    win.webContents.send('pet-scale-applied', { scale: s, width: w, height: h });
     // 主动通知渲染层新窗口尺寸：canvas 立即跟随（避免依赖 resize 事件丢失导致画布不缩放）
     win.webContents.send('pet-window-resized', { width: w, height: h });
   });

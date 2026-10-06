@@ -58,12 +58,13 @@ window.SpriteCore = (() => {
   }
 
   // 应用缩放：更新所有精灵 scale 与位置（窗口 resize 后底部中心对齐）
-  function applyPetScale() {
+  // w/h 显式传入目标窗口尺寸；缺省读 window.innerWidth/innerHeight
+  function applyPetScale(w = window.innerWidth, h = window.innerHeight) {
     const sc = SPRITE.SCALE * shared.petScale;
     for (const s of Object.values(SPRITE.sprites)) {
       const flip = s.scale.x < 0;
       s.scale.set((flip ? -1 : 1) * sc, sc);
-      s.position.set(window.innerWidth / 2, window.innerHeight - 5);
+      s.position.set(w / 2, h - 5);
     }
   }
 
@@ -156,11 +157,12 @@ window.SpriteCore = (() => {
 
   // 渲染器跟随窗口尺寸：缩放时 canvas 同步 resize，避免精灵超出被裁剪
   // 优先使用显式传入的窗口尺寸（主进程通知），兜底读 window.innerWidth/innerHeight
+  // 同尺寸去重：避免 resize 事件与主进程主动通知双重触发（PIXI resize 会清屏重绘，重复触发会闪烁）
+  let lastRw = 0, lastRh = 0;
   function resizeRenderer(w = window.innerWidth, h = window.innerHeight) {
+    if (w === lastRw && h === lastRh) return;
+    lastRw = w; lastRh = h;
     app.renderer.resize(w, h);
-    for (const s of Object.values(SPRITE.sprites)) {
-      s.position.set(w / 2, h - 5);
-    }
   }
 
   return {

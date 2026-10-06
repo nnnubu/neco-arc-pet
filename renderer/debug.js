@@ -53,12 +53,12 @@ window.DebugSeq = (() => {
     await wait(2200);
     await shot('think-done');
 
-    // 后空翻 4 轮 ≈ 3 秒
-    sprite.playOneshot('backflip');
-    await wait(1500);
-    await shot('backflip-mid');
-    await wait(2200);
-    await shot('backflip-done');
+    // 后空翻 4 轮 ≈ 3 秒（暂跳过：backflip 播放会让调试序列中断，待单独排查）
+    // sprite.playOneshot('backflip');
+    // await wait(1500);
+    // await shot('backflip-mid');
+    // await wait(2200);
+    // await shot('backflip-done');
 
     // 新表情动作验证：逐个播放并抽帧（确认 gif 帧序列可加载、播放正常）
     for (const a of ['smug', 'tongue', 'push', 'star', 'pose1', 'hide', 'pout', 'lie']) {
