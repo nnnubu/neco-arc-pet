@@ -17,7 +17,8 @@ function ensureVoiceServer() {
   // stderr 重定向到日志文件：GPU 版加载时日志量大（faiss/RMVPE 等），
   // 若走 stdout 管道且消费不及时会填满 Windows 管道缓冲，把 Python 进程卡死
   const logFile = fs.openSync(path.join(__dirname, '..', 'voice', 'voice_server.log'), 'a');
-  voiceProc = spawn(py, [script], { cwd: path.join(__dirname, '..', 'voice'), stdio: ['pipe', 'pipe', logFile] });
+  // windowsHide: true 防止 python.exe 弹出黑色控制台窗口（抢焦点会触发输入框失焦自动关闭）
+  voiceProc = spawn(py, [script], { cwd: path.join(__dirname, '..', 'voice'), stdio: ['pipe', 'pipe', logFile], windowsHide: true });
   voiceReady = false;
   let buf = '';
   voiceProc.stdout.on('data', (chunk) => {
