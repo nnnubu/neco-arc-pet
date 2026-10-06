@@ -2,8 +2,9 @@
 const { BrowserWindow, ipcMain, screen } = require('electron');
 const path = require('path');
 
-const WIN_W = 440;
-const WIN_H = 530;
+// 桌宠基础窗口尺寸 = 最小尺寸（0.5 倍，像素帧 218x260 的 2 倍显示），初始即最小
+const WIN_W = 220;
+const WIN_H = 265;
 
 let win = null;
 const dragState = { dragging: false, startMouse: null, startWin: null };

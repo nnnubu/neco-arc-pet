@@ -75,6 +75,12 @@ window.DebugSeq = (() => {
     window.pet.setScale(1);
     await wait(800);
     await shot('scale-10');
+
+    // 输入框验证：打开语音条抽帧（小窗口不溢出、样式正常）
+    window.VoiceUI.open();
+    await wait(300);
+    await shot('speakbar');
+    window.VoiceUI.hide();
     console.log('[debug] sequence done');
   }
   return { run };

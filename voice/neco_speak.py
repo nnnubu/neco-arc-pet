@@ -50,8 +50,10 @@ DEFAULT_VOICE = "zh-CN-XiaoxiaoNeural"
 DEFAULT_MODEL = "agg"  # 用户已验收：Aggressive 600e + 原音高
 
 
-def build_tts(model=DEFAULT_MODEL, voice=DEFAULT_VOICE, device="cpu", is_half=False):
-    """创建 TTS_RVC 实例（首次调用会加载 RVC 模型 + hubert + rmvpe，较慢）"""
+def build_tts(model=DEFAULT_MODEL, voice=DEFAULT_VOICE, device=None, is_half=None):
+    """创建 TTS_RVC 实例（首次调用会加载 RVC 模型 + hubert + rmvpe，较慢）
+    device: None=自动（有 NVIDIA GPU 用 cuda，否则 cpu）
+    is_half: None=自动（GPU 自动用 FP16 加速，CPU 用 FP32）"""
     from tts_with_rvc import TTS_RVC
 
     if model not in MODEL_PATHS:

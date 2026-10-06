@@ -23,19 +23,21 @@
   const shared = {
     keys: { up: false, down: false, left: false, right: false, shift: false },
     lastMouse: { mx: 0, my: 0, wx: 0, wy: 0 },
-    petScale: 1,   // 当前缩放（主进程回传实际值）
-    maxScale: 3,   // 最大缩放（由主进程按屏幕工作区计算）
+    petScale: 0.5,  // 初始即最小尺寸（窗口 220x265）
+    maxScale: 3,    // 最大缩放（由主进程按屏幕工作区计算）
   };
   window.pet.getMaxScale().then((m) => { shared.maxScale = m; });
   // 主进程回传实际缩放值：立即应用到全部精灵（否则窗口已变、精灵还是旧尺寸 → 裁剪/断裂）
   window.pet.onScaleApplied((s) => {
     shared.petScale = s;
     window.SpriteCore.applyPetScale();
+    window.VoiceUI.updatePosition(s); // 输入框跟随桌宠脚底（固定间隙）
   });
   // 主进程缩放窗口后主动通知：canvas 立即跟随窗口尺寸（Electron frameless 的 resize 事件不可靠）
   window.pet.onPetWindowResized(({ width, height }) => {
     window.SpriteCore.resizeRenderer(width, height);
     window.SpriteCore.applyPetScale();
+    window.VoiceUI.updatePosition(shared.petScale);
     // 验证用：对比通知尺寸与实际 canvas 尺寸（仅 PET_DEBUG 输出）
     const cv = document.querySelector('#stage canvas');
     window.pet.debugLog(`[canvas] notify=${width}x${height} css=${cv?.style.width}x${cv?.style.height} attr=${cv?.width}x${cv?.height}`);
@@ -46,6 +48,7 @@
   window.SpriteCore.init(app, shared);
   window.Controls.init(shared, window.SpriteCore);
   window.VoiceUI.init();
+  window.VoiceUI.updatePosition(shared.petScale); // 初始定位（0.5 倍）
 
   // 窗口 resize（缩放桌宠）时：canvas 跟随 + 精灵 scale/位置同步，避免裁剪/闪烁
   window.addEventListener('resize', () => {

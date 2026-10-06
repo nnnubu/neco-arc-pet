@@ -52,7 +52,7 @@ window.SpriteCore = (() => {
     s.visible = true;
     const sc = SPRITE.SCALE * shared.petScale;
     s.scale.set(flipX ? -sc : sc, sc);
-    s.position.set(window.innerWidth / 2, window.innerHeight - 6);
+    s.position.set(window.innerWidth / 2, window.innerHeight - 5); // 底部对齐（-5 避免 0.5 倍时头部裁 1px）
     s.loop = loop;
     s.gotoAndPlay(0);
   }
@@ -63,7 +63,7 @@ window.SpriteCore = (() => {
     for (const s of Object.values(SPRITE.sprites)) {
       const flip = s.scale.x < 0;
       s.scale.set((flip ? -1 : 1) * sc, sc);
-      s.position.set(window.innerWidth / 2, window.innerHeight - 6);
+      s.position.set(window.innerWidth / 2, window.innerHeight - 5);
     }
   }
 
@@ -117,7 +117,7 @@ window.SpriteCore = (() => {
     SPRITE.state = 'idle';
     SPRITE.nextActionAt = Date.now() + rand(8000, 15000);
     spriteShow('standing', true, false);
-    window.pet.resizeWindow(440, 530);
+    window.pet.resizeWindow(220, 265); // 初始窗口 = 最小尺寸
   }
 
   // 每帧更新：走动（按键持续循环播放）、待机随机动作
@@ -159,7 +159,7 @@ window.SpriteCore = (() => {
   function resizeRenderer(w = window.innerWidth, h = window.innerHeight) {
     app.renderer.resize(w, h);
     for (const s of Object.values(SPRITE.sprites)) {
-      s.position.set(w / 2, h - 6);
+      s.position.set(w / 2, h - 5);
     }
   }
 

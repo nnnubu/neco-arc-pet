@@ -1,5 +1,5 @@
 /* 渲染进程 - 语音输入条模块
- * 职责：输入条显示/收起、发送文本、接收音频播放与状态反馈
+ * 职责：输入条显示/收起、发送文本、接收音频播放与状态反馈、位置跟随桌宠脚底
  * 入口：右键菜单「说句话…」（Controls 调 window.VoiceUI.open()）
  */
 window.VoiceUI = (() => {
@@ -9,6 +9,18 @@ window.VoiceUI = (() => {
   let closeBtn = null;
   let status = null;
   let audio = null;
+
+  // 角色帧底部有 ~48px 透明边距（alpha 实测），显示尺寸 = 边距 × SCALE(2) × petScale，
+  // 所以输入框若固定贴窗口底，随缩放会"离桌宠越来越远/遮住脚"。改为跟随脚底：输入框顶始终距角色脚底 6px。
+  const FOOT_MARGIN = 48; // standing 帧角色视觉脚底到帧底的距离（px @1x）
+  const SPRITE_SCALE = 2; // sprite.js 的 SCALE
+  const GAP = 6;          // 输入框顶到角色脚底的固定间隙
+  const BAR_H = 36;       // 输入框整体高度（含 padding）
+
+  function updatePosition(scale) {
+    const footGap = 5 + FOOT_MARGIN * SPRITE_SCALE * scale; // 角色脚底到窗口底（精灵底部对齐 h-5）
+    el.style.bottom = Math.max(2, footGap - GAP - BAR_H) + 'px';
+  }
 
   function init() {
     el = document.getElementById('speakBar');
@@ -34,26 +46,30 @@ window.VoiceUI = (() => {
     window.pet.onSpeakAudio((p) => {
       audio.src = 'file:///' + p.replace(/\\/g, '/');
       audio.play().catch((e) => {
+        status.style.display = 'block';
         status.textContent = '播放失败: ' + (e.message || e);
       });
     });
     window.pet.onSpeakState((s) => {
       if (s.state === 'generating') {
+        status.style.display = 'block';
         status.textContent = '喵…生成中（首次需等约 1 分钟）';
       } else if (s.state === 'done') {
+        status.style.display = 'none';
         status.textContent = '';
         setTimeout(hide, 600);
       } else if (s.state === 'error') {
+        status.style.display = 'block';
         status.textContent = '出错了: ' + (s.error || '未知');
       }
     });
   }
 
   function open() {
-    el.style.display = 'flex';
+    el.style.display = 'block';
     input.focus();
   }
   function hide() { el.style.display = 'none'; }
 
-  return { init, open, hide };
+  return { init, open, hide, updatePosition };
 })();
