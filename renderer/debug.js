@@ -6,6 +6,7 @@ window.DebugSeq = (() => {
   async function run(sprite, shared) {
     const shot = (name) => window.pet.debugShot(name);
     const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    sprite.setNoRandom(true); // 禁用随机乱跑/动作，保证序列确定性
     await wait(2500);
     await shot('idle');
 
@@ -66,6 +67,21 @@ window.DebugSeq = (() => {
       await wait(550);
       await shot('act-' + a);
     }
+
+    // 转身验证：朝右 → 转身朝左（抽转身过渡帧 + 完成后朝左站立）→ 转身回朝右
+    // 注意：lie 是重复 3 遍的动作（约 2 秒），需等它完全播完回到待机再测转身
+    await wait(2200);
+    sprite.turnTo(-1);
+    await wait(300);
+    await shot('turn-mid');
+    await wait(1000);
+    window.pet.debugLog('facing after turn_left = ' + sprite.facing + ' state=' + sprite.state + ' name=' + (sprite.currentName || '?'));
+    await shot('turn-left-done');
+    sprite.turnTo(1);
+    await wait(1200);
+    window.pet.debugLog('facing after turn_right = ' + sprite.facing);
+    await shot('turn-right-done');
+    await wait(300);
 
     // 缩放验证：1.5 倍后抽帧确认窗口与精灵渲染正常，再恢复
     window.pet.setScale(1.5);

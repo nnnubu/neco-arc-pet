@@ -11,9 +11,9 @@
 window.SpriteCore = (() => {
   const SPRITE = {
     groups: ['standing', 'walking_left', 'walking_right', 'running', 'backflip', 'kick', 'thinking', 'wine', 'wine_2',
-      'smug', 'tongue', 'push', 'star', 'pose1', 'hide', 'pout', 'lie'],
+      'smug', 'tongue', 'push', 'star', 'pose1', 'hide', 'pout', 'lie', 'turn_left', 'turn_right'],
     frameCount: { standing: 9, walking_left: 12, walking_right: 11, running: 11, backflip: 9, kick: 7, thinking: 4, wine: 28, wine_2: 17,
-      smug: 5, tongue: 60, push: 10, star: 3, pose1: 3, hide: 3, pout: 8, lie: 8 },
+      smug: 5, tongue: 60, push: 10, star: 3, pose1: 3, hide: 3, pout: 8, lie: 8, turn_left: 11, turn_right: 10 },
     FPS: 12,
     SCALE: 2,
     sprites: {},
@@ -22,6 +22,8 @@ window.SpriteCore = (() => {
     state: 'idle', // idle | walk | oneshot
     oneshotLeft: 0, // 一次性动作剩余播放轮数
     nextActionAt: 0,
+    facing: 1, // 站立朝向：1=右，-1=左（standing 翻转实现）
+    noRandom: false, // 调试：禁用随机乱跑/随机动作（PET_DEBUG 序列用）
   };
   // 需重复播放 3 遍的动作（thinking/push/star/pose1/hide/lie）；其余动作播放一遍即回待机
   const ACTION_REPEATS = { thinking: 3, push: 3, star: 3, pose1: 3, hide: 3, lie: 3 };
@@ -38,6 +40,9 @@ window.SpriteCore = (() => {
   };
   const ONESHOT_NAMES = ['backflip', 'kick', 'wine', 'wine_2', 'thinking',
     'smug', 'tongue', 'push', 'star', 'pose1', 'hide', 'pout', 'lie'];
+
+  // 随机乱跑状态（待机时偶尔自己走动/乱跑）：null 或 { dir, remaining, run }
+  let roam = null;
 
   let app = null;
   let shared = null; // { keys, petScale, maxScale }
@@ -78,7 +83,17 @@ window.SpriteCore = (() => {
   function spriteBackToIdle() {
     if (SPRITE.state === 'walk') return; // 走动中不打断
     SPRITE.state = 'idle';
-    spriteShow('standing', true, false);
+    spriteShow('standing', true, SPRITE.facing === -1);
+  }
+
+  // 转身：站立朝向改变时播放转身过渡动画（turn_left 右→左 / turn_right 左→右），播完更新朝向
+  function turnTo(targetFacing) {
+    if (SPRITE.facing === targetFacing) return;
+    if (SPRITE.state === 'walk') return; // 走动中不转身（走路帧自带方向）
+    if (SPRITE.state === 'oneshot') return; // 动作表演中不打断
+    SPRITE.oneshotLeft = 1;
+    spriteShow(targetFacing === -1 ? 'turn_left' : 'turn_right', false, false);
+    SPRITE.state = 'oneshot';
   }
 
   async function initSprite() {
@@ -108,6 +123,10 @@ window.SpriteCore = (() => {
           setTimeout(() => {
             if (SPRITE.current === cur && SPRITE.state === 'oneshot') spriteBackToIdle();
           }, SMUG_HOLD_MS);
+        } else if (SPRITE.currentName === 'turn_left' || SPRITE.currentName === 'turn_right') {
+          // 转身动画播完：更新站立朝向（turn_left 结束=朝左，turn_right 结束=朝右）
+          SPRITE.facing = SPRITE.currentName === 'turn_left' ? -1 : 1;
+          spriteBackToIdle();
         } else {
           spriteBackToIdle();
         }
@@ -117,11 +136,12 @@ window.SpriteCore = (() => {
     }
     SPRITE.state = 'idle';
     SPRITE.nextActionAt = Date.now() + rand(8000, 15000);
+    SPRITE.nextRoamAt = Date.now() + rand(15000, 30000); // 首次随机乱跑计时
     spriteShow('standing', true, false);
     window.pet.resizeWindow(220, 265); // 初始窗口 = 最小尺寸
   }
 
-  // 每帧更新：走动（按键持续循环播放）、待机随机动作
+  // 每帧更新：走动（按键持续循环播放）、随机乱跑、待机随机动作
   function update(now, dt) {
     const keys = shared.keys;
     const vx = (keys.right ? 1 : 0) - (keys.left ? 1 : 0);
@@ -129,6 +149,8 @@ window.SpriteCore = (() => {
     const moving = vx !== 0 || vy !== 0;
 
     if (moving) {
+      // 用户按键：打断随机乱跑，完全由用户控制
+      roam = null;
       // 按住方向键持续移动，动画循环播放直至抬键
       const run = keys.shift;
       const spd = run ? 430 : 260;
@@ -142,16 +164,46 @@ window.SpriteCore = (() => {
         spriteShow(targetAnim, true, flipX);
         SPRITE.state = 'walk';
       }
+    } else if (roam) {
+      // 随机乱跑中：朝 roam.dir 方向持续移动，到达随机距离后停下
+      const spd = roam.run ? 430 : 260;
+      window.pet.moveBy(Math.round(roam.dir * spd * dt), 0);
+      roam.remaining -= Math.abs(spd * dt);
+      if (roam.remaining <= 0) {
+        const lastDir = roam.dir;
+        roam = null;
+        SPRITE.facing = lastDir; // 站立朝向 = 最后跑动方向
+        SPRITE.state = 'idle';
+        spriteShow('standing', true, SPRITE.facing === -1);
+        // 停下来后偶尔随机转身（朝反方向站一会）
+        if (Math.random() < 0.5) {
+          setTimeout(() => { if (SPRITE.state === 'idle') turnTo(Math.random() < 0.5 ? 1 : -1); }, rand(400, 1500));
+        }
+        SPRITE.nextRoamAt = now + rand(15000, 30000);
+      }
     } else if (SPRITE.state === 'walk') {
-      // 抬键：立即回待机
+      // 抬键：立即回待机，站立朝向 = 最后移动方向
       SPRITE.state = 'idle';
-      spriteShow('standing', true, false);
+      if (vx !== 0) SPRITE.facing = vx > 0 ? 1 : -1;
+      spriteShow('standing', true, SPRITE.facing === -1);
     }
 
-    // 待机时偶尔随机表演（随机时长：基准 + 0~2 轮）
-    if (SPRITE.state === 'idle' && now >= SPRITE.nextActionAt) {
-      spritePlayOneshot(ONESHOT_NAMES[Math.floor(Math.random() * ONESHOT_NAMES.length)]);
-      SPRITE.nextActionAt = now + rand(12000, 20000);
+    // 待机时偶尔自己乱跑 / 随机表演动作（互斥触发，随机时长）
+    if (SPRITE.state === 'idle' && !roam && !SPRITE.noRandom) {
+      if (now >= SPRITE.nextRoamAt) {
+        // 触发乱跑：随机方向 + 随机距离（150~500px）+ 偶尔用跑的
+        roam = {
+          dir: Math.random() < 0.5 ? -1 : 1,
+          remaining: rand(150, 500),
+          run: Math.random() < 0.4,
+        };
+        SPRITE.state = 'walk';
+        spriteShow(roam.run ? 'running' : (roam.dir > 0 ? 'walking_right' : 'walking_left'), true,
+          roam.run && roam.dir < 0);
+      } else if (now >= SPRITE.nextActionAt) {
+        spritePlayOneshot(ONESHOT_NAMES[Math.floor(Math.random() * ONESHOT_NAMES.length)]);
+        SPRITE.nextActionAt = now + rand(12000, 20000);
+      }
     }
   }
 
@@ -171,8 +223,11 @@ window.SpriteCore = (() => {
     update,
     playOneshot: spritePlayOneshot,
     backToIdle: spriteBackToIdle,
+    turnTo,
+    setNoRandom(v) { SPRITE.noRandom = v; },
     applyPetScale,
     resizeRenderer,
     get state() { return SPRITE.state; },
+    get facing() { return SPRITE.facing; },
   };
 })();
