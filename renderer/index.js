@@ -27,7 +27,11 @@
     maxScale: 3,   // 最大缩放（由主进程按屏幕工作区计算）
   };
   window.pet.getMaxScale().then((m) => { shared.maxScale = m; });
-  window.pet.onScaleApplied((s) => { shared.petScale = s; });
+  // 主进程回传实际缩放值：立即应用到全部精灵（否则窗口已变、精灵还是旧尺寸 → 裁剪/断裂）
+  window.pet.onScaleApplied((s) => {
+    shared.petScale = s;
+    window.SpriteCore.applyPetScale();
+  });
   window.pet.onMousePos((p) => { shared.lastMouse = p; });
 
   // ---------- 装配模块 ----------
@@ -35,8 +39,11 @@
   window.Controls.init(shared, window.SpriteCore);
   window.VoiceUI.init();
 
-  // 窗口 resize（缩放桌宠）时渲染器跟随，避免精灵被裁剪
-  window.addEventListener('resize', () => window.SpriteCore.resizeRenderer());
+  // 窗口 resize（缩放桌宠）时：canvas 跟随 + 精灵 scale/位置同步，避免裁剪/闪烁
+  window.addEventListener('resize', () => {
+    window.SpriteCore.resizeRenderer();
+    window.SpriteCore.applyPetScale();
+  });
 
   // ---------- 加载精灵并启动主循环 ----------
   await window.SpriteCore.initSprite();
