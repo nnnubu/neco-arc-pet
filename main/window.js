@@ -68,7 +68,16 @@ function clampTo(v, lo, hi) {
 }
 
 function registerWindowIpc() {
+  // 立即停止缩放动画（拖拽/走动优先：动画 setBounds 会反复覆盖用户操作，造成残影/位置丢失）
+  function stopScaleAnim() {
+    if (scaleAnim) {
+      clearInterval(scaleAnim.timer);
+      scaleAnim = null;
+    }
+  }
+
   ipcMain.on('drag-start', () => {
+    stopScaleAnim();
     if (!win || win.isDestroyed()) return;
     dragState.dragging = true;
     dragState.startMouse = screen.getCursorScreenPoint();
@@ -90,6 +99,7 @@ function registerWindowIpc() {
 
   // 走动：按增量移动窗口，并限制在主显示器工作区内
   ipcMain.on('move-by', (_e, { dx, dy }) => {
+    stopScaleAnim(); // 走动优先：缩放动画会覆盖移动，造成"走不动"
     if (!win || win.isDestroyed()) return;
     const [x, y] = win.getPosition();
     const b = win.getBounds();
@@ -147,7 +157,9 @@ function registerWindowIpc() {
     scaleAnim = anim;
     anim.timer = setInterval(() => {
       const a = scaleAnim;
-      if (!a || !win || win.isDestroyed()) { if (a) clearInterval(a.timer); scaleAnim = null; return; }
+      if (!a || !win || win.isDestroyed()) { if (a) { clearInterval(a.timer); scaleAnim = null; } return; }
+      // 用户开始拖拽/走动：立即取消动画，把窗口控制权交还（避免 setBounds 覆盖用户操作）
+      if (dragState.dragging) { clearInterval(a.timer); scaleAnim = null; return; }
       const t = a.target;
       const c = a.cur;
       const k = 0.25; // 每步走剩余距离的 25%，平滑减速
