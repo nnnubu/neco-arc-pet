@@ -10,10 +10,7 @@ contextBridge.exposeInMainWorld('pet', {
   focusWindow: () => ipcRenderer.send('focus-window'),
   resizeWindow: (width, height) => ipcRenderer.send('resize-window', { width, height }),
   setScale: (scale) => ipcRenderer.send('pet-scale', scale),
-  onScaleApplied: (cb) => ipcRenderer.on('pet-scale-applied', (_e, info) => cb(info)),
-  // 渲染层画布/精灵已按目标尺寸就绪，通知主进程可以改窗口（两阶段缩放，消除闪烁）
-  scaleReady: () => ipcRenderer.send('pet-scale-ready'),
-  // 主进程缩放窗口后主动通知渲染层（canvas 跟随窗口尺寸，不依赖浏览器 resize 事件）
+  // 主进程缩放动画每步通知渲染层（画布跟随窗口尺寸、精灵按 scale 反推，窗口与画面始终同步）
   onPetWindowResized: (cb) => ipcRenderer.on('pet-window-resized', (_e, size) => cb(size)),
   getMaxScale: () => ipcRenderer.invoke('pet-get-max-scale'),
   showMenu: () => ipcRenderer.send('show-context-menu'),

@@ -27,20 +27,13 @@
     maxScale: 3,    // 最大缩放（由主进程按屏幕工作区计算）
   };
   window.pet.getMaxScale().then((m) => { shared.maxScale = m; });
-  // 主进程回传实际缩放值 + 目标窗口尺寸：立即用目标尺寸对齐 canvas 与精灵，
-  // 就绪后回执 pet-scale-ready，主进程才会 setBounds 改窗口（两阶段：画布先就绪，窗口再变，消除缩小闪烁）
-  window.pet.onScaleApplied((info) => {
-    shared.petScale = info.scale;
-    window.SpriteCore.resizeRenderer(info.width, info.height);
-    window.SpriteCore.applyPetScale(info.width, info.height);
-    window.VoiceUI.updatePosition(info.scale); // 输入框跟随桌宠脚底（固定间隙）
-    window.pet.scaleReady();
-  });
-  // 主进程缩放窗口后主动通知：canvas 立即跟随窗口尺寸（Electron frameless 的 resize 事件不可靠）
-  window.pet.onPetWindowResized(({ width, height }) => {
+  // 主进程缩放动画每步通知：画布 resize 到窗口尺寸、精灵按 scale 反推、输入框跟随脚底，
+  // 窗口与画面每步同步（缩放是逐帧平滑的，无瞬跳错位帧，不再有"闪一下"）
+  window.pet.onPetWindowResized(({ width, height, scale }) => {
+    shared.petScale = scale;
     window.SpriteCore.resizeRenderer(width, height);
     window.SpriteCore.applyPetScale(width, height);
-    window.VoiceUI.updatePosition(shared.petScale);
+    window.VoiceUI.updatePosition(scale); // 输入框跟随桌宠脚底（固定间隙）
     // 验证用：对比通知尺寸与实际 canvas 尺寸（仅 PET_DEBUG 输出）
     const cv = document.querySelector('#stage canvas');
     window.pet.debugLog(`[canvas] notify=${width}x${height} css=${cv?.style.width}x${cv?.style.height} attr=${cv?.width}x${cv?.height}`);

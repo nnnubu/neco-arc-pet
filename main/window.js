@@ -115,53 +115,60 @@ function registerWindowIpc() {
   });
 
   // 桌宠缩放：滚轮控制。保持窗口底部位置，水平居中；限制窗口不超出工作区
-  // 两阶段流程消除闪烁：先通知渲染层用目标尺寸 resize 画布/精灵 → 渲染层回执 → 再 setBounds 改窗口。
-  // 否则窗口先变小、画布还停在旧尺寸，中间帧精灵底部会被窗口裁掉（缩小在正下方闪一下）。
-  // 连续滚轮：排队逐档处理（画布就绪后才改窗口）；渲染层卡住时 800ms 超时兜底强制改窗。
-  let scaleBusy = false;   // 是否正在"画布就绪→改窗口"流程
-  let pendingReq = null;   // 排队中的最新请求
-  let currentReq = null;   // 正在处理的请求
-  let applyTimer = null;
-
-  function finishScale() {
-    if (applyTimer) { clearTimeout(applyTimer); applyTimer = null; }
-    if (!currentReq) return;
-    const p = currentReq;
-    currentReq = null;
-    win.setBounds({ x: p.nx, y: p.ny, width: p.w, height: p.h });
-    // 主动通知渲染层新窗口尺寸：canvas 立即跟随（避免依赖 resize 事件丢失导致画布不缩放）
-    win.webContents.send('pet-window-resized', { width: p.w, height: p.h });
-    scaleBusy = false;
-    if (pendingReq) startScale();
-  }
-
-  function startScale() {
-    if (!pendingReq) return;
-    scaleBusy = true;
-    currentReq = pendingReq;
-    pendingReq = null;
-    win.webContents.send('pet-scale-applied', { scale: currentReq.s, width: currentReq.w, height: currentReq.h });
-    applyTimer = setTimeout(finishScale, 800); // 渲染层未回执时兜底强制改窗
-  }
+  // 平滑缩放动画：窗口逐帧（16ms）向目标尺寸/位置指数趋近，每步同步通知渲染层
+  // （画布 resize 到窗口尺寸、精灵按 scale=高度/WIN_H 反推），窗口与画面始终同步，
+  // 避免瞬跳缩放时窗口与画布尺寸错位的中间帧（表现为缩放时"闪一下"）。
+  // 连续滚轮：动画进行中直接更新目标，平滑连续缩放。
+  let scaleAnim = null; // { timer, target:{w,h,nx,ny}, cur:{x,y,w,h} }
 
   ipcMain.on('pet-scale', (_e, scale) => {
     if (!win || win.isDestroyed()) return;
     const wa = screen.getPrimaryDisplay().workArea;
     const maxScale = Math.max(1, Math.min(wa.width / WIN_W, wa.height / WIN_H));
     const s = Math.max(0.5, Math.min(scale, maxScale));
-    const w = Math.round(WIN_W * s);
-    const h = Math.round(WIN_H * s);
+    const tw = Math.round(WIN_W * s);
+    const th = Math.round(WIN_H * s);
     const b = win.getBounds();
-    const nx = clampTo(Math.round(b.x + (b.width - w) / 2), wa.x, wa.x + wa.width - w);
-    const ny = clampTo(Math.round(b.y + b.height - h), wa.y, wa.y + wa.height - h);
-    console.log(`[scale] req=${scale} applied=${s} bounds=(${nx},${ny},${w},${h})`);
-    pendingReq = { s, w, h, nx, ny };
-    if (!scaleBusy) startScale();
-  });
+    const tnx = clampTo(Math.round(b.x + (b.width - tw) / 2), wa.x, wa.x + wa.width - tw);
+    const tny = clampTo(Math.round(b.y + b.height - th), wa.y, wa.y + wa.height - th);
+    console.log(`[scale] req=${scale} applied=${s} target=(${tnx},${tny},${tw},${th})`);
 
-  // 渲染层画布/精灵已按目标尺寸就绪，此时再改窗口（窗口与画布同步，无中间错位帧）
-  ipcMain.on('pet-scale-ready', () => {
-    if (scaleBusy && currentReq) finishScale();
+    if (scaleAnim) {
+      // 动画进行中：更新目标（连续滚轮平滑改向）
+      scaleAnim.target = { w: tw, h: th, nx: tnx, ny: tny };
+      return;
+    }
+
+    const anim = {
+      target: { w: tw, h: th, nx: tnx, ny: tny },
+      cur: { x: b.x, y: b.y, w: b.width, h: b.height },
+      timer: null,
+    };
+    scaleAnim = anim;
+    anim.timer = setInterval(() => {
+      const a = scaleAnim;
+      if (!a || !win || win.isDestroyed()) { if (a) clearInterval(a.timer); scaleAnim = null; return; }
+      const t = a.target;
+      const c = a.cur;
+      const k = 0.25; // 每步走剩余距离的 25%，平滑减速
+      let nw = c.w + (t.w - c.w) * k;
+      let nh = c.h + (t.h - c.h) * k;
+      let nx = c.x + (t.nx - c.x) * k;
+      let ny = c.y + (t.ny - c.y) * k;
+      const done = Math.abs(t.w - nw) < 1 && Math.abs(t.h - nh) < 1 &&
+                   Math.abs(t.nx - nx) < 1 && Math.abs(t.ny - ny) < 1;
+      if (done) { nw = t.w; nh = t.h; nx = t.nx; ny = t.ny; }
+      const rw = Math.round(nw), rh = Math.round(nh), rx = Math.round(nx), ry = Math.round(ny);
+      win.setBounds({ x: rx, y: ry, width: rw, height: rh });
+      // 每步通知渲染层：画布 resize 到窗口尺寸、精灵按 scale 反推，窗口与画面始终同步
+      win.webContents.send('pet-window-resized', { width: rw, height: rh, scale: rh / WIN_H });
+      if (done) {
+        clearInterval(a.timer);
+        scaleAnim = null;
+      } else {
+        a.cur = { x: rx, y: ry, w: rw, h: rh };
+      }
+    }, 16);
   });
 
   // 渲染层查询最大缩放倍率（窗口不超出工作区）
