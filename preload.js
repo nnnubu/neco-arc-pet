@@ -11,6 +11,8 @@ contextBridge.exposeInMainWorld('pet', {
   resizeWindow: (width, height) => ipcRenderer.send('resize-window', { width, height }),
   setScale: (scale) => ipcRenderer.send('pet-scale', scale),
   onScaleApplied: (cb) => ipcRenderer.on('pet-scale-applied', (_e, s) => cb(s)),
+  // 主进程缩放窗口后主动通知渲染层（canvas 跟随窗口尺寸，不依赖浏览器 resize 事件）
+  onPetWindowResized: (cb) => ipcRenderer.on('pet-window-resized', (_e, size) => cb(size)),
   getMaxScale: () => ipcRenderer.invoke('pet-get-max-scale'),
   showMenu: () => ipcRenderer.send('show-context-menu'),
   debugShot: (name) => ipcRenderer.send('debug-shot', name),

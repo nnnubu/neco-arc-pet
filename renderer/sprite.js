@@ -155,8 +155,8 @@ window.SpriteCore = (() => {
   }
 
   // 渲染器跟随窗口尺寸：缩放时 canvas 同步 resize，避免精灵超出被裁剪
-  function resizeRenderer() {
-    const w = window.innerWidth, h = window.innerHeight;
+  // 优先使用显式传入的窗口尺寸（主进程通知），兜底读 window.innerWidth/innerHeight
+  function resizeRenderer(w = window.innerWidth, h = window.innerHeight) {
     app.renderer.resize(w, h);
     for (const s of Object.values(SPRITE.sprites)) {
       s.position.set(w / 2, h - 6);

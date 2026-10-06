@@ -29,11 +29,16 @@ window.Controls = (() => {
       dragging = false;
     });
     document.addEventListener('mousemove', (e) => {
-      if (!downAt || dragging) return;
-      // 位移超过阈值才视为拖拽；点击（菜单/输入条）不触发
-      if (Math.hypot(e.clientX - downPos.x, e.clientY - downPos.y) > DRAG_THRESHOLD) {
-        dragging = true;
-        window.pet.dragStart();
+      if (!downAt) return;
+      if (!dragging) {
+        // 位移超过阈值才视为拖拽；点击（菜单/输入条）不触发
+        if (Math.hypot(e.clientX - downPos.x, e.clientY - downPos.y) > DRAG_THRESHOLD) {
+          dragging = true;
+          window.pet.dragStart();
+        }
+      } else {
+        // 拖拽中持续跟随鼠标（主进程按鼠标位移移动窗口）
+        window.pet.dragMove();
       }
     });
     document.addEventListener('mouseup', () => {

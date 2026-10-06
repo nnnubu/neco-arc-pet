@@ -32,6 +32,14 @@
     shared.petScale = s;
     window.SpriteCore.applyPetScale();
   });
+  // 主进程缩放窗口后主动通知：canvas 立即跟随窗口尺寸（Electron frameless 的 resize 事件不可靠）
+  window.pet.onPetWindowResized(({ width, height }) => {
+    window.SpriteCore.resizeRenderer(width, height);
+    window.SpriteCore.applyPetScale();
+    // 验证用：对比通知尺寸与实际 canvas 尺寸（仅 PET_DEBUG 输出）
+    const cv = document.querySelector('#stage canvas');
+    window.pet.debugLog(`[canvas] notify=${width}x${height} css=${cv?.style.width}x${cv?.style.height} attr=${cv?.width}x${cv?.height}`);
+  });
   window.pet.onMousePos((p) => { shared.lastMouse = p; });
 
   // ---------- 装配模块 ----------

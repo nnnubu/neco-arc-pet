@@ -125,6 +125,8 @@ function registerWindowIpc() {
     win.setBounds({ x: nx, y: ny, width: w, height: h });
     console.log(`[scale] after setBounds: bounds=${JSON.stringify(win.getBounds())}`);
     win.webContents.send('pet-scale-applied', s);
+    // 主动通知渲染层新窗口尺寸：canvas 立即跟随（避免依赖 resize 事件丢失导致画布不缩放）
+    win.webContents.send('pet-window-resized', { width: w, height: h });
   });
 
   // 渲染层查询最大缩放倍率（窗口不超出工作区）
