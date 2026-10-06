@@ -28,12 +28,13 @@
   };
   window.pet.getMaxScale().then((m) => { shared.maxScale = m; });
   // 主进程回传实际缩放值 + 目标窗口尺寸：立即用目标尺寸对齐 canvas 与精灵，
-  // 避免窗口已变、画布还停在旧尺寸造成的闪烁/裁剪（同尺寸时 resizeRenderer 内部去重）
+  // 就绪后回执 pet-scale-ready，主进程才会 setBounds 改窗口（两阶段：画布先就绪，窗口再变，消除缩小闪烁）
   window.pet.onScaleApplied((info) => {
     shared.petScale = info.scale;
     window.SpriteCore.resizeRenderer(info.width, info.height);
     window.SpriteCore.applyPetScale(info.width, info.height);
     window.VoiceUI.updatePosition(info.scale); // 输入框跟随桌宠脚底（固定间隙）
+    window.pet.scaleReady();
   });
   // 主进程缩放窗口后主动通知：canvas 立即跟随窗口尺寸（Electron frameless 的 resize 事件不可靠）
   window.pet.onPetWindowResized(({ width, height }) => {

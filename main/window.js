@@ -115,6 +115,35 @@ function registerWindowIpc() {
   });
 
   // 桌宠缩放：滚轮控制。保持窗口底部位置，水平居中；限制窗口不超出工作区
+  // 两阶段流程消除闪烁：先通知渲染层用目标尺寸 resize 画布/精灵 → 渲染层回执 → 再 setBounds 改窗口。
+  // 否则窗口先变小、画布还停在旧尺寸，中间帧精灵底部会被窗口裁掉（缩小在正下方闪一下）。
+  // 连续滚轮：排队逐档处理（画布就绪后才改窗口）；渲染层卡住时 800ms 超时兜底强制改窗。
+  let scaleBusy = false;   // 是否正在"画布就绪→改窗口"流程
+  let pendingReq = null;   // 排队中的最新请求
+  let currentReq = null;   // 正在处理的请求
+  let applyTimer = null;
+
+  function finishScale() {
+    if (applyTimer) { clearTimeout(applyTimer); applyTimer = null; }
+    if (!currentReq) return;
+    const p = currentReq;
+    currentReq = null;
+    win.setBounds({ x: p.nx, y: p.ny, width: p.w, height: p.h });
+    // 主动通知渲染层新窗口尺寸：canvas 立即跟随（避免依赖 resize 事件丢失导致画布不缩放）
+    win.webContents.send('pet-window-resized', { width: p.w, height: p.h });
+    scaleBusy = false;
+    if (pendingReq) startScale();
+  }
+
+  function startScale() {
+    if (!pendingReq) return;
+    scaleBusy = true;
+    currentReq = pendingReq;
+    pendingReq = null;
+    win.webContents.send('pet-scale-applied', { scale: currentReq.s, width: currentReq.w, height: currentReq.h });
+    applyTimer = setTimeout(finishScale, 800); // 渲染层未回执时兜底强制改窗
+  }
+
   ipcMain.on('pet-scale', (_e, scale) => {
     if (!win || win.isDestroyed()) return;
     const wa = screen.getPrimaryDisplay().workArea;
@@ -126,13 +155,13 @@ function registerWindowIpc() {
     const nx = clampTo(Math.round(b.x + (b.width - w) / 2), wa.x, wa.x + wa.width - w);
     const ny = clampTo(Math.round(b.y + b.height - h), wa.y, wa.y + wa.height - h);
     console.log(`[scale] req=${scale} applied=${s} bounds=(${nx},${ny},${w},${h})`);
-    win.setBounds({ x: nx, y: ny, width: w, height: h });
-    console.log(`[scale] after setBounds: bounds=${JSON.stringify(win.getBounds())}`);
-    // 把"实际缩放值 + 目标窗口尺寸"一起给渲染层：渲染层立即用目标尺寸 resize canvas 与精灵，
-    // 避免窗口已变、canvas 还停留在旧尺寸造成的闪烁/裁剪
-    win.webContents.send('pet-scale-applied', { scale: s, width: w, height: h });
-    // 主动通知渲染层新窗口尺寸：canvas 立即跟随（避免依赖 resize 事件丢失导致画布不缩放）
-    win.webContents.send('pet-window-resized', { width: w, height: h });
+    pendingReq = { s, w, h, nx, ny };
+    if (!scaleBusy) startScale();
+  });
+
+  // 渲染层画布/精灵已按目标尺寸就绪，此时再改窗口（窗口与画布同步，无中间错位帧）
+  ipcMain.on('pet-scale-ready', () => {
+    if (scaleBusy && currentReq) finishScale();
   });
 
   // 渲染层查询最大缩放倍率（窗口不超出工作区）
