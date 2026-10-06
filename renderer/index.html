@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>Neco Arc 桌宠</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: transparent;
+      overflow: hidden;
+      user-select: none;
+      -webkit-user-select: none;
+      cursor: default;
+    }
+    #stage {
+      position: fixed;
+      inset: 0;
+    }
+    #stage canvas {
+      display: block;
+    }
+    #petAudio { display: none; }
+    #speakBar {
+      display: none;
+      position: fixed;
+      left: 50%;
+      bottom: 8px;
+      transform: translateX(-50%);
+      background: rgba(20, 20, 20, 0.92);
+      border: 2px solid #fff;
+      padding: 6px 8px;
+      z-index: 10;
+      white-space: nowrap;
+      box-sizing: border-box;
+      max-width: calc(100% - 20px);
+    }
+    #speakInput {
+      width: 170px;
+      background: #000;
+      color: #fff;
+      border: 1px solid #888;
+      padding: 4px 6px;
+      font-size: 13px;
+      outline: none;
+      box-sizing: border-box;
+    }
+    #speakSend, #speakClose {
+      background: #333;
+      color: #fff;
+      border: 1px solid #888;
+      padding: 4px 8px;
+      margin-left: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      vertical-align: top;
+    }
+    #speakSend:hover, #speakClose:hover { background: #555; }
+    #speakStatus {
+      color: #ffd;
+      font-size: 12px;
+      margin-top: 4px;
+      max-width: 300px;
+      white-space: normal;
+      line-height: 1.3;
+    }
+  </style>
+</head>
+<body>
+  <div id="stage"></div>
+  <audio id="petAudio"></audio>
+  <div id="speakBar">
+    <input id="speakInput" type="text" placeholder="说点什么…" maxlength="200" />
+    <button id="speakSend">说</button>
+    <button id="speakClose">×</button>
+    <div id="speakStatus"></div>
+  </div>
+  <script src="../assets/vendor/pixi.min.js"></script>
+  <script src="index.js"></script>
+</body>
+</html>
