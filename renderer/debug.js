@@ -77,10 +77,20 @@ window.DebugSeq = (() => {
     await wait(1000);
     window.pet.debugLog('facing after turn_left = ' + sprite.facing + ' state=' + sprite.state + ' name=' + (sprite.currentName || '?'));
     await shot('turn-left-done');
+    // 朝左站立时的一次性动作应翻转朝向
+    sprite.playOneshot('smug');
+    await wait(550);
+    await shot('act-left-smug');
+    await wait(2800); // smug 播完 + 2s 尾帧保持，回到待机
     sprite.turnTo(1);
     await wait(1200);
     window.pet.debugLog('facing after turn_right = ' + sprite.facing);
     await shot('turn-right-done');
+    // 朝右站立时的一次性动作保持正常朝向
+    sprite.playOneshot('smug');
+    await wait(550);
+    await shot('act-right-smug');
+    await wait(2800);
     await wait(300);
 
     // 缩放验证：1.5 倍后抽帧确认窗口与精灵渲染正常，再恢复

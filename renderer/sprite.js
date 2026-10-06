@@ -76,7 +76,8 @@ window.SpriteCore = (() => {
   function spritePlayOneshot(name) {
     if (SPRITE.state === 'walk') return; // 走动优先，不打断
     SPRITE.oneshotLeft = ACTION_REPEATS[name] || 1;
-    spriteShow(name, false, false);
+    // 动作跟随站立朝向：朝左时水平翻转（像素动作本身是朝右的）
+    spriteShow(name, false, SPRITE.facing === -1);
     SPRITE.state = 'oneshot';
   }
 
