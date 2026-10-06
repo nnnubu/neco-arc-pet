@@ -76,6 +76,11 @@
     <div id="speakStatus"></div>
   </div>
   <script src="../assets/vendor/pixi.min.js"></script>
+  <!-- 模块加载顺序：核心(精灵) → 交互 → 语音UI → 调试 → 入口装配 -->
+  <script src="sprite.js"></script>
+  <script src="controls.js"></script>
+  <script src="voice-ui.js"></script>
+  <script src="debug.js"></script>
   <script src="index.js"></script>
 </body>
 </html>

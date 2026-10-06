@@ -20,6 +20,13 @@ import time
 import traceback
 from datetime import datetime
 
+# Windows 控制台默认 GBK，traceback/日志里的异常字符可能二次崩溃；统一 UTF-8 容错
+for _s in (sys.stdout, sys.stderr):
+    try:
+        _s.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, BASE_DIR)
 BIN_DIR = os.path.join(BASE_DIR, "bin")
@@ -39,6 +46,14 @@ def ensure_tts():
     return _tts
 
 
+def clean_text(s):
+    """清理不可编码字符（孤立代理项等），避免 edge-tts / json 编码崩溃"""
+    if not s:
+        return s
+    # 逐码位过滤：U+D800~U+DFFF 是 UTF-16 代理项，无法独立编码为 UTF-8
+    return "".join(ch for ch in s if not (0xD800 <= ord(ch) <= 0xDFFF)).strip()
+
+
 def main():
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     # 模型就绪握手（加载较慢，调用方在此前排队）
@@ -49,7 +64,7 @@ def main():
             continue
         try:
             req = json.loads(line)
-            text = (req.get("text") or "").strip()
+            text = clean_text(req.get("text") or "")
             if not text:
                 print(json.dumps({"id": req.get("id"), "ok": False, "error": "empty text"}), flush=True)
                 continue
