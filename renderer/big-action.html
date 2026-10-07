@@ -17,8 +17,8 @@
   const frames = parseInt(params.get('frames') || '1', 10);
   const scale = parseFloat(params.get('scale') || '2');
 
-  // 位移配置（与 sprite.js MOVE_ACTIONS 一致）：act_49 帧 18 起向上平移
-  const MOVE = { act_49: { fromFrame: 18, speed: 120 } };
+  // 位移配置（与 sprite.js MOVE_ACTIONS 一致）：act_49 帧 18 起向上平移（提速至 160）
+  const MOVE = { act_49: { fromFrame: 18, speed: 160 } };
 
   (async () => {
     const app = new PIXI.Application({
@@ -31,7 +31,7 @@
 
     const texs = [];
     for (let i = 1; i <= frames; i++) {
-      texs.push(await PIXI.Assets.load(`../assets/sprite/animations/${name}/${i}.png`));
+      texs.push(await PIXI.Assets.load(`../assets/sprite/big_actions/${name}/${i}.png`));
     }
     const s = new PIXI.AnimatedSprite(texs);
     s.anchor.set(0.5, 1);

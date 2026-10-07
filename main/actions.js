@@ -5,7 +5,7 @@ const path = require('path');
 const fs = require('fs');
 
 let bigWin = null;
-const BIG_SCALE = 2; // 临时窗口渲染倍率（帧像素 1:2，NEAREST 像素清晰）
+const BIG_SCALE = 1.05; // 临时窗口渲染倍率（用户在图看软件 105% 认可；原始像素帧，清晰）
 
 // 解析 PNG 宽高（IHDR 头部：字节 16-23 大端）
 function pngSize(p) {
@@ -21,7 +21,8 @@ function pngSize(p) {
 function registerBigActionIpc() {
   ipcMain.on('play-big-action', (_e, { name, frames }) => {
     if (bigWin && !bigWin.isDestroyed()) bigWin.close();
-    const first = path.join(__dirname, '..', 'assets', 'sprite', 'animations', name, '1.png');
+    // 独立窗口用原始分辨率帧（big_actions/），不经过归一化迁移缩放——原始像素清晰
+    const first = path.join(__dirname, '..', 'assets', 'sprite', 'big_actions', name, '1.png');
     const { w, h } = pngSize(first);
     bigWin = new BrowserWindow({
       width: Math.round(w * BIG_SCALE),

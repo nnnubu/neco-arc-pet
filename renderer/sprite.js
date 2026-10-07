@@ -26,8 +26,8 @@ window.SpriteCore = (() => {
     lastMoveX: 0, // 最后水平移动方向（抬键后 vx 已归零，需在移动中记录）
     noRandom: false, // 调试：禁用随机乱跑/随机动作（PET_DEBUG 序列用）
   };
-  // 需重复播放 6 遍的动作（act_84 飞行 4 帧 × 6 ≈ 2 秒）；其余按 3 遍或 1 遍
-  const ACTION_REPEATS = { thinking: 3, push: 3, star: 3, pose1: 3, hide: 3, lie: 3, act_84: 6 };
+  // 需重复播放 8 遍的动作（act_84 飞行 4 帧 × 8 ≈ 2.7 秒）；其余按 3 遍或 1 遍
+  const ACTION_REPEATS = { thinking: 3, push: 3, star: 3, pose1: 3, hide: 3, lie: 3, act_84: 8 };
   // 特殊大动作（48/49）：不放大主窗口（会模糊），改为独立临时透明窗口渲染（main/actions.js）
   const BIG_ACTIONS = { act_48: true, act_49: true };
   // smug/wine 播完保持最后一帧的时长（2 秒）再回待机
@@ -52,8 +52,8 @@ window.SpriteCore = (() => {
   const MOVE_ACTIONS = {
     wine: { untilFrame: 14, speed: 260 }, // AnimatedSprite currentFrame 0-based：0~13 移动
     lie: { untilEnd: true, speed: 200 },
-    act_84: { untilEnd: true, speed: 120, dir: 'up' },
-    act_49: { fromFrame: 18, untilEnd: true, speed: 120, dir: 'up' },
+    act_84: { untilEnd: true, speed: 180, dir: 'up' },
+    act_49: { fromFrame: 18, untilEnd: true, speed: 120, dir: 'up' }, // 48/49 走独立窗口，此处不生效（保留注释）
   };
 
   // 随机乱跑状态（待机时偶尔自己走动/乱跑）：null 或 { dir, remaining, run }
