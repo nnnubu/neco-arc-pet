@@ -8,17 +8,13 @@ contextBridge.exposeInMainWorld('pet', {
   dragEnd: () => ipcRenderer.send('drag-end'),
   moveBy: (dx, dy) => ipcRenderer.send('move-by', { dx, dy }),
   focusWindow: () => ipcRenderer.send('focus-window'),
-  resizeWindow: (width, height) => ipcRenderer.send('resize-window', { width, height }),
+  resizeWindow: (width, height, keepBottom) => ipcRenderer.send('resize-window', { width, height, keepBottom }),
   setScale: (scale) => ipcRenderer.send('pet-scale', scale),
   // 主进程缩放动画每步通知渲染层（画布跟随窗口尺寸、精灵按 scale 反推，窗口与画面始终同步）
   onPetWindowResized: (cb) => ipcRenderer.on('pet-window-resized', (_e, size) => cb(size)),
   getMaxScale: () => ipcRenderer.invoke('pet-get-max-scale'),
   showMenu: () => ipcRenderer.send('show-context-menu'),
   getActions: () => ipcRenderer.invoke('get-actions'),
-  // 特殊大动作（48/49）：独立临时窗口播放
-  playBigAction: (name, frames) => ipcRenderer.send('play-big-action', { name, frames }),
-  bigClose: () => ipcRenderer.send('big-close'),
-  bigMoveBy: (dx, dy) => ipcRenderer.send('big-move-by', { dx, dy }),
   debugShot: (name) => ipcRenderer.send('debug-shot', name),
   debugLog: (msg) => ipcRenderer.send('debug-log', msg),
   quit: () => ipcRenderer.send('quit'),

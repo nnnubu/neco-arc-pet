@@ -118,10 +118,18 @@ function registerWindowIpc() {
     if (!win.isFocused()) win.focus();
   });
 
-  ipcMain.on('resize-window', (_e, { width, height }) => {
+  ipcMain.on('resize-window', (_e, { width, height, keepBottom }) => {
     if (!win || win.isDestroyed()) return;
-    const [x, y] = win.getPosition();
-    win.setBounds({ x, y, width: Math.round(width), height: Math.round(height) });
+    if (keepBottom) {
+      // 底部保持不动 + 水平居中（48/49 特殊大动作播放时窗口临时放大，避免角色跳位）
+      const b = win.getBounds();
+      const x = Math.round(b.x + (b.width - width) / 2);
+      const y = Math.round(b.y + b.height - height);
+      win.setBounds({ x, y, width: Math.round(width), height: Math.round(height) });
+    } else {
+      const [x, y] = win.getPosition();
+      win.setBounds({ x, y, width: Math.round(width), height: Math.round(height) });
+    }
   });
 
   // 桌宠缩放：滚轮控制。保持窗口底部位置，水平居中；限制窗口不超出工作区

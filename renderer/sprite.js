@@ -26,9 +26,9 @@ window.SpriteCore = (() => {
     lastMoveX: 0, // 最后水平移动方向（抬键后 vx 已归零，需在移动中记录）
     noRandom: false, // 调试：禁用随机乱跑/随机动作（PET_DEBUG 序列用）
   };
-  // 需重复播放 8 遍的动作（act_84 飞行 4 帧 × 8 ≈ 2.7 秒）；其余按 3 遍或 1 遍
-  const ACTION_REPEATS = { thinking: 3, push: 3, star: 3, pose1: 3, hide: 3, lie: 3, act_84: 8 };
-  // 特殊大动作（48/49）：不放大主窗口（会模糊），改为独立临时透明窗口渲染（main/actions.js）
+  // 需重复播放 24 遍的动作（act_84 飞行 4 帧 × 24 @12fps = 8 秒）；其余按 3 遍或 1 遍
+  const ACTION_REPEATS = { thinking: 3, push: 3, star: 3, pose1: 3, hide: 3, lie: 3, act_84: 24 };
+  // 特殊大动作（48/49）：主窗口播放时临时放大窗口到原始帧尺寸×1.05（原始帧清晰，无需独立窗口）
   const BIG_ACTIONS = { act_48: true, act_49: true };
   // smug/wine 播完保持最后一帧的时长（2 秒）再回待机
   const SMUG_HOLD_MS = 2000;
@@ -52,8 +52,8 @@ window.SpriteCore = (() => {
   const MOVE_ACTIONS = {
     wine: { untilFrame: 14, speed: 260 }, // AnimatedSprite currentFrame 0-based：0~13 移动
     lie: { untilEnd: true, speed: 200 },
-    act_84: { untilEnd: true, speed: 180, dir: 'up' },
-    act_49: { fromFrame: 18, untilEnd: true, speed: 120, dir: 'up' }, // 48/49 走独立窗口，此处不生效（保留注释）
+    act_84: { untilEnd: true, speed: 300, dir: 'up' },
+    act_49: { fromFrame: 18, untilEnd: true, speed: 160, dir: 'up' },
   };
 
   // 随机乱跑状态（待机时偶尔自己走动/乱跑）：null 或 { dir, remaining, run }
@@ -65,6 +65,55 @@ window.SpriteCore = (() => {
   let app = null;
   let shared = null; // { keys, petScale, maxScale }
   const rand = (lo, hi) => lo + Math.random() * (hi - lo);
+
+  // 特殊大动作（48/49）主窗口播放状态：bigSprite=原始帧精灵；bigSaved=播放前窗口/缩放
+  let bigSprite = null; // { w, h, scale }
+  let bigSaved = null;
+
+  // 播放特殊大动作：加载原始分辨率帧（big_actions/），窗口临时放大到帧尺寸×1.05（底部保持），
+  // 精灵 1:1 显示（原始像素清晰）；播完停留 0.4 秒后回待机并恢复窗口/缩放
+  async function playBigInMain(name) {
+    if (bigSprite) { app.stage.removeChild(bigSprite); bigSprite.destroy({ children: true }); bigSprite = null; }
+    if (bigSaved) restoreBig();
+    const dyn = dynamicActionsMap[name];
+    if (!dyn) return;
+    const texs = [];
+    for (let i = 1; i <= dyn.frames; i++) {
+      texs.push(await PIXI.Assets.load(`../assets/sprite/big_actions/${name}/${i}.png`));
+    }
+    const s = new PIXI.AnimatedSprite(texs);
+    s.anchor.set(0.5, 1);
+    s.animationSpeed = SPRITE.FPS / 60;
+    s.scale.set(1.05, 1.05);
+    for (const t of texs) t.baseTexture.scaleMode = PIXI.SCALE_MODES.NEAREST;
+    s.onComplete = () => {
+      if (bigSprite !== s) return;
+      setTimeout(() => { if (bigSprite === s) spriteBackToIdle(); }, 400);
+    };
+    s.loop = false;
+    app.stage.addChild(s);
+    bigSprite = s;
+    // 窗口放大到帧尺寸×1.05（底部保持不跳动），精灵底部中心对齐新窗口
+    const w = Math.round(texs[0].width * 1.05);
+    const h = Math.round(texs[0].height * 1.05);
+    bigSaved = { w: window.innerWidth, h: window.innerHeight, scale: shared.petScale };
+    window.pet.resizeWindow(w, h, true);
+    s.position.set(w / 2, h - 5);
+    SPRITE.state = 'oneshot';
+    SPRITE.current = s; // 供 update 的 MOVE_ACTIONS 位移（49 点火后上移）判断
+    SPRITE.currentName = name;
+    SPRITE.oneshotLeft = 1;
+    s.gotoAndPlay(0);
+  }
+
+  function restoreBig() {
+    if (!bigSaved) return;
+    if (bigSprite) { app.stage.removeChild(bigSprite); bigSprite.destroy({ children: true }); bigSprite = null; }
+    window.pet.resizeWindow(bigSaved.w, bigSaved.h, true);
+    shared.petScale = bigSaved.scale;
+    bigSaved = null;
+    applyPetScale();
+  }
 
   function spriteShow(name, loop, flipX) {
     const s = SPRITE.sprites[name];
@@ -93,12 +142,8 @@ window.SpriteCore = (() => {
 
   function spritePlayOneshot(name) {
     if (SPRITE.state === 'walk') return; // 走动优先，不打断
-    // 特殊大动作（48/49）：不占用主窗口——独立临时透明窗口渲染（main/actions.js + big-action.html）
-    if (BIG_ACTIONS[name]) {
-      const dyn = dynamicActionsMap[name];
-      if (dyn) window.pet.playBigAction(name, dyn.frames);
-      return;
-    }
+    // 特殊大动作（48/49）：主窗口临时放大播放原始帧（不裁剪、不模糊）
+    if (BIG_ACTIONS[name]) { playBigInMain(name); return; }
     SPRITE.oneshotLeft = ACTION_REPEATS[name] || 1;
     // 动作跟随站立朝向：朝左时水平翻转（像素动作本身是朝右的）
     spriteShow(name, false, SPRITE.facing === -1);
@@ -107,6 +152,7 @@ window.SpriteCore = (() => {
 
   function spriteBackToIdle() {
     if (SPRITE.state === 'walk') return; // 走动中不打断
+    if (bigSaved) restoreBig(); // 48/49 特殊大动作播完：恢复原窗口/缩放
     SPRITE.state = 'idle';
     spriteShow('standing', true, SPRITE.facing === -1);
   }
@@ -179,7 +225,9 @@ window.SpriteCore = (() => {
         for (const t of texs) t.baseTexture.scaleMode = PIXI.SCALE_MODES.NEAREST;
         s.onComplete = () => {
           if (SPRITE.state !== 'oneshot' || SPRITE.current !== s) return;
-          spriteBackToIdle();
+          // 按轮数循环（act_84 等需重复播放的动作）；播完回待机
+          if (SPRITE.oneshotLeft > 1) { SPRITE.oneshotLeft--; s.gotoAndPlay(0); }
+          else spriteBackToIdle();
         };
         app.stage.addChild(s);
         SPRITE.sprites[a.name] = s;
