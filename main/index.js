@@ -4,6 +4,7 @@ const { app, BrowserWindow } = require('electron');
 const { createWindow, registerWindowIpc } = require('./window');
 const { registerMenuIpc } = require('./menu');
 const { registerVoiceIpc } = require('./voice');
+const { registerSingIpc } = require('./sing');
 
 // 透明窗口加固：Windows 上硬件加速合成偶发导致透明失效变白底，
 // 禁用后透明层走软件合成，稳定可靠（像素动画性能不受影响）
@@ -14,6 +15,7 @@ app.whenReady().then(() => {
   registerWindowIpc();
   registerMenuIpc();
   registerVoiceIpc();
+  registerSingIpc();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();

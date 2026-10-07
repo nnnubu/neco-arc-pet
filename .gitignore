@@ -36,3 +36,6 @@ debug-*.png
 
 # AI 问答缓存
 voice/ai_cache.json
+
+# 翻唱产物（大体积 wav，物理保留不入库）
+voice/sing_output/

@@ -23,4 +23,9 @@ contextBridge.exposeInMainWorld('pet', {
   onSpeakState: (cb) => ipcRenderer.on('speak-state', (_e, s) => cb(s)),
   onAiReply: (cb) => ipcRenderer.on('ai-reply', (_e, r) => cb(r)),
   onAiToken: (cb) => ipcRenderer.on('ai-token', (_e, r) => cb(r)),
+  // 唱歌（翻唱）
+  singSong: (songPath) => ipcRenderer.send('sing-song', songPath),
+  onSingProgress: (cb) => ipcRenderer.on('sing-progress', (_e, s) => cb(s)),
+  onSingDone: (cb) => ipcRenderer.on('sing-done', (_e, r) => cb(r)),
+  onSingError: (cb) => ipcRenderer.on('sing-error', (_e, e) => cb(e)),
 });

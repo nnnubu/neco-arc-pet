@@ -22,6 +22,7 @@ window.VoiceUI = (() => {
   // 流式状态：AI 回复全文、是否正在跟随语音
   let replyText = '';
   let syncMode = false; // true=播放阶段逐字跟随语音；false=AI 生成阶段（仅累积文本）
+  let singHideTimer = null; // 翻唱结果/错误文本的自动关闭定时器
 
   function updatePosition(scale) {
     const footGap = 5 + FOOT_MARGIN * SPRITE_SCALE * scale; // 角色脚底到窗口底（精灵底部对齐 h-5）
@@ -73,6 +74,13 @@ window.VoiceUI = (() => {
       // 清除孤立代理项（输入法/粘贴可能产生），防止传给 Python 时编码崩溃
       const t = input.value.replace(/[\uD800-\uDFFF]/g, '').trim();
       if (!t) return;
+      // 唱歌命令：输入「唱 <歌曲路径>」→ 翻唱（分离→变声→混音），不走 AI 问答
+      const m = t.match(/^唱(歌)?\s+(\S.*)$/);
+      if (m) {
+        const p = m[2].replace(/^["']|["']$/g, '').trim();
+        window.pet.singSong(p);
+        return;
+      }
       window.pet.speakText(t);
     });
     retryBtn.addEventListener('click', () => {
@@ -159,6 +167,46 @@ window.VoiceUI = (() => {
     // AI 回复完成：保存全文，等待语音播放时再渲染
     window.pet.onAiReply((r) => {
       replyText = r.text || '';
+    });
+
+    // ── 唱歌（翻唱）反馈：进度 / 完成 / 错误 ──
+    const STAGE_TEXT = {
+      separate: '正在分离人声…',
+      convert: '正在变声成喵声…',
+      mix: '正在混音…',
+      done: '翻唱完成！',
+    };
+    window.pet.onSingProgress((s) => {
+      status.style.display = 'block';
+      status.textContent = STAGE_TEXT[s.stage] || '翻唱中…';
+    });
+    window.pet.onSingDone((r) => {
+      status.style.display = 'block';
+      status.textContent = '翻唱完成！';
+      replyText = '';
+      syncMode = false;
+      if (aiText) {
+        const full = String(r.full || '').replace(/\\/g, '/');
+        const vocal = String(r.vocal || '').replace(/\\/g, '/');
+        showAiText('唱好啦喵！\n完整版：' + full + '\n人声轨：' + vocal);
+        positionAiText();
+        aiText.style.display = 'block';
+        clearTimeout(singHideTimer);
+        singHideTimer = setTimeout(() => { if (aiText) aiText.style.display = 'none'; }, 15000);
+      }
+      setTimeout(hide, 1500);
+    });
+    window.pet.onSingError((e) => {
+      const msg = String(e || '未知');
+      status.style.display = 'block';
+      status.textContent = '翻唱失败: ' + msg;
+      if (aiText) {
+        showAiText('翻唱失败喵：' + msg);
+        positionAiText();
+        aiText.style.display = 'block';
+        clearTimeout(singHideTimer);
+        singHideTimer = setTimeout(() => { if (aiText) aiText.style.display = 'none'; }, 8000);
+      }
     });
   }
 
