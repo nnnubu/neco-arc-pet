@@ -26,8 +26,10 @@ window.SpriteCore = (() => {
     lastMoveX: 0, // 最后水平移动方向（抬键后 vx 已归零，需在移动中记录）
     noRandom: false, // 调试：禁用随机乱跑/随机动作（PET_DEBUG 序列用）
   };
-  // 需重复播放 3 遍的动作（thinking/push/star/pose1/hide/lie）；其余动作播放一遍即回待机
-  const ACTION_REPEATS = { thinking: 3, push: 3, star: 3, pose1: 3, hide: 3, lie: 3 };
+  // 需重复播放 3 遍的动作（thinking/push/star/pose1/hide/lie/act_84）；其余动作播放一遍即回待机
+  const ACTION_REPEATS = { thinking: 3, push: 3, star: 3, pose1: 3, hide: 3, lie: 3, act_84: 3 };
+  // 特殊大动作：播放时窗口与角色临时放大 2 倍（避免角色超出窗口被裁剪），播完恢复原窗口/缩放
+  const BIG_ACTIONS = { act_48: 2, act_49: 2 };
   // smug/wine 播完保持最后一帧的时长（2 秒）再回待机
   const SMUG_HOLD_MS = 2000;
   // 循环动画的帧集：排除起跑/爆发/收尾/站立帧，循环衔接才自然
@@ -61,6 +63,24 @@ window.SpriteCore = (() => {
   let shared = null; // { keys, petScale, maxScale }
   const rand = (lo, hi) => lo + Math.random() * (hi - lo);
 
+  // 特殊大动作播放时的窗口/缩放临时放大与恢复（48/49 角色大，当前窗口放不下）
+  let bigSaved = null; // { w, h, scale }
+  function playBig() {
+    if (bigSaved) return;
+    bigSaved = { w: window.innerWidth, h: window.innerHeight, scale: shared.petScale };
+    const factor = BIG_ACTIONS[SPRITE.currentName] || 2;
+    window.pet.resizeWindow(Math.round(window.innerWidth * factor), Math.round(window.innerHeight * factor));
+    shared.petScale = bigSaved.scale * factor;
+    applyPetScale();
+  }
+  function restoreBig() {
+    if (!bigSaved) return;
+    window.pet.resizeWindow(bigSaved.w, bigSaved.h);
+    shared.petScale = bigSaved.scale;
+    applyPetScale();
+    bigSaved = null;
+  }
+
   function spriteShow(name, loop, flipX) {
     const s = SPRITE.sprites[name];
     if (!s) return;
@@ -92,10 +112,13 @@ window.SpriteCore = (() => {
     // 动作跟随站立朝向：朝左时水平翻转（像素动作本身是朝右的）
     spriteShow(name, false, SPRITE.facing === -1);
     SPRITE.state = 'oneshot';
+    // 特殊大动作（48/49）：窗口与角色临时放大，播完回待机时恢复
+    if (BIG_ACTIONS[name]) playBig();
   }
 
   function spriteBackToIdle() {
     if (SPRITE.state === 'walk') return; // 走动中不打断
+    if (bigSaved) restoreBig(); // 特殊大动作播完：恢复原窗口/缩放
     SPRITE.state = 'idle';
     spriteShow('standing', true, SPRITE.facing === -1);
   }
