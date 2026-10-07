@@ -12,7 +12,7 @@ window.SpriteCore = (() => {
   const SPRITE = {
     groups: ['standing', 'walking_left', 'walking_right', 'running', 'backflip', 'kick', 'thinking', 'wine', 'wine_2',
       'smug', 'tongue', 'push', 'star', 'pose1', 'hide', 'pout', 'lie', 'turn_left', 'turn_right'],
-    frameCount: { standing: 9, walking_left: 12, walking_right: 11, running: 11, backflip: 9, kick: 7, thinking: 4, wine: 28, wine_2: 17,
+    frameCount: { standing: 9, walking_left: 12, walking_right: 11, running: 11, backflip: 9, kick: 7, thinking: 50, wine: 28, wine_2: 17,
       smug: 5, tongue: 60, push: 10, star: 3, pose1: 3, hide: 3, pout: 8, lie: 8, turn_left: 11, turn_right: 10 },
     FPS: 12,
     SCALE: 2,

@@ -308,20 +308,12 @@
   "frames": 29
  },
  {
-  "name": "act_88",
-  "frames": 4
- },
- {
   "name": "act_89",
   "frames": 50
  },
  {
   "name": "act_9",
   "frames": 23
- },
- {
-  "name": "act_90",
-  "frames": 50
  },
  {
   "name": "act_92",
@@ -342,6 +334,10 @@
  {
   "name": "act_97",
   "frames": 6
+ },
+ {
+  "name": "act_98",
+  "frames": 4
  },
  {
   "name": "act_99",
