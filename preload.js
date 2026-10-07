@@ -14,6 +14,7 @@ contextBridge.exposeInMainWorld('pet', {
   onPetWindowResized: (cb) => ipcRenderer.on('pet-window-resized', (_e, size) => cb(size)),
   getMaxScale: () => ipcRenderer.invoke('pet-get-max-scale'),
   showMenu: () => ipcRenderer.send('show-context-menu'),
+  getActions: () => ipcRenderer.invoke('get-actions'),
   debugShot: (name) => ipcRenderer.send('debug-shot', name),
   debugLog: (msg) => ipcRenderer.send('debug-log', msg),
   quit: () => ipcRenderer.send('quit'),

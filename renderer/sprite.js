@@ -147,6 +147,29 @@ window.SpriteCore = (() => {
       app.stage.addChild(s);
       SPRITE.sprites[g] = s;
     }
+    // 迁移动作（act_*）：从 main 读取注册表动态加载帧组，播放一遍回待机（无重复/停留/位移）
+    try {
+      const dyn = await window.pet.getActions();
+      for (const a of dyn || []) {
+        const texs = [];
+        for (let i = 1; i <= a.frames; i++) {
+          texs.push(await PIXI.Assets.load(`../assets/sprite/animations/${a.name}/${i}.png`));
+        }
+        const s = new PIXI.AnimatedSprite(texs);
+        s.anchor.set(0.5, 1);
+        s.animationSpeed = SPRITE.FPS / 60;
+        s.visible = false;
+        for (const t of texs) t.baseTexture.scaleMode = PIXI.SCALE_MODES.NEAREST;
+        s.onComplete = () => {
+          if (SPRITE.state !== 'oneshot' || SPRITE.current !== s) return;
+          spriteBackToIdle();
+        };
+        app.stage.addChild(s);
+        SPRITE.sprites[a.name] = s;
+      }
+    } catch (e) {
+      console.error('[sprite] 动态动作加载失败:', e);
+    }
     SPRITE.state = 'idle';
     SPRITE.nextActionAt = Date.now() + rand(8000, 15000);
     SPRITE.nextRoamAt = Date.now() + rand(15000, 30000); // 首次随机乱跑计时
