@@ -42,6 +42,14 @@ window.SpriteCore = (() => {
   const ONESHOT_NAMES = ['backflip', 'kick', 'wine', 'wine_2', 'thinking',
     'smug', 'tongue', 'push', 'star', 'pose1', 'hide', 'pout', 'lie'];
 
+  // oneshot 动作附带位移（沿当前朝向水平移动桌宠）：
+  // - wine：前段走动（帧 1~14：行走/弯腰/抬手），播放到拿起酒杯（帧 15）后停下
+  // - lie：躺倒动作全程移动，直到动作结束回待机
+  const MOVE_ACTIONS = {
+    wine: { untilFrame: 14, speed: 260 }, // AnimatedSprite currentFrame 0-based：0~13 移动
+    lie: { untilEnd: true, speed: 200 },
+  };
+
   // 随机乱跑状态（待机时偶尔自己走动/乱跑）：null 或 { dir, remaining, run }
   let roam = null;
 
@@ -197,6 +205,13 @@ window.SpriteCore = (() => {
         SPRITE.lastMoveX = 0;
       }
       spriteShow('standing', true, SPRITE.facing === -1);
+    } else if (SPRITE.state === 'oneshot' && SPRITE.current) {
+      // 一次性动作附带位移：wine 走动段（拿起酒杯前）/ lie 全程——沿当前朝向移动桌宠
+      const mv = MOVE_ACTIONS[SPRITE.currentName];
+      if (mv) {
+        const moving = mv.untilEnd || SPRITE.current.currentFrame < mv.untilFrame;
+        if (moving) window.pet.moveBy(Math.round(SPRITE.facing * mv.speed * dt), 0);
+      }
     }
 
     // 待机时偶尔自己乱跑 / 随机表演动作（互斥触发，随机时长）
