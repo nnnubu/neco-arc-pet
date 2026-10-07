@@ -120,6 +120,7 @@ function registerWindowIpc() {
 
   ipcMain.on('resize-window', (_e, { width, height, keepBottom }) => {
     if (!win || win.isDestroyed()) return;
+    stopScaleAnim(); // 播放特殊大动作时停止缩放动画，避免动画 setBounds 覆盖放大后的窗口位置
     if (keepBottom) {
       // 底部保持不动 + 水平居中（48/49 特殊大动作播放时窗口临时放大，避免角色跳位）
       const b = win.getBounds();

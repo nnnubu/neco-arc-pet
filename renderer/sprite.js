@@ -75,8 +75,10 @@ window.SpriteCore = (() => {
   async function playBigInMain(name) {
     if (bigSprite) { app.stage.removeChild(bigSprite); bigSprite.destroy({ children: true }); bigSprite = null; }
     if (bigSaved) restoreBig();
+    SPRITE.state = 'oneshot'; // 立即锁定状态，防止加载帧期间待机随机动作/乱跑启动
+    roam = null;
     const dyn = dynamicActionsMap[name];
-    if (!dyn) return;
+    if (!dyn) { spriteBackToIdle(); return; }
     const texs = [];
     for (let i = 1; i <= dyn.frames; i++) {
       texs.push(await PIXI.Assets.load(`../assets/sprite/big_actions/${name}/${i}.png`));
@@ -149,6 +151,7 @@ window.SpriteCore = (() => {
 
   function spritePlayOneshot(name) {
     if (SPRITE.state === 'walk') return; // 走动优先，不打断
+    roam = null; // 播放动作时立即停止随机乱跑（否则乱跑分支优先，窗口继续移动导致位置偏移）
     // 特殊大动作（48/49）：主窗口临时放大播放原始帧（不裁剪、不模糊）
     if (BIG_ACTIONS[name]) { playBigInMain(name); return; }
     SPRITE.oneshotLeft = ACTION_REPEATS[name] || 1;
