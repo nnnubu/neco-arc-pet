@@ -16,13 +16,17 @@ const EMOTION_ALIAS = {
   '平静': 'neutral',
 };
 
-// 解析 AI 回复的情绪标签：【情绪】文本 → { emotion, text(去标签) }
+// 解析情绪标签：任意位置识别【情绪】→ emotion；并全局剥离所有【】标记（防标签被显示/朗读）
 function parseEmotion(reply) {
-  const m = String(reply).match(/^【([^】]+)】/);
-  if (m && EMOTION_ALIAS[m[1]]) {
-    return { emotion: EMOTION_ALIAS[m[1]], text: reply.slice(m[0].length).trim() };
+  const s = String(reply);
+  let emotion = 'neutral';
+  const tags = s.match(/【\s*([^】\s]+)\s*】/g) || [];
+  for (const t of tags) {
+    const name = t.replace(/[【】\s]/g, '');
+    if (EMOTION_ALIAS[name]) { emotion = EMOTION_ALIAS[name]; break; }
   }
-  return { emotion: 'neutral', text: reply };
+  const text = s.replace(/【[^】]*】/g, '').replace(/\s+/g, ' ').trim();
+  return { emotion, text };
 }
 
 let voiceProc = null;
