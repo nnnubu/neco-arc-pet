@@ -44,13 +44,22 @@ def main():
     shutil.rmtree(OUT, ignore_errors=True)
     os.makedirs(OUT, exist_ok=True)
 
+    # ── 0. 统一转码：ffmpeg 先转 wav（demucs 的 sphn 一定能读；损坏 mp3 也能容错读取，
+    #      且绕开 demucs 兜底对 ffprobe 的依赖——项目只有 ffmpeg.exe 没有 ffprobe.exe）──
+    log({'stage': 'convert_pre'})
+    pre_wav = os.path.join(OUT, '_pre.wav')
+    rr = subprocess.run([FFMPEG, '-y', '-i', src, '-ac', '2', '-ar', '44100', pre_wav],
+                        capture_output=True, text=True, timeout=600)
+    if rr.returncode != 0 or not os.path.exists(pre_wav):
+        log({'error': '文件无法解码（格式不支持或文件损坏）: ' + (rr.stderr[-200:] if rr.stderr else '')}); return
+
     # ── 1. 人声分离（demucs htdemucs，模型已缓存在用户目录）──
     log({'stage': 'separate'})
-    rr = subprocess.run([PY, '-m', 'demucs', '--two-stems', 'vocals', '-o', OUT, src],
+    rr = subprocess.run([PY, '-m', 'demucs', '--two-stems', 'vocals', '-o', OUT, pre_wav],
                         capture_output=True, text=True, timeout=1800)
     if rr.returncode != 0:
         log({'error': '人声分离失败: ' + (rr.stderr[-300:] if rr.stderr else '未知')}); return
-    sepdir = os.path.join(OUT, 'htdemucs', name)
+    sepdir = os.path.join(OUT, 'htdemucs', '_pre')
     vocal = os.path.join(sepdir, 'vocals.wav')
     inst = os.path.join(sepdir, 'no_vocals.wav')
     if not (os.path.exists(vocal) and os.path.exists(inst)):
