@@ -15,6 +15,10 @@ contextBridge.exposeInMainWorld('pet', {
   getMaxScale: () => ipcRenderer.invoke('pet-get-max-scale'),
   showMenu: () => ipcRenderer.send('show-context-menu'),
   getActions: () => ipcRenderer.invoke('get-actions'),
+  // 特殊大动作（48/49）：独立临时窗口播放
+  playBigAction: (name, frames) => ipcRenderer.send('play-big-action', { name, frames }),
+  bigClose: () => ipcRenderer.send('big-close'),
+  bigMoveBy: (dx, dy) => ipcRenderer.send('big-move-by', { dx, dy }),
   debugShot: (name) => ipcRenderer.send('debug-shot', name),
   debugLog: (msg) => ipcRenderer.send('debug-log', msg),
   quit: () => ipcRenderer.send('quit'),
