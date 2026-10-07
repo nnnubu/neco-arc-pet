@@ -28,7 +28,7 @@ window.SpriteCore = (() => {
   };
   // 需重复播放 3 遍的动作（thinking/push/star/pose1/hide/lie）；其余动作播放一遍即回待机
   const ACTION_REPEATS = { thinking: 3, push: 3, star: 3, pose1: 3, hide: 3, lie: 3 };
-  // smug 播完保持最后一帧的时长（2 秒）再回待机
+  // smug/wine 播完保持最后一帧的时长（2 秒）再回待机
   const SMUG_HOLD_MS = 2000;
   // 循环动画的帧集：排除起跑/爆发/收尾/站立帧，循环衔接才自然
   // - walking：去帧 1 与尾帧（首尾跳变最大）
@@ -116,11 +116,9 @@ window.SpriteCore = (() => {
       s.animationSpeed = SPRITE.FPS / 60; // 统一 12fps（与原始动作一致）
       s.visible = false;
       for (const t of texs) t.baseTexture.scaleMode = PIXI.SCALE_MODES.NEAREST;
-      // 一次性动画：指定动作按轮数循环；smug 播完保持最后一帧 2 秒；其余播完直接回待机
-      s.onComplete = () => {
-        if (SPRITE.state !== 'oneshot' || SPRITE.current !== s) return;
+        // 一次性动画：指定动作按轮数循环；smug/wine 播完保持最后一帧约 2 秒；其余播完直接回待机
         if (SPRITE.oneshotLeft > 1) { SPRITE.oneshotLeft--; s.gotoAndPlay(0); }
-        else if (SPRITE.currentName === 'smug') {
+        else if (SPRITE.currentName === 'smug' || SPRITE.currentName === 'wine') {
           const cur = s;
           setTimeout(() => {
             if (SPRITE.current === cur && SPRITE.state === 'oneshot') spriteBackToIdle();
