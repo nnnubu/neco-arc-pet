@@ -116,7 +116,9 @@ window.SpriteCore = (() => {
       s.animationSpeed = SPRITE.FPS / 60; // 统一 12fps（与原始动作一致）
       s.visible = false;
       for (const t of texs) t.baseTexture.scaleMode = PIXI.SCALE_MODES.NEAREST;
-        // 一次性动画：指定动作按轮数循环；smug/wine 播完保持最后一帧约 2 秒；其余播完直接回待机
+      // 一次性动画：指定动作按轮数循环；smug/wine 播完保持最后一帧约 2 秒；其余播完直接回待机
+      s.onComplete = () => {
+        if (SPRITE.state !== 'oneshot' || SPRITE.current !== s) return;
         if (SPRITE.oneshotLeft > 1) { SPRITE.oneshotLeft--; s.gotoAndPlay(0); }
         else if (SPRITE.currentName === 'smug' || SPRITE.currentName === 'wine') {
           const cur = s;

@@ -27,3 +27,6 @@ __pycache__/
 /_*.mp3
 /_*.py
 /_*.txt
+
+# PET_DEBUG 调试截图
+debug-*.png
