@@ -18,7 +18,7 @@ contextBridge.exposeInMainWorld('pet', {
   debugLog: (msg) => ipcRenderer.send('debug-log', msg),
   quit: () => ipcRenderer.send('quit'),
   // 语音（说句话…）
-  speakText: (text) => ipcRenderer.send('speak-text', text),
+  speakText: (text, force) => ipcRenderer.send('speak-text', text, !!force),
   onSpeakAudio: (cb) => ipcRenderer.on('play-audio', (_e, p) => cb(p)),
   onSpeakState: (cb) => ipcRenderer.on('speak-state', (_e, s) => cb(s)),
 });

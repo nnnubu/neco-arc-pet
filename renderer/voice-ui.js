@@ -6,6 +6,7 @@ window.VoiceUI = (() => {
   let el = null;
   let input = null;
   let sendBtn = null;
+  let retryBtn = null;
   let closeBtn = null;
   let status = null;
   let audio = null;
@@ -26,6 +27,7 @@ window.VoiceUI = (() => {
     el = document.getElementById('speakBar');
     input = document.getElementById('speakInput');
     sendBtn = document.getElementById('speakSend');
+    retryBtn = document.getElementById('speakRetry');
     closeBtn = document.getElementById('speakClose');
     status = document.getElementById('speakStatus');
     audio = document.getElementById('petAudio');
@@ -35,6 +37,12 @@ window.VoiceUI = (() => {
       const t = input.value.replace(/[\uD800-\uDFFF]/g, '').trim();
       if (!t) return;
       window.pet.speakText(t);
+    });
+    retryBtn.addEventListener('click', () => {
+      // 强制重新合成（绕过缓存）：偶发 edge-tts 内容错误时可重新生成并覆盖旧缓存
+      const t = input.value.replace(/[\uD800-\uDFFF]/g, '').trim();
+      if (!t) return;
+      window.pet.speakText(t, true);
     });
     closeBtn.addEventListener('click', hide);
     input.addEventListener('keydown', (e) => {

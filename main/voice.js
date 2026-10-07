@@ -63,7 +63,7 @@ function flushVoiceQueue() {
 }
 
 function registerVoiceIpc() {
-  ipcMain.on('speak-text', (_e, text) => {
+  ipcMain.on('speak-text', (_e, text, force) => {
     const win = getWin();
     if (!win || win.isDestroyed()) return;
     // 清除孤立代理项（输入法/粘贴可能产生），防止传给 Python 时编码崩溃
@@ -72,6 +72,7 @@ function registerVoiceIpc() {
     ensureVoiceServer();
     win.webContents.send('speak-state', { state: 'generating' });
     const req = { id: Date.now(), text: t };
+    if (force) req.force = true; // 重试：绕过缓存强制重新合成（覆盖旧缓存）
     if (voiceReady && voiceProc) {
       voiceProc.stdin.write(JSON.stringify(req) + '\n');
     } else {

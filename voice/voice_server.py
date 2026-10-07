@@ -61,9 +61,24 @@ def ensure_tts():
     return _tts
 
 
+def _normalize_key_text(text):
+    """缓存 key 归一化：全角标点→半角、压缩空白。
+    仅用于缓存命中判断（人眼看不出差异的输入共享同一缓存），合成仍用原文。"""
+    out = []
+    for ch in text:
+        o = ord(ch)
+        if o == 0x3000:  # 全角空格
+            out.append(" ")
+        elif 0xFF01 <= o <= 0xFF5E:  # 全角 ASCII 区 → 半角
+            out.append(chr(o - 0xFEE0))
+        else:
+            out.append(ch)
+    return "".join(out).strip()
+
+
 def cache_path(text, pitch):
     """文本+音调 → 缓存文件路径（内容寻址，相同文本命中同一文件）"""
-    key = f"{text}\x00{pitch}".encode("utf-8")
+    key = f"{_normalize_key_text(text)}\x00{pitch}".encode("utf-8")
     return os.path.join(CACHE_DIR, hashlib.md5(key).hexdigest() + ".wav")
 
 
@@ -149,13 +164,20 @@ def main():
                 continue
             pitch = int(req.get("pitch", 0))
             cp = cache_path(text, pitch)
-            # 缓存命中：直接返回，不再合成
-            if os.path.exists(cp):
+            force = bool(req.get("force"))
+            # 缓存命中（非 force 重试）：直接返回，不再合成
+            if not force and os.path.exists(cp):
                 print(json.dumps({"id": req.get("id"), "ok": True, "wav": cp.replace(os.sep, "/"), "cached": True}), flush=True)
                 continue
             # 用户请求优先标记：预生成线程看到后让路
             _user_waiting.set()
             try:
+                # force 重试：先删旧缓存（可能存有 edge-tts 偶发错误内容），再重新合成覆盖
+                if force and os.path.exists(cp):
+                    try:
+                        os.remove(cp)
+                    except OSError:
+                        pass
                 # 未命中：合成（edge-tts 偶发网络超时，重试 1 次）到缓存文件
                 last_err = None
                 for attempt in range(2):
