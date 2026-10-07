@@ -7,6 +7,24 @@ const { spawn } = require('child_process');
 const { getWin } = require('./window');
 const { askAI } = require('./ai');
 
+// ── 情绪标签解析（语音参数映射在 voice_server 侧，此处只传 emotion）──
+const EMOTION_ALIAS = {
+  '开心': 'happy', '高兴': 'happy', '愉快': 'happy',
+  '生气': 'angry', '愤怒': 'angry', '气': 'angry',
+  '难过': 'sad', '伤心': 'sad', '委屈': 'sad',
+  '惊讶': 'surprised', '吃惊': 'surprised',
+  '平静': 'neutral',
+};
+
+// 解析 AI 回复的情绪标签：【情绪】文本 → { emotion, text(去标签) }
+function parseEmotion(reply) {
+  const m = String(reply).match(/^【([^】]+)】/);
+  if (m && EMOTION_ALIAS[m[1]]) {
+    return { emotion: EMOTION_ALIAS[m[1]], text: reply.slice(m[0].length).trim() };
+  }
+  return { emotion: 'neutral', text: reply };
+}
+
 let voiceProc = null;
 let voiceReady = false;
 let voiceQueue = [];
@@ -89,12 +107,15 @@ function registerVoiceIpc() {
       win.webContents.send('speak-state', { state: 'error', error: 'AI 没有回复' });
       return;
     }
-    // 回复文本给渲染层显示气泡
-    if (!win.isDestroyed()) win.webContents.send('ai-reply', { text: reply });
-    // 合成回复语音（复用现有 edge-tts→RVC→缓存 管道）
+    // 解析情绪标签：标签决定语音合成情绪（voice_server 内部映射到 CosyVoice 参数）
+    const { emotion, text: speakText } = parseEmotion(reply);
+    console.log(`[ai] 情绪=${emotion} 文本=${speakText}`);
+    // 回复文本（去标签）给渲染层显示
+    if (!win.isDestroyed()) win.webContents.send('ai-reply', { text: speakText });
+    // 合成回复语音（CosyVoice 情绪源 → RVC 变声 → 缓存；情绪进缓存 key）
     win.webContents.send('speak-state', { state: 'generating' });
     ensureVoiceServer();
-    const req = { id: Date.now(), text: reply };
+    const req = { id: Date.now(), text: speakText, emotion };
     if (force) req.force = true; // 重试：绕过缓存强制重新合成（覆盖旧缓存）
     if (voiceReady && voiceProc) {
       voiceProc.stdin.write(JSON.stringify(req) + '\n');

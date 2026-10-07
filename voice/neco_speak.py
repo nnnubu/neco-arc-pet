@@ -101,14 +101,17 @@ def build_tts(model=DEFAULT_MODEL, voice=DEFAULT_VOICE, device=None, is_half=Non
     )
 
 
-def speak(text, pitch=0, voice=DEFAULT_VOICE, out=None, index_rate=0.75, model=DEFAULT_MODEL):
-    """文字 → Neco Arc 语音，返回输出文件路径"""
+def speak(text, pitch=0, voice=DEFAULT_VOICE, out=None, index_rate=0.75, model=DEFAULT_MODEL, rate=0):
+    """文字 → Neco Arc 语音，返回输出文件路径
+    pitch: RVC 音高偏移（半音，情绪用：正=更高）
+    rate:  edge-tts 语速百分比（情绪用：正=更快，如 10 = +10%）"""
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     tts = build_tts(model=model, voice=voice)
     try:
         return tts(
             text=text,
             pitch=pitch,
+            tts_rate=rate,
             index_rate=index_rate,
             output_filename=out,
         )

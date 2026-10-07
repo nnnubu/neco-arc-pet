@@ -49,9 +49,74 @@ _synth_lock = threading.Lock()
 _user_waiting = threading.Event()
 
 # 复用 neco_speak 的模型配置（默认 agg + 中文声线，用户已验收）
-from neco_speak import build_tts
+from neco_speak import build_tts, _ensure_ascii_index
 
 _tts = None
+
+# ── 情绪化合成（方案 B：CosyVoice 情绪源头 → RVC 变声保持 Neco Arc 音色）──
+# 用户逐版验收的参数表：voice=CosyVoice 声线 / desc=情绪指令 / gain=API 增益dB / post_gain=变声后增益dB
+EMOTION_CFG = {
+    'happy':     {'voice': 'diana', 'desc': '开心欢快', 'gain': 5, 'post_gain': 3},
+    'angry':     {'voice': 'bella', 'desc': '生气',     'gain': 0, 'post_gain': 6},
+    'sad':       {'voice': 'bella', 'desc': '悲伤低沉', 'gain': 5, 'post_gain': 3},
+    'surprised': {'voice': 'bella', 'desc': '震惊惊讶', 'gain': 5, 'post_gain': 3},
+    'neutral':   {'voice': 'bella', 'desc': '平静自然', 'gain': 0, 'post_gain': 0},
+}
+COSY_MODEL = 'FunAudioLLM/CosyVoice2-0.5B'
+
+
+def _load_api_key():
+    """从项目根 .env 读取 LLM_API_KEY（SiliconFlow，TTS 与 LLM 共用）"""
+    env_path = os.path.join(os.path.dirname(BASE_DIR), '.env')
+    try:
+        with open(env_path, encoding='utf-8') as f:
+            for line in f:
+                line = line.strip()
+                if line.startswith('LLM_API_KEY='):
+                    return line.split('=', 1)[1].strip().strip('"').strip("'")
+    except Exception:
+        pass
+    return ''
+
+
+API_KEY = _load_api_key()
+
+# RVC 变声：复用单实例（避免每次重建加载模型，慢）；index 经 ascii 复制（faiss 读不了中文路径）
+_rvc = None
+_rvc_model = os.path.join(BASE_DIR, 'models', 'agg', 'model.pth')
+_rvc_index = _ensure_ascii_index(os.path.join(BASE_DIR, 'models', 'agg', 'model.index'))
+
+
+def _ensure_rvc():
+    global _rvc
+    if _rvc is None:
+        from tts_with_rvc.vc_infer import RVCConverter
+        _rvc = RVCConverter(models_dir=os.path.join(BASE_DIR, 'assets'))
+    return _rvc
+
+
+def _cosy_synth(text, voice, desc, gain, tmp_path):
+    """CosyVoice API 合成带情绪的中文源音频到 tmp_path（在线，按 UTF-8 字节计费）"""
+    if not API_KEY:
+        raise RuntimeError('未配置 LLM_API_KEY（项目根 .env）')
+    import requests
+    r = requests.post(
+        'https://api.siliconflow.cn/v1/audio/speech',
+        headers={'Authorization': 'Bearer ' + API_KEY, 'Content-Type': 'application/json'},
+        json={
+            'model': COSY_MODEL,
+            'voice': COSY_MODEL + ':' + voice,
+            'input': f'请用{desc}的情感说这句话：<|endofprompt|>{text}',
+            'response_format': 'wav',
+            'sample_rate': 44100,
+            'gain': gain,
+        },
+        timeout=120,
+    )
+    if r.status_code != 200:
+        raise RuntimeError(f'CosyVoice API {r.status_code}: {r.text[:200]}')
+    with open(tmp_path, 'wb') as f:
+        f.write(r.content)
 
 
 def ensure_tts():
@@ -76,9 +141,9 @@ def _normalize_key_text(text):
     return "".join(out).strip()
 
 
-def cache_path(text, pitch):
-    """文本+音调 → 缓存文件路径（内容寻址，相同文本命中同一文件）"""
-    key = f"{_normalize_key_text(text)}\x00{pitch}".encode("utf-8")
+def cache_path(text, emotion):
+    """文本+情绪 → 缓存文件路径（内容寻址，相同文本+情绪命中同一文件）"""
+    key = f"{_normalize_key_text(text)}\x00{emotion}".encode("utf-8")
     return os.path.join(CACHE_DIR, hashlib.md5(key).hexdigest() + ".wav")
 
 
@@ -92,12 +157,49 @@ def trim_cache():
             break
 
 
-def synth(text, pitch, out_path):
-    """加锁合成（edge-tts 在线 + RVC 变声），写 to out_path；RVC 输出 40000Hz，
-    统一转标准 44100Hz 16bit（避免部分播放器/系统对非标采样率解码变调）"""
+def synth(text, emotion, out_path):
+    """加锁合成（CosyVoice 情绪源 → RVC 变声），写 to out_path；
+    RVC 输出 40000Hz 统一转标准 44100Hz 16bit，再按情绪表后处理增益"""
+    cfg = EMOTION_CFG.get(emotion, EMOTION_CFG['neutral'])
     with _synth_lock:
-        ensure_tts()(text=text, pitch=pitch, index_rate=0.75, output_filename=out_path)
+        src = os.path.join(CACHE_DIR, '_cosy_src.wav')
+        _cosy_synth(text, cfg['voice'], cfg['desc'], cfg['gain'], src)
+        rvc = _ensure_rvc()
+        rvc.convert(
+            model_path=_rvc_model,
+            f0_up_key=0,
+            input_path=src,
+            file_index=_rvc_index,
+            index_rate=0.75,
+            output_dir_path=CACHE_DIR,
+            output_filename='_cosy_out.wav',
+        )
+        os.replace(os.path.join(CACHE_DIR, '_cosy_out.wav'), out_path)
     _to_44100(out_path)
+    _apply_gain(out_path, cfg['post_gain'])
+
+
+def _apply_gain(src, db):
+    """音量增益（dB：正=更响、负=更轻；生气 +6dB 提音量）；就地覆盖，失败静默"""
+    if not db:
+        return
+    try:
+        import numpy as np
+        import wave as _wave
+        with _wave.open(src, "rb") as w:
+            sr = w.getframerate()
+            ch = w.getnchannels()
+            data = np.frombuffer(w.readframes(w.getnframes()), dtype=np.int16)
+        g = 10 ** (db / 20)
+        x = data.astype(np.float32) / 32768.0 * g
+        out = (np.clip(x, -1, 1) * 32767).astype(np.int16)
+        with _wave.open(src, "wb") as w:
+            w.setnchannels(ch)
+            w.setsampwidth(2)
+            w.setframerate(sr)
+            w.writeframes(out.tobytes())
+    except Exception:
+        pass  # 增益失败保留原文件
 
 
 def _to_44100(src):
@@ -145,11 +247,11 @@ def run_preset():
         # 用户请求优先：预生成期间若用户要说话，暂停预生成，等用户合成完再继续
         while _user_waiting.is_set():
             time.sleep(0.3)
-        cp = cache_path(t.strip(), 0)
+        cp = cache_path(t.strip(), "neutral")
         if os.path.exists(cp):
             continue
         try:
-            synth(t.strip(), 0, cp)
+            synth(t.strip(), "neutral", cp)
             trim_cache()
             done += 1
         except Exception:
@@ -174,7 +276,7 @@ def main():
             os.remove(f)
         except OSError:
             pass
-    # 模型就绪握手（加载较慢，调用方在此前排队）
+    # 就绪握手（RVC 模型懒加载：首次合成时初始化，故此处立即 ready）
     print(json.dumps({"event": "ready"}), flush=True)
     for line in sys.stdin:
         line = line.strip()
@@ -191,8 +293,10 @@ def main():
             if not text:
                 print(json.dumps({"id": req.get("id"), "ok": False, "error": "empty text"}), flush=True)
                 continue
-            pitch = int(req.get("pitch", 0))
-            cp = cache_path(text, pitch)
+            emotion = str(req.get("emotion", "neutral"))
+            if emotion not in EMOTION_CFG:
+                emotion = "neutral"
+            cp = cache_path(text, emotion)
             force = bool(req.get("force"))
             # 缓存命中（非 force 重试）：直接返回，不再合成
             if not force and os.path.exists(cp):
@@ -201,17 +305,17 @@ def main():
             # 用户请求优先标记：预生成线程看到后让路
             _user_waiting.set()
             try:
-                # force 重试：先删旧缓存（可能存有 edge-tts 偶发错误内容），再重新合成覆盖
+                # force 重试：先删旧缓存（可能存有偶发错误内容），再重新合成覆盖
                 if force and os.path.exists(cp):
                     try:
                         os.remove(cp)
                     except OSError:
                         pass
-                # 未命中：合成（edge-tts 偶发网络超时，重试 1 次）到缓存文件
+                # 未命中：合成（CosyVoice 偶发网络超时，重试 1 次）到缓存文件
                 last_err = None
                 for attempt in range(2):
                     try:
-                        synth(text, pitch, cp)
+                        synth(text, emotion, cp)
                         last_err = None
                         break
                     except Exception as e:
