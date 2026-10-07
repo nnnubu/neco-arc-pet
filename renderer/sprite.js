@@ -97,6 +97,8 @@ window.SpriteCore = (() => {
     bigSprite = s;
     // 隐藏普通精灵（standing 等），避免窗口放大后"两个桌宠"同时显示
     for (const sp of Object.values(SPRITE.sprites)) sp.visible = false;
+    // 立即渲染一帧空画面：窗口放大瞬间 canvas 尚未跟随 resize，旧帧会残留在窗口左上角（残影）
+    app.renderer.render(app.stage);
     // 窗口放大到帧尺寸×1.05（底部保持不跳动，48 原地播放），精灵底部中心对齐新窗口
     const w = Math.round(texs[0].width * 1.05);
     const h = Math.round(texs[0].height * 1.05);
