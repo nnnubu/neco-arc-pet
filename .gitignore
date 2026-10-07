@@ -11,6 +11,7 @@ voice/bin/
 # 运行时输出
 voice/output/
 voice/tmp/
+voice/cache/
 
 # 日志与系统文件
 *.log

@@ -33,6 +33,8 @@ function ensureVoiceServer() {
       if (msg.event === 'ready') {
         voiceReady = true;
         flushVoiceQueue();
+        // 后台预生成常用短语（缓存预热）：说话命中缓存时秒出
+        try { voiceProc.stdin.write(JSON.stringify({ id: 'preset', cmd: 'preset' }) + '\n'); } catch {}
         if (getWin() && !getWin().isDestroyed()) getWin().webContents.send('speak-state', { state: 'ready' });
       } else if (msg.ok) {
         if (getWin() && !getWin().isDestroyed()) {
