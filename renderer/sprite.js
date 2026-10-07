@@ -45,9 +45,13 @@ window.SpriteCore = (() => {
   // oneshot 动作附带位移（沿当前朝向水平移动桌宠）：
   // - wine：前段走动（帧 1~14：行走/弯腰/抬手），播放到拿起酒杯（帧 15）后停下
   // - lie：躺倒动作全程移动，直到动作结束回待机
+  // - act_84：飞行动作一播放就向上平移（全程）
+  // - act_49：火箭点火（底部喷火，帧 18 起）之后向上平移，全程到动作结束
   const MOVE_ACTIONS = {
     wine: { untilFrame: 14, speed: 260 }, // AnimatedSprite currentFrame 0-based：0~13 移动
     lie: { untilEnd: true, speed: 200 },
+    act_84: { untilEnd: true, speed: 120, dir: 'up' },
+    act_49: { fromFrame: 18, untilEnd: true, speed: 120, dir: 'up' },
   };
 
   // 随机乱跑状态（待机时偶尔自己走动/乱跑）：null 或 { dir, remaining, run }
@@ -229,11 +233,16 @@ window.SpriteCore = (() => {
       }
       spriteShow('standing', true, SPRITE.facing === -1);
     } else if (SPRITE.state === 'oneshot' && SPRITE.current) {
-      // 一次性动作附带位移：wine 走动段（拿起酒杯前）/ lie 全程——沿当前朝向移动桌宠
+      // 一次性动作附带位移：wine 走动段（拿起酒杯前）/ lie 全程——沿当前朝向移动桌宠；
+      // act_84 全程向上；act_49 点火（帧18）后向上——dir:'up' 时垂直移动（窗口上移）
       const mv = MOVE_ACTIONS[SPRITE.currentName];
       if (mv) {
-        const moving = mv.untilEnd || SPRITE.current.currentFrame < mv.untilFrame;
-        if (moving) window.pet.moveBy(Math.round(SPRITE.facing * mv.speed * dt), 0);
+        let moving = mv.untilEnd || SPRITE.current.currentFrame < mv.untilFrame;
+        if (mv.fromFrame !== undefined && SPRITE.current.currentFrame < mv.fromFrame) moving = false;
+        if (moving) {
+          if (mv.dir === 'up') window.pet.moveBy(0, -Math.round(mv.speed * dt));
+          else window.pet.moveBy(Math.round(SPRITE.facing * mv.speed * dt), 0);
+        }
       }
     }
 
