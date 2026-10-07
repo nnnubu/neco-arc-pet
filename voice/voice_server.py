@@ -45,6 +45,8 @@ PRESETS_FILE = os.path.join(BASE_DIR, "presets.json")
 CACHE_MAX_FILES = 30  # 缓存上限：超出自动删除最旧，避免无限积累
 # 合成调用全局锁：预生成线程与主循环并发时串行化（RVC/torch 非线程安全）
 _synth_lock = threading.Lock()
+# 用户请求优先：主循环收到合成请求时置位，预生成线程检测到后让路（用户说话不被预生成排队）
+_user_waiting = threading.Event()
 
 # 复用 neco_speak 的模型配置（默认 agg + 中文声线，用户已验收）
 from neco_speak import build_tts
@@ -96,6 +98,9 @@ def run_preset():
     for t in presets:
         if not isinstance(t, str) or not t.strip():
             continue
+        # 用户请求优先：预生成期间若用户要说话，暂停预生成，等用户合成完再继续
+        while _user_waiting.is_set():
+            time.sleep(0.3)
         cp = cache_path(t.strip(), 0)
         if os.path.exists(cp):
             continue
@@ -148,20 +153,25 @@ def main():
             if os.path.exists(cp):
                 print(json.dumps({"id": req.get("id"), "ok": True, "wav": cp.replace(os.sep, "/"), "cached": True}), flush=True)
                 continue
-            # 未命中：合成（edge-tts 偶发网络超时，重试 1 次）到缓存文件
-            last_err = None
-            for attempt in range(2):
-                try:
-                    synth(text, pitch, cp)
-                    last_err = None
-                    break
-                except Exception as e:
-                    last_err = e
-                    if attempt == 0:
-                        time.sleep(1)
-            if last_err is not None:
-                raise last_err
-            trim_cache()
+            # 用户请求优先标记：预生成线程看到后让路
+            _user_waiting.set()
+            try:
+                # 未命中：合成（edge-tts 偶发网络超时，重试 1 次）到缓存文件
+                last_err = None
+                for attempt in range(2):
+                    try:
+                        synth(text, pitch, cp)
+                        last_err = None
+                        break
+                    except Exception as e:
+                        last_err = e
+                        if attempt == 0:
+                            time.sleep(1)
+                if last_err is not None:
+                    raise last_err
+                trim_cache()
+            finally:
+                _user_waiting.clear()
             print(json.dumps({"id": req.get("id"), "ok": True, "wav": cp.replace(os.sep, "/"), "cached": False}), flush=True)
         except Exception as e:
             traceback.print_exc()

@@ -36,11 +36,16 @@ function ensureVoiceServer() {
         // 后台预生成常用短语（缓存预热）：说话命中缓存时秒出
         try { voiceProc.stdin.write(JSON.stringify({ id: 'preset', cmd: 'preset' }) + '\n'); } catch {}
         if (getWin() && !getWin().isDestroyed()) getWin().webContents.send('speak-state', { state: 'ready' });
-      } else if (msg.ok) {
+      } else if (msg.event === 'preset_done') {
+        // 预生成完成：只记录，不触发播放/状态（避免误报"出错了"）
+        console.log('[voice] 预生成完成:', msg.count);
+      } else if (msg.ok && msg.wav) {
         if (getWin() && !getWin().isDestroyed()) {
           getWin().webContents.send('play-audio', msg.wav);
           getWin().webContents.send('speak-state', { state: 'done' });
         }
+      } else if (msg.ok) {
+        // 其他 ok（如 preset started）：无需处理
       } else {
         console.error('[voice] 生成失败:', msg.error);
         if (getWin() && !getWin().isDestroyed()) getWin().webContents.send('speak-state', { state: 'error', error: msg.error });
