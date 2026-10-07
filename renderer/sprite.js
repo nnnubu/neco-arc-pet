@@ -248,6 +248,14 @@ window.SpriteCore = (() => {
         app.stage.addChild(s);
         SPRITE.sprites[a.name] = s;
       }
+      // 后台预加载 48/49 原始帧（big_actions/），首次播放时立即就绪，避免加载延迟导致的异常帧
+      for (const bn of ['act_48', 'act_49']) {
+        const ba = dynamicActionsMap[bn];
+        if (!ba) continue;
+        for (let i = 1; i <= ba.frames; i++) {
+          PIXI.Assets.load(`../assets/sprite/big_actions/${bn}/${i}.png`).catch(() => {});
+        }
+      }
     } catch (e) {
       console.error('[sprite] 动态动作加载失败:', e);
     }
