@@ -169,14 +169,15 @@ window.SpriteCore = (() => {
         SPRITE.state = 'walk';
       }
     } else if (roam) {
-      // 随机乱跑中：朝 roam.dir 方向持续移动，到达随机距离后停下
+      // 随机乱跑中：水平+垂直两轴各自独立方向（两轴同时非 0 即斜线移动），到达随机距离后停下
       const spd = roam.run ? 430 : 260;
-      window.pet.moveBy(Math.round(roam.dir * spd * dt), 0);
-      roam.remaining -= Math.abs(spd * dt);
+      window.pet.moveBy(Math.round(roam.dirX * spd * dt), Math.round(roam.dirY * spd * dt));
+      // 剩余距离按实际合成步长衰减（斜线按 √2 计，与移动量一致）
+      roam.remaining -= spd * dt * (roam.dirX !== 0 && roam.dirY !== 0 ? Math.SQRT2 : 1);
       if (roam.remaining <= 0) {
-        const lastDir = roam.dir;
+        const lastDirX = roam.dirX;
         roam = null;
-        SPRITE.facing = lastDir; // 站立朝向 = 最后跑动方向
+        if (lastDirX !== 0) SPRITE.facing = lastDirX; // 站立朝向 = 最后水平跑动方向
         SPRITE.state = 'idle';
         spriteShow('standing', true, SPRITE.facing === -1);
         // 停下来后偶尔随机转身（朝反方向站一会）
@@ -198,15 +199,23 @@ window.SpriteCore = (() => {
     // 待机时偶尔自己乱跑 / 随机表演动作（互斥触发，随机时长）
     if (SPRITE.state === 'idle' && !roam && !SPRITE.noRandom) {
       if (now >= SPRITE.nextRoamAt) {
-        // 触发乱跑：随机方向 + 随机距离（150~500px）+ 偶尔用跑的
+        // 触发乱跑：水平/垂直两轴各自独立随机（各为 -1/0/1，概率相同），
+        // 两轴同时非 0 即斜线移动；排除两轴都 0 的原地不动
+        let dirX, dirY;
+        do {
+          dirX = Math.floor(Math.random() * 3) - 1;
+          dirY = Math.floor(Math.random() * 3) - 1;
+        } while (dirX === 0 && dirY === 0);
         roam = {
-          dir: Math.random() < 0.5 ? -1 : 1,
+          dirX, dirY,
           remaining: rand(150, 500),
           run: Math.random() < 0.4,
         };
         SPRITE.state = 'walk';
-        spriteShow(roam.run ? 'running' : (roam.dir > 0 ? 'walking_right' : 'walking_left'), true,
-          roam.run && roam.dir < 0);
+        // 纯垂直移动（dirX=0）时借用当前朝向的水平走路帧，避免动画方向跳变
+        const ax = dirX !== 0 ? dirX : (SPRITE.facing >= 0 ? 1 : -1);
+        spriteShow(roam.run ? 'running' : (ax > 0 ? 'walking_right' : 'walking_left'), true,
+          roam.run && ax < 0);
       } else if (now >= SPRITE.nextActionAt) {
         spritePlayOneshot(ONESHOT_NAMES[Math.floor(Math.random() * ONESHOT_NAMES.length)]);
         SPRITE.nextActionAt = now + rand(12000, 20000);
