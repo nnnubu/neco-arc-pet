@@ -52,7 +52,9 @@ window.VoiceUI = (() => {
     });
 
     window.pet.onSpeakAudio((p) => {
-      audio.src = 'file:///' + p.replace(/\\/g, '/');
+      // file:// URL 逐段编码：路径含中文/空格时直接拼接可能解码失败或播错
+      const url = 'file:///' + p.replace(/\\/g, '/').split('/').map(encodeURIComponent).join('/');
+      audio.src = url;
       audio.play().catch((e) => {
         status.style.display = 'block';
         status.textContent = '播放失败: ' + (e.message || e);

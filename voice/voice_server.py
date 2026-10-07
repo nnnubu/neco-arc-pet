@@ -93,9 +93,38 @@ def trim_cache():
 
 
 def synth(text, pitch, out_path):
-    """加锁合成（edge-tts 在线 + RVC 变声），写 to out_path"""
+    """加锁合成（edge-tts 在线 + RVC 变声），写 to out_path；RVC 输出 40000Hz，
+    统一转标准 44100Hz 16bit（避免部分播放器/系统对非标采样率解码变调）"""
     with _synth_lock:
         ensure_tts()(text=text, pitch=pitch, index_rate=0.75, output_filename=out_path)
+    _to_44100(out_path)
+
+
+def _to_44100(src):
+    """40000Hz -> 44100Hz 16bit 标准 wav（就地覆盖；已是 44100 则跳过）"""
+    try:
+        import numpy as np
+        import wave as _wave
+    except Exception:
+        return
+    try:
+        with _wave.open(src, "rb") as w:
+            sr = w.getframerate()
+            ch = w.getnchannels()
+            data = np.frombuffer(w.readframes(w.getnframes()), dtype=np.int16)
+        if sr == 44100:
+            return
+        x = data.astype(np.float32) / 32768.0
+        n = int(len(x) * 44100 / sr)
+        x2 = np.interp(np.linspace(0, len(x) - 1, n), np.arange(len(x)), x)
+        out = (np.clip(x2, -1, 1) * 32767).astype(np.int16)
+        with _wave.open(src, "wb") as w:
+            w.setnchannels(ch)
+            w.setsampwidth(2)
+            w.setframerate(44100)
+            w.writeframes(out.tobytes())
+    except Exception:
+        pass  # 转码失败保留原文件，不影响播放主链路
 
 
 def run_preset():

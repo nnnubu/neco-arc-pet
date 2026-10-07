@@ -21,3 +21,9 @@ Desktop.ini
 # Python 缓存
 __pycache__/
 *.pyc
+
+# 根目录临时测试产物（_开头，禁止入库）
+/_*.wav
+/_*.mp3
+/_*.py
+/_*.txt
