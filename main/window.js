@@ -126,7 +126,10 @@ function registerWindowIpc() {
       const b = win.getBounds();
       const x = Math.round(b.x + (b.width - width) / 2);
       const y = Math.round(b.y + b.height - height);
+      // 隐藏-移动-显示：避免透明窗口快速 resize 时 DWM 合成拖影（左上角残影）
+      win.hide();
       win.setBounds({ x, y, width: Math.round(width), height: Math.round(height) });
+      win.show();
     } else {
       const [x, y] = win.getPosition();
       win.setBounds({ x, y, width: Math.round(width), height: Math.round(height) });

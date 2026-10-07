@@ -104,12 +104,16 @@ window.SpriteCore = (() => {
     const h = Math.round(texs[0].height * 1.05);
     bigSaved = { w: window.innerWidth, h: window.innerHeight, scale: shared.petScale };
     window.pet.resizeWindow(w, h, true);
-    s.position.set(w / 2, h - 5);
-    SPRITE.state = 'oneshot';
-    SPRITE.current = s; // 供 update 的 MOVE_ACTIONS 位移（49 点火后上移）判断
-    SPRITE.currentName = name;
-    SPRITE.oneshotLeft = 1;
-    s.gotoAndPlay(0);
+    // 等窗口 resize 事件到达（canvas 已跟随新尺寸）后再定位/播放，避免 canvas 与窗口错位导致偏移
+    setTimeout(() => {
+      if (bigSprite !== s) return;
+      s.position.set(w / 2, h - 5);
+      SPRITE.state = 'oneshot';
+      SPRITE.current = s; // 供 update 的 MOVE_ACTIONS 位移（49 点火后上移）判断
+      SPRITE.currentName = name;
+      SPRITE.oneshotLeft = 1;
+      s.gotoAndPlay(0);
+    }, 50);
   }
 
   function restoreBig() {
