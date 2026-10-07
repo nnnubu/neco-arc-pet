@@ -16,7 +16,7 @@ window.VoiceUI = (() => {
   // 所以输入框若固定贴窗口底，随缩放会"离桌宠越来越远/遮住脚"。改为跟随脚底：输入框顶始终距角色脚底 6px。
   const FOOT_MARGIN = 48; // standing 帧角色视觉脚底到帧底的距离（px @1x）
   const SPRITE_SCALE = 2; // sprite.js 的 SCALE
-  const GAP = 6;          // 输入框顶到角色脚底的固定间隙
+  const GAP = 8;          // 输入框顶到角色脚底的固定间隙（加大：不再贴住遮住脚底）
   const BAR_H = 36;       // 输入框整体高度（含 padding）
 
   // 流式状态：AI 回复全文、是否正在跟随语音

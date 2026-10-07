@@ -88,13 +88,16 @@ window.SpriteCore = (() => {
     spriteShow('standing', true, SPRITE.facing === -1);
   }
 
-  // 转身：站立朝向改变时播放转身过渡动画（turn_left 右→左 / turn_right 左→右），播完更新朝向
+  // 转身：站立朝向改变时播放转身过渡动画（turn_left 内容=左→右 / turn_right 内容=右→左，
+  // 与文件名相反——帧内容实测：turn_left 起点朝左终点朝右，turn_right 起点朝右终点朝左），
+  // 播完更新朝向（转向动画终点方向与 standing 一致，不再出现"转完突然又面向反方向"）
   function turnTo(targetFacing) {
     if (SPRITE.facing === targetFacing) return;
     if (SPRITE.state === 'walk') return; // 走动中不转身（走路帧自带方向）
     if (SPRITE.state === 'oneshot') return; // 动作表演中不打断
     SPRITE.oneshotLeft = 1;
-    spriteShow(targetFacing === -1 ? 'turn_left' : 'turn_right', false, false);
+    // 目标朝左 → 播 turn_right（内容右→左）；目标朝右 → 播 turn_left（内容左→右）
+    spriteShow(targetFacing === -1 ? 'turn_right' : 'turn_left', false, false);
     SPRITE.state = 'oneshot';
   }
 
@@ -126,8 +129,8 @@ window.SpriteCore = (() => {
             if (SPRITE.current === cur && SPRITE.state === 'oneshot') spriteBackToIdle();
           }, SMUG_HOLD_MS);
         } else if (SPRITE.currentName === 'turn_left' || SPRITE.currentName === 'turn_right') {
-          // 转身动画播完：更新站立朝向（turn_left 结束=朝左，turn_right 结束=朝右）
-          SPRITE.facing = SPRITE.currentName === 'turn_left' ? -1 : 1;
+          // 转身动画播完：更新站立朝向（turn_left 内容转到右 → facing=1；turn_right 内容转到左 → facing=-1）
+          SPRITE.facing = SPRITE.currentName === 'turn_left' ? 1 : -1;
           spriteBackToIdle();
         } else {
           spriteBackToIdle();

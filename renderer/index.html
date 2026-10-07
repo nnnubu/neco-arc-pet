@@ -25,67 +25,84 @@
       display: none;
       position: fixed;
       left: 50%;
-      bottom: 6px;                 /* 固定贴窗口底，与桌宠脚底（h-6）间距恒定，不随缩放变化 */
+      bottom: 10px;                 /* JS updatePosition 按脚底动态覆盖；此处为初始兜底 */
       transform: translateX(-50%);
       width: max-content;
-      max-width: calc(100% - 12px); /* 小窗口自适应收缩，不溢出 */
-      background: rgba(14, 14, 20, 0.86);
-      border: 1px solid rgba(255, 255, 255, 0.25);
-      border-radius: 12px;
-      padding: 6px 8px;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+      max-width: calc(100% - 16px); /* 小窗口自适应收缩，不溢出 */
+      /* 毛玻璃半透明：即使与角色轻微重叠也不会“遮住”视觉，桌宠底部仍可见 */
+      background: linear-gradient(180deg, rgba(34, 34, 48, 0.66), rgba(20, 20, 30, 0.74));
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 14px;
+      padding: 7px 9px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.07);
       z-index: 10;
       box-sizing: border-box;
     }
     #speakBar .row {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 7px;
     }
     #speakInput {
       flex: 1 1 auto;
-      min-width: 40px;
-      width: 150px;
-      background: rgba(0, 0, 0, 0.45);
+      min-width: 0;
+      width: 138px;
+      max-width: 172px;
+      background: rgba(255, 255, 255, 0.08);
       color: #fff;
-      border: 1px solid rgba(255, 255, 255, 0.28);
-      border-radius: 8px;
-      padding: 5px 9px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 10px;
+      padding: 6px 11px;
       font-size: 13px;
       outline: none;
       box-sizing: border-box;
+      transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
     }
-    #speakInput::placeholder { color: rgba(255, 255, 255, 0.45); }
-    #speakInput:focus { border-color: rgba(229, 73, 79, 0.8); }
+    #speakInput::placeholder { color: rgba(255, 255, 255, 0.42); }
+    #speakInput:focus {
+      border-color: rgba(255, 92, 98, 0.85);
+      background: rgba(255, 255, 255, 0.12);
+      box-shadow: 0 0 0 2px rgba(255, 92, 98, 0.16);
+    }
     #speakSend {
       flex: 0 0 auto;
-      background: linear-gradient(180deg, #e5494f, #c13a40);
+      min-width: 46px;
+      background: linear-gradient(180deg, #ff5a60, #d93a42);
       color: #fff;
       border: none;
-      border-radius: 8px;
-      padding: 5px 13px;
+      border-radius: 10px;
+      padding: 6px 12px;
       font-size: 13px;
-      font-weight: 600;
+      font-weight: 700;
+      letter-spacing: 1px;
       cursor: pointer;
+      box-shadow: 0 2px 10px rgba(217, 58, 66, 0.35);
+      transition: filter 0.15s, transform 0.1s;
     }
-    #speakSend:hover { filter: brightness(1.12); }
-    #speakClose {
+    #speakSend:hover { filter: brightness(1.16); }
+    #speakSend:active { transform: scale(0.95); }
+    #speakRetry, #speakClose {
       flex: 0 0 auto;
-      background: rgba(255, 255, 255, 0.12);
-      color: rgba(255, 255, 255, 0.85);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 8px;
-      padding: 4px 9px;
-      font-size: 13px;
+      width: 26px;
+      height: 26px;
+      line-height: 1;
+      background: rgba(255, 255, 255, 0.1);
+      color: rgba(255, 255, 255, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 50%;
+      font-size: 14px;
       cursor: pointer;
+      transition: background 0.15s;
     }
-    #speakClose:hover { background: rgba(255, 255, 255, 0.22); }
+    #speakRetry:hover, #speakClose:hover { background: rgba(255, 255, 255, 0.22); }
     #speakStatus {
       display: none;
       color: #ffd9a0;
       font-size: 12px;
       margin-top: 5px;
-      max-width: 240px;
+      max-width: 270px;
       white-space: normal;
       line-height: 1.3;
     }
