@@ -17,30 +17,42 @@ Neco Arc 桌宠语音管道：文字 → 合成语音 → RVC 变声（Neco Arc 
 
 import argparse
 import os
+import shutil
 import sys
+import tempfile
 
-# 路径配置（本机固定路径）
+# 路径配置（全部基于项目内，不引用外部）
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 BIN_DIR = os.path.join(BASE_DIR, "bin")
 os.environ["PATH"] = BIN_DIR + os.pathsep + os.environ.get("PATH", "")
 MODELS_DIR = os.path.join(BASE_DIR, "models")
 
-# faiss（C++）无法读取中文路径下的 index，模型 index 复制到纯 ASCII 路径 C:\neco-voice
-ASCII_MODELS = r"C:\neco-voice\models"
 
-# 可用模型：orig=用户原模型，lumina=Melty Blood LUMINA 600e，agg=Neco Arc Aggressive 600e
+def _ensure_ascii_index(index_path):
+    """faiss（C++ fopen）读不了中文路径下的 index 文件。
+    项目内保持一份（自包含），运行时复制到 TEMP（纯 ASCII）供 faiss 读取；
+    源文件未变化时复用已有副本，不重复复制。"""
+    if not index_path or not os.path.exists(index_path):
+        return index_path
+    ascii_dir = os.path.join(tempfile.gettempdir(), "neco_voice_index")
+    os.makedirs(ascii_dir, exist_ok=True)
+    ascii_path = os.path.join(ascii_dir, os.path.basename(index_path))
+    src_mtime = os.path.getmtime(index_path)
+    if not os.path.exists(ascii_path) or os.path.getmtime(ascii_path) != src_mtime:
+        shutil.copy2(index_path, ascii_path)
+    return ascii_path
+
+
+# 可用模型：agg=Neco Arc Aggressive 600e（用户验收），lumina=Melty Blood LUMINA 600e
+# 资源均在项目内 voice/models 下；index 运行时经 _ensure_ascii_index 复制到 TEMP
 MODEL_PATHS = {
-    "orig": {
-        "pth": r"C:\Users\nnnubu\Desktop\neco arc\Neco_Arc_v2\Neco_Arc_300e_5700s.pth",
-        "index": r"C:\Users\nnnubu\Desktop\neco arc\Neco_Arc_v2\added_Neco_Arc_v2.index",
-    },
     "lumina": {
         "pth": os.path.join(MODELS_DIR, "lumina", "Neco-ArcLumina.pth"),
-        "index": os.path.join(ASCII_MODELS, "lumina", "added_IVF765_Flat_nprobe_1_Neco-ArcLumina_v2.index"),
+        "index": os.path.join(MODELS_DIR, "lumina", "added_IVF765_Flat_nprobe_1_Neco-ArcLumina_v2.index"),
     },
     "agg": {
         "pth": os.path.join(MODELS_DIR, "agg", "model.pth"),
-        "index": os.path.join(ASCII_MODELS, "agg", "model.index"),
+        "index": os.path.join(MODELS_DIR, "agg", "model.index"),
     },
 }
 ASSETS_DIR = os.path.join(BASE_DIR, "assets")
@@ -80,7 +92,7 @@ def build_tts(model=DEFAULT_MODEL, voice=DEFAULT_VOICE, device=None, is_half=Non
     paths = MODEL_PATHS[model]
     return TTS_RVC(
         model_path=paths["pth"],
-        index_path=paths["index"],
+        index_path=_ensure_ascii_index(paths["index"]),
         device=device,
         is_half=is_half,
         voice=voice,
