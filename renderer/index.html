@@ -89,11 +89,29 @@
       white-space: normal;
       line-height: 1.3;
     }
+    /* AI 对话文本：透明底，跟随桌宠朝向显示在左右侧，不遮住桌宠本身 */
+    #aiText {
+      display: none;
+      position: fixed;
+      color: #ffe14d;
+      font-weight: 700;
+      line-height: 1.35;
+      white-space: normal;
+      word-break: break-word;
+      /* 黑色全向描边：透明底上保证可读且显眼 */
+      text-shadow:
+        2px 2px 0 #000, -2px 2px 0 #000, 2px -2px 0 #000, -2px -2px 0 #000,
+        0 2px 0 #000, 0 -2px 0 #000, 2px 0 0 #000, -2px 0 0 #000;
+      z-index: 9;
+      pointer-events: none;
+      box-sizing: border-box;
+    }
   </style>
 </head>
 <body>
   <div id="stage"></div>
   <audio id="petAudio"></audio>
+  <div id="aiText"></div>
   <div id="speakBar">
     <div class="row">
       <input id="speakInput" type="text" placeholder="说点什么…" maxlength="200" />

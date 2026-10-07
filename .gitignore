@@ -30,3 +30,9 @@ __pycache__/
 
 # PET_DEBUG 调试截图
 debug-*.png
+
+# API Key 等本地敏感配置
+.env
+
+# AI 问答缓存
+voice/ai_cache.json

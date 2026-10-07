@@ -5,6 +5,7 @@ const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
 const { getWin } = require('./window');
+const { askAI } = require('./ai');
 
 let voiceProc = null;
 let voiceReady = false;
@@ -63,15 +64,37 @@ function flushVoiceQueue() {
 }
 
 function registerVoiceIpc() {
-  ipcMain.on('speak-text', (_e, text, force) => {
+  ipcMain.on('speak-text', async (_e, text, force) => {
     const win = getWin();
     if (!win || win.isDestroyed()) return;
     // 清除孤立代理项（输入法/粘贴可能产生），防止传给 Python 时编码崩溃
     const t = String(text || '').replace(/[\uD800-\uDFFF]/g, '').trim();
     if (!t) return;
-    ensureVoiceServer();
+    // 新链路：输入一律先问 AI（Neco Arc 人设）→ 流式 token → 回复文本 → 合成回复语音播放
+    win.webContents.send('speak-state', { state: 'ai' }); // 思考中…
+    let reply;
+    try {
+      reply = await askAI(t, {
+        force: !!force, // 重试（↻）：绕过 AI 问答缓存重新生成
+        onToken: (tok) => {
+          if (getWin() && !getWin().isDestroyed()) getWin().webContents.send('ai-token', { text: tok });
+        },
+      });
+    } catch (e) {
+      console.error('[ai] 问答失败:', e.message);
+      win.webContents.send('speak-state', { state: 'error', error: 'AI 思考失败: ' + e.message });
+      return;
+    }
+    if (!reply) {
+      win.webContents.send('speak-state', { state: 'error', error: 'AI 没有回复' });
+      return;
+    }
+    // 回复文本给渲染层显示气泡
+    if (!win.isDestroyed()) win.webContents.send('ai-reply', { text: reply });
+    // 合成回复语音（复用现有 edge-tts→RVC→缓存 管道）
     win.webContents.send('speak-state', { state: 'generating' });
-    const req = { id: Date.now(), text: t };
+    ensureVoiceServer();
+    const req = { id: Date.now(), text: reply };
     if (force) req.force = true; // 重试：绕过缓存强制重新合成（覆盖旧缓存）
     if (voiceReady && voiceProc) {
       voiceProc.stdin.write(JSON.stringify(req) + '\n');

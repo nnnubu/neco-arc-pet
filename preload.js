@@ -21,4 +21,6 @@ contextBridge.exposeInMainWorld('pet', {
   speakText: (text, force) => ipcRenderer.send('speak-text', text, !!force),
   onSpeakAudio: (cb) => ipcRenderer.on('play-audio', (_e, p) => cb(p)),
   onSpeakState: (cb) => ipcRenderer.on('speak-state', (_e, s) => cb(s)),
+  onAiReply: (cb) => ipcRenderer.on('ai-reply', (_e, r) => cb(r)),
+  onAiToken: (cb) => ipcRenderer.on('ai-token', (_e, r) => cb(r)),
 });
