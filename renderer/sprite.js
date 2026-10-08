@@ -662,6 +662,9 @@ window.SpriteCore = (() => {
           // 按时间均匀淡出（update 约 60fps，动画 12fps：fadeFrames 动画帧对应 fadeFrames/12 秒）
           const step = 1 / (fadeFrames / SPRITE.FPS * 60);
           s.alpha = Math.max(0, s.alpha - step);
+          // act_43 窗口超宽（474×162 帧 → 990×170 窗口，DWM 合成拖影窗口期最长）：
+          // 淡出到完全透明后立即恢复原窗口（清屏+缩小），不再停留大窗口（onComplete+400ms 太久）
+          if (SPRITE.currentName === 'act_43' && s.alpha <= 0) spriteBackToIdle();
         }
       }
     }
