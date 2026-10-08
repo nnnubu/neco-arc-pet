@@ -221,9 +221,9 @@ window.SpriteCore = (() => {
     s.visible = true;
     const sc = SPRITE.SCALE * shared.petScale;
     s.scale.set(flipX ? -sc : sc, sc);
-    // 翻转播放时补偿角色视觉中心：动作帧角色不居中（FLIP_OFFSET），翻转后视觉重心移动 2×offset，
-    // 反向补偿使朝左/朝右播放角色视觉同位置（否则朝左会"往右闪现一段距离再播放"）
-    s.position.set(window.innerWidth / 2 + (flipX ? 2 * (FLIP_OFFSET[name] || 0) * sc : 0), window.innerHeight - 5); // 底部对齐（-5 避免 0.5 倍时头部裁 1px）
+    // 翻转播放时补偿角色视觉中心：动作帧角色不居中（FLIP_OFFSET），翻转后视觉重心偏移，
+    // 补偿 1×offset（半补偿）使朝左播放角色整体居中（2× 全补偿会让波动大的动作整体偏左/超界裁剪）
+    s.position.set(window.innerWidth / 2 + (flipX ? (FLIP_OFFSET[name] || 0) * sc : 0), window.innerHeight - 5); // 底部对齐（-5 避免 0.5 倍时头部裁 1px）
     s.loop = loop;
     s.animationSpeed = (SPRITE.ACTION_FPS[name] || SPRITE.FPS) / 60; // 覆盖创建时的默认帧率（高帧率原图动作）
     s.gotoAndPlay(0);
