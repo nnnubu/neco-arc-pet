@@ -149,7 +149,7 @@ function registerWindowIpc() {
   });
 
   // 屏幕上方停留检测：大动作（49 火箭等）飞出后桌宠停在屏幕顶部/屏外，键盘难以操控，
-  // 窗口顶部真正出屏（超出工作区顶部 30px 以上，y < wa.y - 30）持续 FALL_BACK_DELAY 毫秒，
+  // 窗口顶部真正出屏超过窗口高度 40%（明显出去，头部露出一点不算）持续 FALL_BACK_DELAY 毫秒，
   // 自动触发"掉回底部"：通知渲染层播放 act_19，同时主进程直接驱动窗口向下掉落
   // （窗口完全出屏时 Chromium 暂停渲染循环，rAF/动画/位移都不推进，必须主进程移动窗口）
   let outTopMs = 0;
@@ -161,7 +161,7 @@ function registerWindowIpc() {
     const b0 = win.getBounds();
     const targetBottom = wa.y + wa.height;
     const startT = Date.now();
-    const DUR = 1500; // 1.5 秒掉到工作区底部
+    const DUR = 2200; // 2.2 秒掉到工作区底部（比 1.5s 慢：每帧位移更小更平滑，且更接近 act_19 动画时长）
     let sent = false; // 窗口进入可见区后再通知渲染层播放 act_19（出屏时渲染暂停，动画播了也看不到）
     fallAnim = setInterval(() => {
       if (!win || win.isDestroyed()) { clearInterval(fallAnim); fallAnim = null; return; }
@@ -181,18 +181,18 @@ function registerWindowIpc() {
         clearInterval(fallAnim); fallAnim = null;
         win.webContents.send('pet-fall-done'); // 已抵达底部：通知渲染层结束 act_19 回待机（动画不落地后空播）
       }
-    }, 16);
+    }, 8); // 8ms 更新（比 16ms 更平滑）
   }
   const fallCheckTimer = setInterval(() => {
     if (!win || win.isDestroyed()) return;
-    const [, y] = win.getPosition();
+    const b = win.getBounds();
     const wa = screen.getPrimaryDisplay().workArea;
-    if (y < wa.y - 30) {
+    if (b.y < wa.y - Math.round(b.height * 0.4)) {
       outTopMs += 1000;
       if (outTopMs >= FALL_BACK_DELAY) {
         outTopMs = 0;
         startFallBack();
-        if (process.env.PET_DEBUG === '1') console.log('[fallback] trigger at y=' + y);
+        if (process.env.PET_DEBUG === '1') console.log('[fallback] trigger at y=' + b.y);
       }
     } else {
       outTopMs = 0;
