@@ -166,6 +166,16 @@ window.SpriteCore = (() => {
     SPRITE.state = 'oneshot';
   }
 
+  // 菜单手动播放转向动画：转向动画内容自带方向（turn_left=左→右、turn_right=右→左），
+  // 不按当前朝向翻转（避免朝左时播 turn_left 被翻转成反向）；播完 onComplete 自动更新朝向
+  function playTurn(name) {
+    if (SPRITE.state === 'walk') return;
+    roam = null;
+    SPRITE.oneshotLeft = 1;
+    spriteShow(name, false, false);
+    SPRITE.state = 'oneshot';
+  }
+
   function spriteBackToIdle() {
     if (SPRITE.state === 'walk') return; // 走动中不打断
     if (bigSaved) restoreBig(); // 48/49 特殊大动作播完：恢复原窗口/缩放
@@ -378,6 +388,7 @@ window.SpriteCore = (() => {
     initSprite,
     update,
     playOneshot: spritePlayOneshot,
+    playTurn,
     backToIdle: spriteBackToIdle,
     turnTo,
     setNoRandom(v) { SPRITE.noRandom = v; },
