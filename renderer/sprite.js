@@ -94,6 +94,9 @@ window.SpriteCore = (() => {
   // 特殊大动作（48/49/43/91）：主窗口播放时临时放大窗口到原始帧尺寸×1.05（原始帧清晰，无需独立窗口）
   // act_24：同样用原始帧完整播放（保留 41 帧动画内容），但尺寸正常、不放大窗口（enlarge=false）
   const BIG_ACTIONS = { act_48: true, act_49: true, act_43: true, act_24: true, act_91: true };
+  // BIG 大动作的画面水平偏移（px）：帧内主体不在中心时，播放时右移精灵让主体对齐原桌宠位置
+  // act_91：画面双角色（猫耳主体在左、Saber 在右），右移 271px 使猫耳主体居中（Saber 仍在窗口内）
+  const BIG_OFFSET_X = { act_91: 271 };
   // 播完保持最后一帧 2 秒再回待机的动作（smug/wine 固定 + act_65/96/97/111）
   const SMUG_HOLD_MS = 2000;
   const SMUG_HOLD_ACTIONS = ['smug', 'wine', 'act_65', 'act_96', 'act_97', 'act_111'];
@@ -192,6 +195,7 @@ window.SpriteCore = (() => {
     // 立即渲染一帧空画面：窗口放大瞬间 canvas 尚未跟随 resize，旧帧会残留在窗口左上角（残影）
     app.renderer.render(app.stage);
     // 窗口放大到帧尺寸×1.05（底部保持不跳动，48 原地播放），精灵底部中心对齐新窗口
+    // offsetX：水平偏移（px，正=精灵右移），供画面主体不在帧中心的大动作（如 91 猫耳主体在左）播放时主体对齐原桌宠位置
     const w = Math.round(texs[0].width * 1.05);
     const h = Math.round(texs[0].height * 1.05);
     bigSaved = { w: window.innerWidth, h: window.innerHeight, scale: shared.petScale };
@@ -199,7 +203,7 @@ window.SpriteCore = (() => {
     // 等窗口 resize 事件到达（canvas 已跟随新尺寸）后再定位/播放，避免 canvas 与窗口错位导致偏移
     setTimeout(() => {
       if (bigSprite !== s) return;
-      s.position.set(w / 2, h - 5);
+      s.position.set(w / 2 + (opts.offsetX || 0), h - 5);
       SPRITE.state = 'oneshot';
       SPRITE.current = s; // 供 update 的 MOVE_ACTIONS 位移（49 点火后上移）判断
       SPRITE.currentName = name;
@@ -263,7 +267,7 @@ window.SpriteCore = (() => {
     // act_24：原始帧完整播放（big_actions/），正常尺寸不放大窗口，20fps 播放（24fps 仍偏快、12fps 慢放显形位移）
     if (name === 'act_24') { playBigInMain(name, { enlarge: false, fps: 20 }); return; }
   // 特殊大动作（48/49/43）：主窗口临时放大播放原始帧（不裁剪、不模糊）
-    if (BIG_ACTIONS[name]) { playBigInMain(name); return; }
+    if (BIG_ACTIONS[name]) { playBigInMain(name, BIG_OFFSET_X[name] ? { offsetX: BIG_OFFSET_X[name] } : {}); return; }
     SPRITE.oneshotLeft = ACTION_REPEATS[name] || 1;
     // 动作跟随站立朝向：朝左时水平翻转（像素动作本身是朝右的）
     spriteShow(name, false, SPRITE.facing === -1);
