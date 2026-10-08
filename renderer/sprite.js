@@ -374,9 +374,13 @@ window.SpriteCore = (() => {
     if (sy + sh >= ay + ah - T) return 'bottom';
     return null;
   }
-  // 板边趴着/侧躺待机：act_40_edge（横向侧躺帧，底部+中心对齐）循环，跟随站立朝向翻转
-  function showEdgeStanding() {
-    spriteShow('act_40_edge', true, SPRITE.facing === -1);
+  // 板边扒着待机：act_40 帧1-3 循环，朝向按板边固定——
+  // 左板边头朝右（面向屏幕内）、右板边头朝左、底部头朝上（竖直不翻转）；
+  // 同步 SPRITE.facing，离开板边后站立朝向自然衔接（面向屏幕内）
+  function showEdgeStanding(edge) {
+    if (edge === 'left') SPRITE.facing = 1;
+    else if (edge === 'right') SPRITE.facing = -1;
+    spriteShow('act_40_edge', true, edge === 'right');
   }
 
   // 转身：站立朝向改变时播放转身过渡动画（turn_left 内容=左→右 / turn_right 内容=右→左，
@@ -470,11 +474,11 @@ window.SpriteCore = (() => {
         };
         app.stage.addChild(s);
         SPRITE.sprites[a.name] = s;
-        // 板边趴着/侧躺待机精灵：act_40 帧5-8（横向侧躺）经中心+底部对齐后循环——
-        // 左右边缘侧着躺、底部横向扒底边；对齐帧消除原始帧间水平偏移导致的抖动
+        // 板边扒着待机精灵：act_40 帧1-3（竖直扒着的姿态）循环——
+        // 朝向按板边固定（左板边头朝右、右板边头朝左、底部头朝上），不跟随站立朝向
         if (a.name === 'act_40') {
           const etexs = [];
-          for (let i = 1; i <= 4; i++) etexs.push(await PIXI.Assets.load(`../assets/sprite/animations/act_40_edge/${i}.png`));
+          for (let i = 1; i <= 3; i++) etexs.push(await PIXI.Assets.load(`../assets/sprite/animations/act_40/${i}.png`));
           const es = new PIXI.AnimatedSprite(etexs);
           es.anchor.set(0.5, 1);
           es.animationSpeed = SPRITE.FPS / 60;
@@ -600,10 +604,10 @@ window.SpriteCore = (() => {
 
     // 待机时偶尔自己乱跑 / 随机表演动作（互斥触发，随机时长）
     if (SPRITE.state === 'idle' && !roam && !SPRITE.noRandom) {
-      // 贴近屏幕左/右/底部边缘：趴在板边待机（act_40 帧1-3 循环），不触发随机乱跑/动作
+      // 贴近屏幕左/右/底部边缘：扒在板边待机（act_40 帧1-3 循环），不触发随机乱跑/动作
       const edge = getEdge();
       if (edge) {
-        if (SPRITE.currentName !== 'act_40_edge') showEdgeStanding();
+        if (SPRITE.currentName !== 'act_40_edge') showEdgeStanding(edge);
         return;
       }
       if (SPRITE.currentName === 'act_40_edge') showStanding(); // 离开边缘恢复站立
