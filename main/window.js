@@ -102,7 +102,7 @@ function registerWindowIpc() {
   // 走动：按增量移动窗口，并限制在主显示器工作区内
   ipcMain.on('move-by', (_e, { dx, dy }) => {
     stopScaleAnim(); // 走动优先：缩放动画会覆盖移动，造成"走不动"
-    if (fallAnim) { clearInterval(fallAnim); fallAnim = null; } // 用户按键：取消下落动画，交还控制权
+    if (fallAnim) return; // 下落中忽略移动请求：乱跑/按键不会中断下落（2.2 秒后自然完成；拖拽 drag-start 仍可打断交还控制权）
     if (!win || win.isDestroyed()) return;
     const [x, y] = win.getPosition();
     const b = win.getBounds();
