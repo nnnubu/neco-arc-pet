@@ -146,19 +146,21 @@ function registerWindowIpc() {
     }
   });
 
-  // 屏幕上方出屏检测：大动作（49 火箭等）飞出后窗口停在屏外，键盘无法聚焦操控，
-  // 持续出屏超过 FALL_BACK_DELAY 毫秒自动通知渲染层播放 act_19 掉回屏幕底部
+  // 屏幕上方停留检测：大动作（49 火箭等）飞出后桌宠停在屏幕顶部/屏外，键盘难以操控，
+  // 窗口顶部位于工作区顶部以下 150px 内（含出屏）持续 FALL_BACK_DELAY 毫秒，
+  // 自动通知渲染层播放 act_19 向下掉落回屏幕底部
   let outTopMs = 0;
   const FALL_BACK_DELAY = 4000;
   const fallCheckTimer = setInterval(() => {
     if (!win || win.isDestroyed()) return;
     const [, y] = win.getPosition();
     const wa = screen.getPrimaryDisplay().workArea;
-    if (y < wa.y - 30) {
+    if (y < wa.y + 150) {
       outTopMs += 1000;
       if (outTopMs >= FALL_BACK_DELAY) {
         outTopMs = 0;
         win.webContents.send('pet-fall-back');
+        if (process.env.PET_DEBUG === '1') console.log('[fallback] trigger at y=' + y);
       }
     } else {
       outTopMs = 0;

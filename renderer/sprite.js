@@ -416,10 +416,11 @@ window.SpriteCore = (() => {
     SPRITE.nextRoamAt = Date.now() + rand(15000, 30000); // 首次随机乱跑计时
     showStanding();
     window.pet.resizeWindow(220, 265); // 初始窗口 = 最小尺寸
-    // 屏幕上方出屏太久（主进程检测 pet-fall-back）：播放 act_19 向下掉落回屏幕底部
-    // （火箭等大动作飞出去后窗口停在屏外，键盘无法聚焦操控，自动掉回可恢复）
+    // 屏幕上方停留太久（主进程检测 pet-fall-back）：播放 act_19 向下掉落回屏幕底部
+    // （火箭等大动作飞出去后桌宠停在屏幕顶部，键盘难以操控，自动掉回可恢复）
     window.pet.onFallBack(() => {
-      if (SPRITE.state === 'walk' || SPRITE.currentName === 'act_19') return; // 走动中/已在掉落中忽略
+      // 走动中/已在掉落中/正在播放大动作（48/49/43/24/91）时忽略，避免打断
+      if (SPRITE.state === 'walk' || SPRITE.currentName === 'act_19' || (SPRITE.state === 'oneshot' && bigSprite)) return;
       spritePlayOneshot('act_19');
     });
   }
