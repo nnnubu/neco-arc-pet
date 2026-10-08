@@ -267,7 +267,7 @@ window.SpriteCore = (() => {
     }
   }
 
-  function spritePlayOneshot(name) {
+  function spritePlayOneshot(name, opts) {
     if (SPRITE.state === 'walk') return; // 走动优先，不打断
     roam = null; // 播放动作时立即停止随机乱跑（否则乱跑分支优先，窗口继续移动导致位置偏移）
     // 常驻趴着形态（23）：循环播放不自动回待机，直到用户切其他动作/重置——作为可停留的趴卧姿态
@@ -288,6 +288,9 @@ window.SpriteCore = (() => {
     // 动作跟随站立朝向：朝左时水平翻转（像素动作本身是朝右的）
     spriteShow(name, false, SPRITE.facing === -1);
     SPRITE.state = 'oneshot';
+    // 掉回模式（opts.fallback）：act_19 向下位移由主进程驱动窗口，渲染层不叠加位移
+    // （避免双倍下落速度 + 两个循环同时 setPosition 的位置竞争/抖动）
+    SPRITE.noMove = !!(opts && opts.fallback);
   }
 
   // 菜单手动播放转向动画：转向动画内容自带方向（turn_left=左→右、turn_right=右→左），
@@ -421,7 +424,8 @@ window.SpriteCore = (() => {
     window.pet.onFallBack(() => {
       // 走动中/已在掉落中/正在播放大动作（48/49/43/24/91）时忽略，避免打断
       if (SPRITE.state === 'walk' || SPRITE.currentName === 'act_19' || (SPRITE.state === 'oneshot' && bigSprite)) return;
-      spritePlayOneshot('act_19');
+      // fallback 模式：act_19 只播动画，向下位移由主进程统一驱动（避免双倍下落/位置竞争）
+      spritePlayOneshot('act_19', { fallback: true });
     });
   }
 
@@ -483,7 +487,7 @@ window.SpriteCore = (() => {
       if (mv) {
         let moving = mv.untilEnd || SPRITE.current.currentFrame < mv.untilFrame;
         if (mv.fromFrame !== undefined && SPRITE.current.currentFrame < mv.fromFrame) moving = false;
-        if (moving) {
+        if (moving && !SPRITE.noMove) { // 掉回模式（noMove）：位移由主进程驱动，渲染层不叠加
           const dirSign = mv.reverse ? -1 : 1; // reverse：位移方向与朝向相反
           if (mv.dir === 'up') window.pet.moveBy(0, -Math.round(mv.speed * dt));
           else if (mv.dir === 'down') window.pet.moveBy(0, Math.round(mv.speed * dt)); // 向下掉落（act_19 掉回屏幕底部）

@@ -170,7 +170,9 @@ function registerWindowIpc() {
       const targetY = Math.max(b0.y, targetBottom - b.height); // 只向下（目标不低于起始位置；出屏时取工作区底部位置）
       win.setPosition(Math.round(b.x), Math.round(b0.y + (targetY - b0.y) * t));
       const b2 = win.getBounds();
-      if (!sent && b2.y + b2.height > wa.y + 5) {
+      // 窗口露出足够多（底部进入工作区 100px，rAF 已恢复）后再通知渲染层播放 act_19
+      // （刚露 5px 时 Chromium 渲染循环可能仍暂停，动画卡住/跳帧）
+      if (!sent && b2.y + b2.height > wa.y + 100) {
         sent = true;
         win.webContents.send('pet-fall-back');
         if (process.env.PET_DEBUG === '1') console.log('[fallback] act_19 播放 at y=' + b2.y);
