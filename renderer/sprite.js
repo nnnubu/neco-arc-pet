@@ -554,7 +554,11 @@ window.SpriteCore = (() => {
           else if (SMUG_HOLD_ACTIONS.includes(SPRITE.currentName)) {
             const cur = s;
             setTimeout(() => {
-              if (SPRITE.current === cur && SPRITE.state === 'oneshot') spriteBackToIdle();
+              if (SPRITE.current === cur && SPRITE.state === 'oneshot') {
+                // act_68 倒地停顿结束：必须衔接 act_26（站立舒展）；其余 Smug 式动作直接回待机
+                if (SPRITE.currentName === 'act_68') spritePlayOneshot('act_26');
+                else spriteBackToIdle();
+              }
             }, SMUG_HOLD_MS);
           } else spriteBackToIdle();
         };
@@ -596,7 +600,8 @@ window.SpriteCore = (() => {
       if (fallWatchTimer) { clearTimeout(fallWatchTimer); fallWatchTimer = null; }
       if (SPRITE.state === 'oneshot' && FALL_ACTIONS.includes(SPRITE.currentName)) {
         if (entranceFalling) { entranceFalling = false; SPRITE.noRandom = false; } // 入场下落结束：恢复随机（钻地/钻出期间 state 非 idle 不会触发）
-        spritePlayOneshot('act_33');
+        // 随机衔接：钻地（act_33 隐藏→随机位置钻出闭环）或站立舒展（act_26，播完直接回待机）
+        spritePlayOneshot(Math.random() < 0.5 ? 'act_33' : 'act_26');
       }
     });
     // 右键菜单「退出桌宠」：随机退出动画——act_49 火箭点火花后向上飞出屏幕 / act_33 挖地钻入消失，
