@@ -31,12 +31,11 @@ window.SpriteCore = (() => {
   // 需重复播放多遍的动作：act_84 飞行 4 帧×12=4秒（循环次数已减半，原 24 轮 8 秒）；act_60 原地重复 2 帧×24=4秒；
   // act_77/83/85 各 2 帧×18=3 秒（用户要求约 3 秒）；其余按 3 遍或 1 遍
   const ACTION_REPEATS = { thinking: 3, push: 3, star: 3, pose1: 3, hide: 3, lie: 3,
-    act_84: 12, act_60: 24, act_77: 18, act_83: 18, act_85: 18, act_44: 3, act_47: 3 };
+    act_84: 12, act_60: 24, act_77: 18, act_83: 18, act_85: 18, act_44: 3, act_47: 5 };
   // 重复播放动作每遍之间的小停顿（ms，让循环不那么急促，但不要太明显）
   const ACTION_PAUSE_MS = { act_77: 80, act_85: 80 };
-  // 循环重播的起始帧（index，0=首帧）：act_47 帧1 是独立起步帧（与循环体差异大），
-  // 循环从帧2 开始，帧19->帧2 衔接差异与循环段内部一致，奔跑循环无缝
-  const LOOP_START_FRAMES = { act_47: 1 };
+  // 循环重播的起始帧（index，0=首帧）：act_47 已裁帧为无缝循环段（原帧9-18），从头循环即可，无需跳帧
+  const LOOP_START_FRAMES = {};
   // 个别动作补偿系数微调：hide 帧偏移 -8/-13/-13.5，1.6× 下帧3仍偏右0.7px，1.75× 使帧2/3微偏左（不偏右）
   const FLIP_OFFSET_K = { hide: 1.75 };
   // 朝左翻转播放时的角色中心补偿（px，动作帧角色不居中：正=原始帧角色偏右）
@@ -134,7 +133,7 @@ window.SpriteCore = (() => {
     act_18: { untilEnd: true, speed: 300 },
     act_29: { untilEnd: true, speed: 300 },
     act_38: { untilEnd: true, speed: 300 },
-    act_47: { frames: [0, 7, 8, 16, 17], speed: 300 }, // 47 奔跑（19帧）：仅迈步帧前进、收步帧停，位移跟随脚步节奏（speed 300 减小步幅，避免突进感）
+    act_47: { frames: [0, 8, 9], speed: 300 }, // 47 奔跑（裁帧后10帧无缝循环）：仅迈步帧(1/9/10=原9/17/18)前进、收步帧停
     act_44: { untilFrame: 4, speed: 260 }, // 44 戴帽走动（5帧循环）：帧0-3移动、最后帧脚步收回停止位移（播完不再前进）
     act_53: { untilEnd: true, speed: 280, reverse: true },
     // act_19/25/30/60：屏幕上方出屏太久自动掉回底部（主进程 pet-fall-back 随机选一个触发），向下掉落全程
