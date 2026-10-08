@@ -189,8 +189,20 @@ function registerWindowIpc() {
         if (process.env.PET_DEBUG === '1') console.log('[fallback] error cleared: ' + e.message);
       }
     }, 8); // 8ms 更新（比 16ms 更平滑）
-    // 兜底：超过 DUR+300ms 强制清除（确保任何异常路径都不会残留下落动画）
-    setTimeout(() => { if (fallAnim) { clearInterval(fallAnim); fallAnim = null; } }, DUR + 300);
+    // 兜底：下落动画异常（如 setInterval 被系统节流导致迟迟到不了 t=1）时，
+    // 强制把窗口放到目标底部位置并结束动画，确保永远不会卡在半空
+    setTimeout(() => {
+      if (fallAnim) {
+        clearInterval(fallAnim); fallAnim = null;
+        try {
+          const wa2 = screen.getPrimaryDisplay().workArea;
+          const b3 = win.getBounds();
+          win.setPosition(Math.round(b3.x), Math.max(b0.y, wa2.y + wa2.height - b3.height));
+          win.webContents.send('pet-fall-done');
+          if (process.env.PET_DEBUG === '1') console.log('[fallback] hard-stop at bottom');
+        } catch (e) { /* 窗口已销毁则忽略 */ }
+      }
+    }, DUR + 800);
   }
   const fallCheckTimer = setInterval(() => {
     if (!win || win.isDestroyed()) return;

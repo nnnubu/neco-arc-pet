@@ -268,7 +268,8 @@ window.SpriteCore = (() => {
   }
 
   function spritePlayOneshot(name, opts) {
-    if (SPRITE.state === 'walk') return; // 走动优先，不打断
+    // 走动优先，不打断；但掉回模式（fallback）例外——出屏掉回必须强制播放掉落动画
+    if (SPRITE.state === 'walk' && !(opts && opts.fallback)) return;
     roam = null; // 播放动作时立即停止随机乱跑（否则乱跑分支优先，窗口继续移动导致位置偏移）
     // 常驻趴着形态（23）：循环播放不自动回待机，直到用户切其他动作/重置——作为可停留的趴卧姿态
     if (name === 'act_23') {
@@ -422,8 +423,9 @@ window.SpriteCore = (() => {
     // 屏幕上方停留太久（主进程检测 pet-fall-back）：播放 act_19 向下掉落回屏幕底部
     // （火箭等大动作飞出去后桌宠停在屏幕顶部，键盘难以操控，自动掉回可恢复）
     window.pet.onFallBack(() => {
-      // 走动中/已在掉落中/正在播放大动作（48/49/43/24/91）时忽略，避免打断
-      if (SPRITE.state === 'walk' || SPRITE.currentName === 'act_19' || (SPRITE.state === 'oneshot' && bigSprite)) return;
+      // 已在掉落中/正在播放大动作（48/49/43/24/91）时忽略，避免打断；
+      // 走动中也强制播放（用户按着 W 走出屏时也必须掉回，不能保持走路姿势下落）
+      if (SPRITE.currentName === 'act_19' || (SPRITE.state === 'oneshot' && bigSprite)) return;
       // fallback 模式：act_19 只播动画，向下位移由主进程统一驱动（避免双倍下落/位置竞争）
       spritePlayOneshot('act_19', { fallback: true });
     });
