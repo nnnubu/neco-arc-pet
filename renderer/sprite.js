@@ -551,12 +551,12 @@ window.SpriteCore = (() => {
     });
     // 主进程下落已抵达底部：衔接钻地（act_33 挖地）——播完自动进入既有钻地联动
     // （隐藏→窗口随机位置→随机 34/72 钻出），形成"飞出→掉回→钻地→随机位置钻出"闭环；
-    // 入场下落（entranceFalling）例外：落底直接回待机（入场动画结束，不衔接钻地）
+    // 入场下落同样衔接该闭环（不突兀地直接站回原位），钻出后按既有逻辑随机衔接 act_68/69/待机
     window.pet.onFallDone(() => {
       // 正常落底：清除下落超时兜底（不再需要）
       if (fallWatchTimer) { clearTimeout(fallWatchTimer); fallWatchTimer = null; }
       if (SPRITE.state === 'oneshot' && FALL_ACTIONS.includes(SPRITE.currentName)) {
-        if (entranceFalling) { entranceFalling = false; SPRITE.noRandom = false; spriteBackToIdle(); return; }
+        if (entranceFalling) { entranceFalling = false; SPRITE.noRandom = false; } // 入场下落结束：恢复随机（钻地/钻出期间 state 非 idle 不会触发）
         spritePlayOneshot('act_33');
       }
     });
