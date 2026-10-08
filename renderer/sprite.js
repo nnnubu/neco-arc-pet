@@ -199,6 +199,9 @@ window.SpriteCore = (() => {
   // 特殊大动作（48/49）主窗口播放状态：bigSprite=原始帧精灵；bigSaved=播放前窗口/缩放
   let bigSprite = null; // { w, h, scale }
   let bigSaved = null;
+  // 首次大动作播放标记：启动后第一次放大窗口时 GPU 大纹理/DWM 合成未预热，易出现边缘残影；
+  // 首次播放延长等待并双清屏，后续尺寸已缓存即正常
+  let bigFirstPlay = true;
   // 退出动画标记：右键菜单「退出桌宠」→ 随机播放退出动画（act_49 火箭飞出 / act_33 挖地钻入）→ 播完发 quit 真正退出
   let exitPending = false;
   // 入场动画标记：启动时随机钻出（act_34/72 播完直接回待机，不做随机衔接）/ 屏幕上方下落（落底直接回待机，不衔接钻地）
@@ -264,20 +267,30 @@ window.SpriteCore = (() => {
     const h = Math.round(texs[0].height * 1.05);
     bigSaved = { w: window.innerWidth, h: window.innerHeight, scale: shared.petScale };
     window.pet.resizeWindow(w, h, true);
-    // 等窗口 resize 完成（canvas 已跟随新尺寸）后再定位/播放，避免 canvas 与窗口错位导致偏移
+    // 等窗口 resize 与 DWM 合成稳定后再定位/播放，避免 canvas 与窗口错位导致偏移；
+    // 首次播放（bigFirstPlay）延长到 200ms 并分两步清屏，预热大窗口合成，消除首次残影
+    const waitMs = bigFirstPlay ? 200 : 80;
     setTimeout(() => {
       if (bigSprite !== s) return;
       // 强制 canvas 同步窗口尺寸（不等 resize 事件，防止 canvas 仍是旧尺寸导致定位错位），再清空一次防残留
       if (app.renderer.width !== w || app.renderer.height !== h) app.renderer.resize(w, h);
       app.renderer.render(app.stage);
-      s.visible = true;
-      s.position.set(w / 2 + (opts.offsetX || 0), h - 5 + (opts.offsetY || 0));
-      SPRITE.state = 'oneshot';
-      SPRITE.current = s; // 供 update 的 MOVE_ACTIONS 位移（49 点火后上移）判断
-      SPRITE.currentName = name;
-      SPRITE.oneshotLeft = 1;
-      s.gotoAndPlay(0);
-    }, 80); // 等窗口 resize 与 DWM 合成稳定（比 50ms 更充分，降低左上/右下角偶发残影）
+      const showSprite = () => {
+        if (bigSprite !== s) return;
+        app.renderer.render(app.stage); // 显示前再清一次（首次：给 DWM 足够稳定时间）
+        s.visible = true;
+        s.position.set(w / 2 + (opts.offsetX || 0), h - 5 + (opts.offsetY || 0));
+        SPRITE.state = 'oneshot';
+        SPRITE.current = s; // 供 update 的 MOVE_ACTIONS 位移（49 点火后上移）判断
+        SPRITE.currentName = name;
+        SPRITE.oneshotLeft = 1;
+        s.gotoAndPlay(0);
+      };
+      if (bigFirstPlay) {
+        bigFirstPlay = false;
+        setTimeout(showSprite, 120); // 首次：再等 120ms 双清屏，DWM 稳定后再显示精灵
+      } else showSprite();
+    }, waitMs);
   }
 
   function restoreBig() {
