@@ -436,6 +436,13 @@ window.SpriteCore = (() => {
           if (SPRITE.state !== 'oneshot' || SPRITE.current !== s) return;
           // act_33 挖地钻入：播完 arc 消失，随机延迟后从屏幕随机位置钻出（34/72 二选一）
           if (SPRITE.currentName === 'act_33') { startBurrowExit(); return; }
+          // act_34/72 钻出播完：随机衔接 act_68 / act_69 / 直接回待机（三种各 1/3 概率）
+          if (SPRITE.currentName === 'act_34' || SPRITE.currentName === 'act_72') {
+            const r = Math.random();
+            if (r < 1 / 3) { spritePlayOneshot('act_68'); return; }
+            if (r < 2 / 3) { spritePlayOneshot('act_69'); return; }
+            spriteBackToIdle(); return;
+          }
           // 25/30 下落段循环：播到末尾跳回下落段起点（开头站立准备帧只播一遍），持续循环直到落底结束
           const loopFrom = FALL_LOOP_FROM[SPRITE.currentName];
           if (loopFrom !== undefined) { s.gotoAndPlay(loopFrom); return; }
