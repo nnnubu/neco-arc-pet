@@ -96,7 +96,8 @@ window.SpriteCore = (() => {
   const BIG_ACTIONS = { act_48: true, act_49: true, act_43: true, act_24: true, act_91: true };
   // BIG 大动作的画面水平偏移（px）：帧内主体不在中心时，播放时右移精灵让主体对齐原桌宠位置
   // act_91：画面双角色（猫耳主体在左、Saber 在右），右移 271px 使猫耳主体居中（Saber 仍在窗口内）
-  const BIG_OFFSET_X = { act_91: 271 };
+  // act_48：内容中心偏画布中心右 7.5px，左移 8px 微修正（43/49 内容居中无需偏移）
+  const BIG_OFFSET_X = { act_91: 271, act_48: -8 };
   // 播完保持最后一帧 2 秒再回待机的动作（smug/wine 固定 + act_65/96/97/111）
   const SMUG_HOLD_MS = 2000;
   const SMUG_HOLD_ACTIONS = ['smug', 'wine', 'act_65', 'act_96', 'act_97', 'act_111'];
