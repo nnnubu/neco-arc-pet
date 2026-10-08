@@ -10,9 +10,9 @@
  */
 window.SpriteCore = (() => {
   const SPRITE = {
-    groups: ['standing', 'walking_left', 'walking_right', 'running', 'backflip', 'kick', 'thinking', 'wine', 'wine_2',
+    groups: ['standing', 'standing_left', 'walking_left', 'walking_right', 'running', 'backflip', 'kick', 'thinking', 'wine', 'wine_2',
       'smug', 'tongue', 'push', 'star', 'pose1', 'hide', 'pout', 'lie', 'turn_left', 'turn_right'],
-    frameCount: { standing: 9, walking_left: 12, walking_right: 11, running: 11, backflip: 9, kick: 7, thinking: 50, wine: 28, wine_2: 17,
+    frameCount: { standing: 9, standing_left: 9, walking_left: 12, walking_right: 11, running: 11, backflip: 9, kick: 7, thinking: 50, wine: 28, wine_2: 17,
       smug: 5, tongue: 60, push: 10, star: 3, pose1: 3, hide: 3, pout: 8, lie: 8, turn_left: 11, turn_right: 10 },
     FPS: 12,
     SCALE: 2,
@@ -170,7 +170,13 @@ window.SpriteCore = (() => {
     if (SPRITE.state === 'walk') return; // 走动中不打断
     if (bigSaved) restoreBig(); // 48/49 特殊大动作播完：恢复原窗口/缩放
     SPRITE.state = 'idle';
-    spriteShow('standing', true, SPRITE.facing === -1);
+    showStanding();
+  }
+
+  // 站立：朝右用 standing（不翻转），朝左用 standing_left（预镜像帧）——
+  // 避免水平翻转 standing 导致站位左右偏移（朝左时角色中心会跳到偏右 11px，转向衔接跳变）
+  function showStanding() {
+    spriteShow(SPRITE.facing === -1 ? 'standing_left' : 'standing', true, false);
   }
 
   // 转身：站立朝向改变时播放转身过渡动画（turn_left 内容=左→右 / turn_right 内容=右→左，
@@ -217,8 +223,7 @@ window.SpriteCore = (() => {
           // 转身动画播完：更新站立朝向（turn_left 内容转到右 → facing=1；turn_right 内容转到左 → facing=-1）
           SPRITE.facing = SPRITE.currentName === 'turn_left' ? 1 : -1;
           spriteBackToIdle();
-        } else {
-          spriteBackToIdle();
+        } else {          spriteBackToIdle();
         }
       };
       app.stage.addChild(s);
@@ -262,7 +267,7 @@ window.SpriteCore = (() => {
     SPRITE.state = 'idle';
     SPRITE.nextActionAt = Date.now() + rand(8000, 15000);
     SPRITE.nextRoamAt = Date.now() + rand(15000, 30000); // 首次随机乱跑计时
-    spriteShow('standing', true, false);
+    showStanding();
     window.pet.resizeWindow(220, 265); // 初始窗口 = 最小尺寸
   }
 
@@ -302,7 +307,7 @@ window.SpriteCore = (() => {
         roam = null;
         if (lastDirX !== 0) SPRITE.facing = lastDirX; // 站立朝向 = 最后水平跑动方向
         SPRITE.state = 'idle';
-        spriteShow('standing', true, SPRITE.facing === -1);
+        showStanding();
         // 停下来后偶尔随机转身（朝反方向站一会）
         if (Math.random() < 0.5) {
           setTimeout(() => { if (SPRITE.state === 'idle') turnTo(Math.random() < 0.5 ? 1 : -1); }, rand(400, 1500));
@@ -316,7 +321,7 @@ window.SpriteCore = (() => {
         SPRITE.facing = SPRITE.lastMoveX > 0 ? 1 : -1;
         SPRITE.lastMoveX = 0;
       }
-      spriteShow('standing', true, SPRITE.facing === -1);
+      showStanding();
     } else if (SPRITE.state === 'oneshot' && SPRITE.current) {
       // 一次性动作附带位移：wine 走动段（拿起酒杯前）/ lie 全程——沿当前朝向移动桌宠；
       // act_84 全程向上；act_49 点火（帧18）后向上——dir:'up' 时垂直移动（窗口上移）
