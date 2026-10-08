@@ -15,9 +15,8 @@ window.SpriteCore = (() => {
     frameCount: { standing: 9, standing_left: 9, walking_left: 12, walking_right: 11, running: 11, backflip: 9, kick: 7, thinking: 50, wine: 28, wine_2: 17,
       smug: 5, tongue: 60, push: 10, star: 3, pose1: 3, hide: 3, pout: 8, lie: 8, turn_left: 11, turn_right: 10 },
     FPS: 12,
-    // 个别动作按原始 gif 帧率播放：act_24 原图为 10ms/帧（100fps），
-    // 若按统一 12fps 播放，帧间细微波动会被拉长 8 倍显形为"左右晃动"
-    ACTION_FPS: { act_24: 60 }, // PIXI 上限 60fps（animationSpeed=1），最接近原图平滑观感
+    // 个别动作按原始 gif 帧率播放（预留；当前不用——act_24 加速播放观感过快，抖动根因另修）
+    ACTION_FPS: {},
     SCALE: 2,
     sprites: {},
     current: null,
