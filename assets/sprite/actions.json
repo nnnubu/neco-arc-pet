@@ -326,5 +326,9 @@
     {
         "name":  "act_111",
         "frames":  4
+    },
+    {
+        "name":  "act_44",
+        "frames":  5
     }
 ]

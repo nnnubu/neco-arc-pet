@@ -132,6 +132,7 @@ window.SpriteCore = (() => {
     act_29: { untilEnd: true, speed: 300 },
     act_38: { untilEnd: true, speed: 300 },
     act_47: { untilEnd: true, speed: 260 },
+    act_44: { untilEnd: true, speed: 260 }, // 44 戴帽走动（44.gif 后半段 11-20 = 5帧循环×2，取5帧）：全程沿朝向水平移动
     act_53: { untilEnd: true, speed: 280, reverse: true },
     // act_19/25/30/60：屏幕上方出屏太久自动掉回底部（主进程 pet-fall-back 随机选一个触发），向下掉落全程
     // act_25 帧1-5 站立准备、帧6-7 下落（直接跳帧6，2张循环）；act_30 帧1-5 准备、帧6-93 下落（直接跳帧6，下落段循环）
