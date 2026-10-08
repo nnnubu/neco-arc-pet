@@ -12,6 +12,8 @@ contextBridge.exposeInMainWorld('pet', {
   setScale: (scale) => ipcRenderer.send('pet-scale', scale),
   // 主进程缩放动画每步通知渲染层（画布跟随窗口尺寸、精灵按 scale 反推，窗口与画面始终同步）
   onPetWindowResized: (cb) => ipcRenderer.on('pet-window-resized', (_e, size) => cb(size)),
+  // 屏幕上方出屏太久：主进程检测到后通知渲染层播放 act_19 掉回屏幕底部
+  onFallBack: (cb) => ipcRenderer.on('pet-fall-back', () => cb()),
   getMaxScale: () => ipcRenderer.invoke('pet-get-max-scale'),
   showMenu: () => ipcRenderer.send('show-context-menu'),
   getActions: () => ipcRenderer.invoke('get-actions'),

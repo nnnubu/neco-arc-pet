@@ -134,6 +134,8 @@ window.SpriteCore = (() => {
     act_38: { untilEnd: true, speed: 300 },
     act_47: { untilEnd: true, speed: 260 },
     act_53: { untilEnd: true, speed: 280, reverse: true },
+    // act_19：屏幕上方出屏太久自动掉回底部（主进程 pet-fall-back 触发），向下掉落全程
+    act_19: { untilEnd: true, speed: 500, dir: 'down' },
   };
 
   // 随机乱跑状态（待机时偶尔自己走动/乱跑）：null 或 { dir, remaining, run }
@@ -414,6 +416,12 @@ window.SpriteCore = (() => {
     SPRITE.nextRoamAt = Date.now() + rand(15000, 30000); // 首次随机乱跑计时
     showStanding();
     window.pet.resizeWindow(220, 265); // 初始窗口 = 最小尺寸
+    // 屏幕上方出屏太久（主进程检测 pet-fall-back）：播放 act_19 向下掉落回屏幕底部
+    // （火箭等大动作飞出去后窗口停在屏外，键盘无法聚焦操控，自动掉回可恢复）
+    window.pet.onFallBack(() => {
+      if (SPRITE.state === 'walk' || SPRITE.currentName === 'act_19') return; // 走动中/已在掉落中忽略
+      spritePlayOneshot('act_19');
+    });
   }
 
   // 每帧更新：走动（按键持续循环播放）、随机乱跑、待机随机动作
@@ -477,6 +485,7 @@ window.SpriteCore = (() => {
         if (moving) {
           const dirSign = mv.reverse ? -1 : 1; // reverse：位移方向与朝向相反
           if (mv.dir === 'up') window.pet.moveBy(0, -Math.round(mv.speed * dt));
+          else if (mv.dir === 'down') window.pet.moveBy(0, Math.round(mv.speed * dt)); // 向下掉落（act_19 掉回屏幕底部）
           else if (mv.dir === 'diag-up') window.pet.moveBy(Math.round(dirSign * SPRITE.facing * mv.speed * dt), -Math.round(mv.speed * dt)); // 斜向上：水平沿朝向 + 垂直向上
           else window.pet.moveBy(Math.round(dirSign * SPRITE.facing * mv.speed * dt), 0);
         }

@@ -146,6 +146,25 @@ function registerWindowIpc() {
     }
   });
 
+  // 屏幕上方出屏检测：大动作（49 火箭等）飞出后窗口停在屏外，键盘无法聚焦操控，
+  // 持续出屏超过 FALL_BACK_DELAY 毫秒自动通知渲染层播放 act_19 掉回屏幕底部
+  let outTopMs = 0;
+  const FALL_BACK_DELAY = 4000;
+  const fallCheckTimer = setInterval(() => {
+    if (!win || win.isDestroyed()) return;
+    const [, y] = win.getPosition();
+    const wa = screen.getPrimaryDisplay().workArea;
+    if (y < wa.y - 30) {
+      outTopMs += 1000;
+      if (outTopMs >= FALL_BACK_DELAY) {
+        outTopMs = 0;
+        win.webContents.send('pet-fall-back');
+      }
+    } else {
+      outTopMs = 0;
+    }
+  }, 1000);
+
   // 桌宠缩放：滚轮控制。保持窗口底部位置，水平居中；限制窗口不超出工作区
   // 平滑缩放动画：窗口逐帧（16ms）向目标尺寸/位置指数趋近，每步同步通知渲染层
   // （画布 resize 到窗口尺寸、精灵按 scale=高度/WIN_H 反推），窗口与画面始终同步，
