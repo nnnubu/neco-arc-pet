@@ -132,7 +132,7 @@ window.SpriteCore = (() => {
     act_29: { untilEnd: true, speed: 300 },
     act_38: { untilEnd: true, speed: 300 },
     act_47: { untilEnd: true, speed: 260 },
-    act_44: { untilEnd: true, speed: 260 }, // 44 戴帽走动（44.gif 后半段 11-20 = 5帧循环×2，取5帧）：全程沿朝向水平移动
+    act_44: { untilFrame: 4, speed: 260 }, // 44 戴帽走动（5帧循环）：帧0-3移动、最后帧脚步收回停止位移（播完不再前进）
     act_53: { untilEnd: true, speed: 280, reverse: true },
     // act_19/25/30/60：屏幕上方出屏太久自动掉回底部（主进程 pet-fall-back 随机选一个触发），向下掉落全程
     // act_25 帧1-5 站立准备、帧6-7 下落（直接跳帧6，2张循环）；act_30 帧1-5 准备、帧6-93 下落（直接跳帧6，下落段循环）
@@ -296,7 +296,8 @@ window.SpriteCore = (() => {
           s.visible = true;
           // 大动作跟随桌宠朝向做镜像：朝左（facing=-1）水平翻转帧（scale.x 负），
           // 使画面朝向与位移方向一致（如 44 朝左走动）；offsetX 同步取反，翻转后画面主体仍对齐原桌宠位置
-          const flip = SPRITE.facing === -1;
+          // act_49 例外：帧内容本身朝左（火箭/猫飞向左侧），镜像条件与朝向相反——朝右播放时翻转
+          const flip = name === 'act_49' ? SPRITE.facing === 1 : SPRITE.facing === -1;
           s.scale.set(flip ? -1.05 : 1.05, 1.05);
           s.position.set(w / 2 + (flip ? -(opts.offsetX || 0) : (opts.offsetX || 0)), h - 5 + (opts.offsetY || 0));
           SPRITE.state = 'oneshot';
