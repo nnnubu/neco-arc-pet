@@ -28,8 +28,10 @@ window.SpriteCore = (() => {
     lastMoveX: 0, // 最后水平移动方向（抬键后 vx 已归零，需在移动中记录）
     noRandom: false, // 调试：禁用随机乱跑/随机动作（PET_DEBUG 序列用）
   };
-  // 需重复播放 24 遍的动作（act_84 飞行 4 帧 × 24 @12fps = 8 秒）；其余按 3 遍或 1 遍
-  const ACTION_REPEATS = { thinking: 3, push: 3, star: 3, pose1: 3, hide: 3, lie: 3, act_84: 24 };
+  // 需重复播放多遍的动作：act_84 飞行 4 帧×24=8秒；act_60 斜向飞行 2 帧×24=4秒；
+  // act_77/83/85 各 2 帧×18=3 秒（用户要求约 3 秒）；其余按 3 遍或 1 遍
+  const ACTION_REPEATS = { thinking: 3, push: 3, star: 3, pose1: 3, hide: 3, lie: 3,
+    act_84: 24, act_60: 24, act_77: 18, act_83: 18, act_85: 18 };
   // 个别动作补偿系数微调：hide 帧偏移 -8/-13/-13.5，1.6× 下帧3仍偏右0.7px，1.75× 使帧2/3微偏左（不偏右）
   const FLIP_OFFSET_K = { hide: 1.75 };
   // 朝左翻转播放时的角色中心补偿（px，动作帧角色不居中：正=原始帧角色偏右）
@@ -71,7 +73,6 @@ window.SpriteCore = (() => {
     act_47: -1.0,
     act_56: -1.0,
     act_59: -1.0,
-    act_61: -1.0,
     act_63: -1.0,
     act_66: -1.0,
     act_68: -1.0,
@@ -91,8 +92,9 @@ window.SpriteCore = (() => {
   // 特殊大动作（48/49/43）：主窗口播放时临时放大窗口到原始帧尺寸×1.05（原始帧清晰，无需独立窗口）
   // act_24：同样用原始帧完整播放（保留 41 帧动画内容），但尺寸正常、不放大窗口（enlarge=false）
   const BIG_ACTIONS = { act_48: true, act_49: true, act_43: true, act_24: true };
-  // smug/wine 播完保持最后一帧的时长（2 秒）再回待机
+  // 播完保持最后一帧 2 秒再回待机的动作（smug/wine 固定 + act_65/96/97/111）
   const SMUG_HOLD_MS = 2000;
+  const SMUG_HOLD_ACTIONS = ['smug', 'wine', 'act_65', 'act_96', 'act_97', 'act_111'];
   // 循环动画的帧集：排除起跑/爆发/收尾/站立帧，循环衔接才自然
   // - walking：去帧 1 与尾帧（首尾跳变最大）
   // - running：用 ping-pong 往返序列 [4,5,6,7,6,5]——帧 4-7 是奔跑段（帧间差异 ≤6.2%），
@@ -110,7 +112,9 @@ window.SpriteCore = (() => {
   // - lie：躺倒动作全程移动，直到动作结束回待机
   // - act_84：飞行动作一播放就向上平移（全程）
   // - act_49：火箭点火（底部喷火，帧 18 起）之后向上平移，全程到动作结束
-  // - act_18/29/38：奔跑冲刺，全程沿朝向水平移动；act_22：爬行，慢速沿朝向移动
+  // - act_18/29/38：奔跑冲刺，全程沿朝向水平移动
+  // - act_47：全程沿朝向水平移动；act_53：全程反向（与朝向相反）水平移动
+  // - act_60：斜向上位移（水平分量沿朝向 + 垂直向上），dir:'diag-up'
   const MOVE_ACTIONS = {
     wine: { untilFrame: 14, speed: 260 }, // AnimatedSprite currentFrame 0-based：0~13 移动
     lie: { untilEnd: true, speed: 200 },
@@ -119,6 +123,9 @@ window.SpriteCore = (() => {
     act_18: { untilEnd: true, speed: 300 },
     act_29: { untilEnd: true, speed: 300 },
     act_38: { untilEnd: true, speed: 300 },
+    act_47: { untilEnd: true, speed: 260 },
+    act_53: { untilEnd: true, speed: 200, reverse: true },
+    act_60: { untilEnd: true, speed: 220, dir: 'diag-up' },
   };
 
   // 随机乱跑状态（待机时偶尔自己走动/乱跑）：null 或 { dir, remaining, run }
@@ -320,7 +327,7 @@ window.SpriteCore = (() => {
       s.onComplete = () => {
         if (SPRITE.state !== 'oneshot' || SPRITE.current !== s) return;
         if (SPRITE.oneshotLeft > 1) { SPRITE.oneshotLeft--; s.gotoAndPlay(0); }
-        else if (SPRITE.currentName === 'smug' || SPRITE.currentName === 'wine') {
+        else if (SMUG_HOLD_ACTIONS.includes(SPRITE.currentName)) {
           const cur = s;
           setTimeout(() => {
             if (SPRITE.current === cur && SPRITE.state === 'oneshot') spriteBackToIdle();
@@ -355,9 +362,14 @@ window.SpriteCore = (() => {
         for (const t of texs) t.baseTexture.scaleMode = PIXI.SCALE_MODES.NEAREST;
         s.onComplete = () => {
           if (SPRITE.state !== 'oneshot' || SPRITE.current !== s) return;
-          // 按轮数循环（act_84 等需重复播放的动作）；播完回待机
+          // 按轮数循环（act_84 等需重复播放的动作）；Smug 式动作（65/96/97/111）播完保持最后一帧 2 秒；其余回待机
           if (SPRITE.oneshotLeft > 1) { SPRITE.oneshotLeft--; s.gotoAndPlay(0); }
-          else spriteBackToIdle();
+          else if (SMUG_HOLD_ACTIONS.includes(SPRITE.currentName)) {
+            const cur = s;
+            setTimeout(() => {
+              if (SPRITE.current === cur && SPRITE.state === 'oneshot') spriteBackToIdle();
+            }, SMUG_HOLD_MS);
+          } else spriteBackToIdle();
         };
         app.stage.addChild(s);
         SPRITE.sprites[a.name] = s;
@@ -439,8 +451,10 @@ window.SpriteCore = (() => {
         let moving = mv.untilEnd || SPRITE.current.currentFrame < mv.untilFrame;
         if (mv.fromFrame !== undefined && SPRITE.current.currentFrame < mv.fromFrame) moving = false;
         if (moving) {
+          const dirSign = mv.reverse ? -1 : 1; // reverse：位移方向与朝向相反
           if (mv.dir === 'up') window.pet.moveBy(0, -Math.round(mv.speed * dt));
-          else window.pet.moveBy(Math.round(SPRITE.facing * mv.speed * dt), 0);
+          else if (mv.dir === 'diag-up') window.pet.moveBy(Math.round(dirSign * SPRITE.facing * mv.speed * dt), -Math.round(mv.speed * dt)); // 斜向上：水平沿朝向 + 垂直向上
+          else window.pet.moveBy(Math.round(dirSign * SPRITE.facing * mv.speed * dt), 0);
         }
       }
       // 43/48 播完前淡出：最后约 25% 帧数内透明度逐渐降到 0，柔和过渡到回待机（中间帧的虚化衔接）

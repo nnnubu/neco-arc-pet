@@ -188,10 +188,6 @@
   "frames": 2
  },
  {
-  "name": "act_61",
-  "frames": 3
- },
- {
   "name": "act_62",
   "frames": 11
  },
@@ -250,10 +246,6 @@
  {
   "name": "act_77",
   "frames": 2
- },
- {
-  "name": "act_78",
-  "frames": 3
  },
  {
   "name": "act_79",
@@ -330,14 +322,6 @@
  {
   "name": "act_106",
   "frames": 4
- },
- {
-  "name": "act_107",
-  "frames": 3
- },
- {
-  "name": "act_108",
-  "frames": 27
  },
  {
   "name": "act_111",
