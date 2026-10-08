@@ -87,6 +87,7 @@ function registerWindowIpc() {
 
   ipcMain.on('drag-move', () => {
     if (!win || win.isDestroyed() || !dragState.dragging) return;
+    if (fallAnim) { clearInterval(fallAnim); fallAnim = null; } // 拖拽中：取消下落动画，交还控制权
     const now = screen.getCursorScreenPoint();
     win.setPosition(
       dragState.startWin[0] + now.x - dragState.startMouse.x,
@@ -164,24 +165,32 @@ function registerWindowIpc() {
     const DUR = 2200; // 2.2 秒掉到工作区底部（比 1.5s 慢：每帧位移更小更平滑，且更接近 act_19 动画时长）
     let sent = false; // 窗口进入可见区后再通知渲染层播放 act_19（出屏时渲染暂停，动画播了也看不到）
     fallAnim = setInterval(() => {
-      if (!win || win.isDestroyed()) { clearInterval(fallAnim); fallAnim = null; return; }
-      const t = Math.min(1, (Date.now() - startT) / DUR);
-      const b = win.getBounds();
-      const targetY = Math.max(b0.y, targetBottom - b.height); // 只向下（目标不低于起始位置；出屏时取工作区底部位置）
-      win.setPosition(Math.round(b.x), Math.round(b0.y + (targetY - b0.y) * t));
-      const b2 = win.getBounds();
-      // 窗口露出足够多（底部进入工作区 100px，rAF 已恢复）后再通知渲染层播放 act_19
-      // （刚露 5px 时 Chromium 渲染循环可能仍暂停，动画卡住/跳帧）
-      if (!sent && b2.y + b2.height > wa.y + 100) {
-        sent = true;
-        win.webContents.send('pet-fall-back');
-        if (process.env.PET_DEBUG === '1') console.log('[fallback] act_19 播放 at y=' + b2.y);
-      }
-      if (t >= 1) {
+      try {
+        if (!win || win.isDestroyed()) { clearInterval(fallAnim); fallAnim = null; return; }
+        const t = Math.min(1, (Date.now() - startT) / DUR);
+        const b = win.getBounds();
+        const targetY = Math.max(b0.y, targetBottom - b.height); // 只向下（目标不低于起始位置；出屏时取工作区底部位置）
+        win.setPosition(Math.round(b.x), Math.round(b0.y + (targetY - b0.y) * t));
+        const b2 = win.getBounds();
+        // 窗口露出足够多（底部进入工作区 100px，rAF 已恢复）后再通知渲染层播放 act_19
+        // （刚露 5px 时 Chromium 渲染循环可能仍暂停，动画卡住/跳帧）
+        if (!sent && b2.y + b2.height > wa.y + 100) {
+          sent = true;
+          win.webContents.send('pet-fall-back');
+          if (process.env.PET_DEBUG === '1') console.log('[fallback] act_19 播放 at y=' + b2.y);
+        }
+        if (t >= 1) {
+          clearInterval(fallAnim); fallAnim = null;
+          win.webContents.send('pet-fall-done'); // 已抵达底部：通知渲染层结束 act_19 回待机（动画不落地后空播）
+        }
+      } catch (e) {
+        // 任何异常（如窗口状态异常导致 setPosition 失败）：立即清除动画，防止 fallAnim 残留锁死窗口
         clearInterval(fallAnim); fallAnim = null;
-        win.webContents.send('pet-fall-done'); // 已抵达底部：通知渲染层结束 act_19 回待机（动画不落地后空播）
+        if (process.env.PET_DEBUG === '1') console.log('[fallback] error cleared: ' + e.message);
       }
     }, 8); // 8ms 更新（比 16ms 更平滑）
+    // 兜底：超过 DUR+300ms 强制清除（确保任何异常路径都不会残留下落动画）
+    setTimeout(() => { if (fallAnim) { clearInterval(fallAnim); fallAnim = null; } }, DUR + 300);
   }
   const fallCheckTimer = setInterval(() => {
     if (!win || win.isDestroyed()) return;
