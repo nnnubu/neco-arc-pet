@@ -146,6 +146,9 @@ window.SpriteCore = (() => {
   const FALL_LOOP_FROM = { act_25: 5, act_30: 5 };
   // 掉回时随机选用的下落动作池
   const FALL_ACTIONS = ['act_19', 'act_25', 'act_30', 'act_60'];
+  // act_22 爬行逐帧中心补偿（0-based 帧序号 → px）：原始帧间角色中心 ±0.5px 整数舍入交替（131.0/131.5），
+  // 播放时左右微抖；逐帧把精灵 x 补偿到画布中心 132 统一，消除舍入抖动（帧内容四肢摆动保留）
+  const ACT22_CENTER_COMP = [0.5,1.0,0.5,1.0,1.0,1.0,0.5,0.5,1.0,0.5,1.0,0.5,1.0,0.5,0.5,1.0,0.5,1.0,0.5,1.0,0.5,0.5,1.0,0.5,1.0,0.5,1.0,0.5,0.5,1.0,0.5,1.0,0.5,1.0,0.5,0.5,1.0,0.5,1.0,0.5,1.0,0.5,0.5,1.0,0.5,1.0,0.5,1.0,0.5];
 
   // 随机乱跑状态（待机时偶尔自己走动/乱跑）：null 或 { dir, remaining, run }
   let roam = null;
@@ -543,6 +546,11 @@ window.SpriteCore = (() => {
       }
       showStanding();
     } else if (SPRITE.state === 'oneshot' && SPRITE.current) {
+      // act_22 爬行：逐帧补偿角色中心（消除原始帧 ±0.5px 整数舍入交替导致的左右微抖）
+      if (SPRITE.currentName === 'act_22') {
+        const c = ACT22_CENTER_COMP[SPRITE.current.currentFrame];
+        if (c !== undefined) SPRITE.current.x = window.innerWidth / 2 + c;
+      }
       // 一次性动作附带位移：wine 走动段（拿起酒杯前）/ lie 全程——沿当前朝向移动桌宠；
       // act_84 全程向上；act_49 点火（帧18）后向上——dir:'up' 时垂直移动（窗口上移）
       const mv = MOVE_ACTIONS[SPRITE.currentName];
