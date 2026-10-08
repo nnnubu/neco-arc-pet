@@ -195,8 +195,9 @@ window.SpriteCore = (() => {
     // 立即渲染一帧空画面：窗口放大瞬间 canvas 尚未跟随 resize，旧帧会残留在窗口左上角（残影）
     app.renderer.render(app.stage);
     // 窗口放大到帧尺寸×1.05（底部保持不跳动，48 原地播放），精灵底部中心对齐新窗口
-    // offsetX：水平偏移（px，正=精灵右移），供画面主体不在帧中心的大动作（如 91 猫耳主体在左）播放时主体对齐原桌宠位置
-    const w = Math.round(texs[0].width * 1.05);
+    // offsetX：水平偏移（px，正=精灵右移），供画面主体不在帧中心的大动作（如 91 猫耳主体在左）播放时主体对齐原桌宠位置；
+    // 有偏移时窗口左右各加宽 offsetX，保证偏移后整个画面（含右侧 Saber）不被裁剪
+    const w = Math.round(texs[0].width * 1.05 + (opts.offsetX || 0) * 2);
     const h = Math.round(texs[0].height * 1.05);
     bigSaved = { w: window.innerWidth, h: window.innerHeight, scale: shared.petScale };
     window.pet.resizeWindow(w, h, true);
