@@ -651,18 +651,19 @@ window.SpriteCore = (() => {
       // 跑步：Shift+方向 → 随机选用 act_18/29/38/running 之一循环播放（起步时选定，按住期间固定；抬键清空下次重选）
       if (run && !SPRITE.runAct) SPRITE.runAct = RUN_ACTIONS[Math.floor(Math.random() * RUN_ACTIONS.length)];
       if (!run) SPRITE.runAct = null;
-      // 走路：方向键（无 Shift）→ 随机选用 walking_right/left + act_92/act_99 之一（起步选定、方向变化重选，按住固定）
-      if (!run && vx !== 0) {
-        const wantDir = vx > 0 ? 1 : -1;
+      // 走路：方向键（无 Shift）→ 随机选用 walking_right/left + act_92/act_99 之一（起步选定、方向变化重选，按住固定）；
+      // 垂直走（vx=0）同样随机（按当前朝向选池）
+      if (!run && moving) {
+        const wantDir = vx !== 0 ? (vx > 0 ? 1 : -1) : (SPRITE.facing === -1 ? -1 : 1);
         if (!SPRITE.walkAct || SPRITE.walkDir !== wantDir) {
           SPRITE.walkDir = wantDir;
           const pool = wantDir > 0 ? WALK_ACTIONS_R : WALK_ACTIONS_L;
           SPRITE.walkAct = pool[Math.floor(Math.random() * pool.length)];
         }
       }
-      // 目标动画：跑步动作（帧朝右，向左跑水平翻转）/ 走路（walking_left 预镜像不翻转，act_92/99 朝左时翻转；垂直走保持当前朝向）
+      // 目标动画：跑步动作（帧朝右，向左跑水平翻转）/ 走路（walking_left 预镜像不翻转，act_92/99 按 walkDir 翻转；垂直走保持当前朝向）
       const flipX = run ? vx < 0
-        : (vx !== 0 ? (SPRITE.walkAct === 'walking_left' ? false : vx < 0) : SPRITE.runFlip);
+        : (SPRITE.walkAct === 'walking_left' ? false : SPRITE.walkDir === -1);
       const targetAnim = run ? SPRITE.runAct
         : (SPRITE.walkAct || (vx !== 0 ? (vx > 0 ? 'walking_right' : 'walking_left')
           : (SPRITE.currentName === 'walking_right' ? 'walking_right' : 'walking_left')));
