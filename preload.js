@@ -15,6 +15,8 @@ contextBridge.exposeInMainWorld('pet', {
   // 屏幕上方出屏太久：主进程检测到后通知渲染层播放 act_19 掉回屏幕底部
   onFallBack: (cb) => ipcRenderer.on('pet-fall-back', () => cb()),
   onFallDone: (cb) => ipcRenderer.on('pet-fall-done', () => cb()),
+  // 入场动画-从屏幕上方下落：主进程把窗口移到屏幕上方并驱动下落（复用掉回链路）
+  entranceFall: () => ipcRenderer.send('pet-entrance-fall'),
   // 钻地联动：把窗口移到屏幕内随机位置（33 挖地消失后从随机位置钻出用）
   teleportRandom: () => ipcRenderer.send('pet-teleport-random'),
   // 钻地隐藏：窗口整体透明度（0=全透明消除白点/残留，1=恢复可见）

@@ -115,6 +115,18 @@ function registerWindowIpc() {
     win.setOpacity(Math.max(0, Math.min(1, v)));
   });
 
+  // 入场动画-从屏幕上方下落：把窗口移到工作区顶部上方（底部露出一点，保证渲染循环不暂停），
+  // 立即启动既有掉回链路（主进程 2.2 秒驱动窗口掉到底部，露出后发 pet-fall-back 播放下落动画，落底发 pet-fall-done）
+  ipcMain.on('pet-entrance-fall', () => {
+    if (!win || win.isDestroyed()) return;
+    const wa = screen.getPrimaryDisplay().workArea;
+    const b = win.getBounds();
+    const x = wa.x + Math.round(Math.random() * (wa.width - b.width));
+    // 窗口顶部出屏 90%（底部露 10%）：Chromium 渲染循环保持运行，下落动画能播
+    win.setPosition(x, wa.y - Math.round(b.height * 0.9));
+    startFallBack();
+  });
+
   // 走动：按增量移动窗口，并限制在主显示器工作区内
   ipcMain.on('move-by', (_e, { dx, dy }) => {
     stopScaleAnim(); // 走动优先：缩放动画会覆盖移动，造成"走不动"

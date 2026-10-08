@@ -199,8 +199,11 @@ window.SpriteCore = (() => {
   // 特殊大动作（48/49）主窗口播放状态：bigSprite=原始帧精灵；bigSaved=播放前窗口/缩放
   let bigSprite = null; // { w, h, scale }
   let bigSaved = null;
-  // 退出动画标记：右键菜单「退出桌宠」→ 播放 act_49（火箭飞出）→ 播完发 quit 真正退出
+  // 退出动画标记：右键菜单「退出桌宠」→ 随机播放退出动画（act_49 火箭飞出 / act_33 挖地钻入）→ 播完发 quit 真正退出
   let exitPending = false;
+  // 入场动画标记：启动时随机钻出（act_34/72 播完直接回待机，不做随机衔接）/ 屏幕上方下落（落底直接回待机，不衔接钻地）
+  let entrancePending = false;
+  let entranceFalling = false;
 
   // 播放特殊大动作：加载原始分辨率帧（big_actions/），窗口临时放大到帧尺寸×1.05（底部保持），
   // 精灵 1:1 显示（原始像素清晰）；播完停留 0.4 秒后回待机并恢复窗口/缩放
@@ -403,6 +406,30 @@ window.SpriteCore = (() => {
     SPRITE.state = 'oneshot';
   }
 
+  // 入场动画：启动时随机二选一——从地下钻出（act_34/72）或从屏幕上方下落（复用掉回链路）
+  function playEntrance() {
+    if (Math.random() < 0.5) {
+      // 钻出：窗口全透明 + 移到屏幕随机位置（不可见）→ 1~2.5 秒 → 恢复可见 + 随机 34/72 钻出 → 回待机
+      SPRITE.state = 'burrow'; // 复用钻地状态：期间按键可 cancelBurrow 打断并正常走动
+      if (window.pet.setOpacity) window.pet.setOpacity(0);
+      if (window.pet.teleportRandom) window.pet.teleportRandom();
+      if (burrowTimer) clearTimeout(burrowTimer);
+      burrowTimer = setTimeout(() => {
+        burrowTimer = null;
+        if (SPRITE.state !== 'burrow') return;
+        if (window.pet.setOpacity) window.pet.setOpacity(1);
+        entrancePending = true; // 钻出播完直接回待机（不做随机衔接）
+        spritePlayOneshot(Math.random() < 0.5 ? 'act_34' : 'act_72');
+      }, 1000 + Math.random() * 1500);
+    } else {
+      // 从屏幕上方下落：主进程把窗口移到顶部并驱动 2.2 秒掉到底部（露出后发 pet-fall-back 播放下落动画，
+      // 落底发 pet-fall-done → 回待机）；期间禁止随机动作/乱跑干扰
+      entranceFalling = true;
+      SPRITE.noRandom = true;
+      if (window.pet.entranceFall) window.pet.entranceFall();
+    }
+  }
+
   async function initSprite() {
     app.stage.removeChildren();
     // 逐组加载帧纹理（走路/跑步跳过首尾帧，循环衔接更自然）
@@ -460,10 +487,16 @@ window.SpriteCore = (() => {
         for (const t of texs) t.baseTexture.scaleMode = PIXI.SCALE_MODES.NEAREST;
         s.onComplete = () => {
           if (SPRITE.state !== 'oneshot' || SPRITE.current !== s) return;
-          // act_33 挖地钻入：播完 arc 消失，随机延迟后从屏幕随机位置钻出（34/72 二选一）
-          if (SPRITE.currentName === 'act_33') { startBurrowExit(); return; }
-          // act_34/72 钻出播完：随机衔接 act_68 / act_69 / 直接回待机（三种各 1/3 概率）
+          // act_33 挖地钻入：播完 arc 消失，随机延迟后从屏幕随机位置钻出（34/72 二选一）；
+          // 若为退出动画（exitPending），挖地播完直接退出（不钻出）
+          if (SPRITE.currentName === 'act_33') {
+            if (exitPending) { exitPending = false; window.pet.quit(); return; }
+            startBurrowExit(); return;
+          }
+          // act_34/72 钻出播完：入场钻出（entrancePending）直接回待机，不做随机衔接；
+          // 否则随机衔接 act_68 / act_69 / 直接回待机（三种各 1/3 概率）
           if (SPRITE.currentName === 'act_34' || SPRITE.currentName === 'act_72') {
+            if (entrancePending) { entrancePending = false; spriteBackToIdle(); return; }
             const r = Math.random();
             if (r < 1 / 3) { spritePlayOneshot('act_68'); return; }
             if (r < 2 / 3) { spritePlayOneshot('act_69'); return; }
@@ -517,19 +550,29 @@ window.SpriteCore = (() => {
       spritePlayOneshot(pick, { fallback: true });
     });
     // 主进程下落已抵达底部：衔接钻地（act_33 挖地）——播完自动进入既有钻地联动
-    // （隐藏→窗口随机位置→随机 34/72 钻出），形成"飞出→掉回→钻地→随机位置钻出"闭环
+    // （隐藏→窗口随机位置→随机 34/72 钻出），形成"飞出→掉回→钻地→随机位置钻出"闭环；
+    // 入场下落（entranceFalling）例外：落底直接回待机（入场动画结束，不衔接钻地）
     window.pet.onFallDone(() => {
       // 正常落底：清除下落超时兜底（不再需要）
       if (fallWatchTimer) { clearTimeout(fallWatchTimer); fallWatchTimer = null; }
       if (SPRITE.state === 'oneshot' && FALL_ACTIONS.includes(SPRITE.currentName)) {
+        if (entranceFalling) { entranceFalling = false; SPRITE.noRandom = false; spriteBackToIdle(); return; }
         spritePlayOneshot('act_33');
       }
     });
-    // 右键菜单「退出桌宠」：播放退出动画 act_49（火箭点火花后向上飞出屏幕），播完由 onComplete 发 quit 退出
+    // 右键菜单「退出桌宠」：随机退出动画——act_49 火箭点火花后向上飞出屏幕 / act_33 挖地钻入消失，
+    // 播完由 onComplete 发 quit 退出
     window.pet.onExitAnim(() => {
       exitPending = true;
-      playBigInMain('act_49'); // 窗口临时放大播放原始帧，MOVE_ACTIONS 自动全程向上位移直至飞出屏幕
+      if (Math.random() < 0.5) {
+        playBigInMain('act_49'); // 窗口临时放大播放原始帧，MOVE_ACTIONS 自动全程向上位移直至飞出屏幕
+      } else {
+        spritePlayOneshot('act_33'); // 挖地钻入：播完（exitPending）直接退出
+      }
     });
+    // 入场动画：启动时随机从地下钻出（act_34/72）或从屏幕上方下落（复用掉回链路，落底回待机）
+    // ——窗口初始位置在屏幕右下角附近，钻出需先透明+随机位置；下落由主进程移上方并驱动
+    playEntrance();
   }
 
   // 每帧更新：走动（按键持续循环播放）、随机乱跑、待机随机动作
