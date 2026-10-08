@@ -28,10 +28,10 @@ window.SpriteCore = (() => {
     lastMoveX: 0, // 最后水平移动方向（抬键后 vx 已归零，需在移动中记录）
     noRandom: false, // 调试：禁用随机乱跑/随机动作（PET_DEBUG 序列用）
   };
-  // 需重复播放多遍的动作：act_84 飞行 4 帧×24=8秒；act_60 原地重复 2 帧×24=4秒；
+  // 需重复播放多遍的动作：act_84 飞行 4 帧×12=4秒（循环次数已减半，原 24 轮 8 秒）；act_60 原地重复 2 帧×24=4秒；
   // act_77/83/85 各 2 帧×18=3 秒（用户要求约 3 秒）；其余按 3 遍或 1 遍
   const ACTION_REPEATS = { thinking: 3, push: 3, star: 3, pose1: 3, hide: 3, lie: 3,
-    act_84: 24, act_60: 24, act_77: 18, act_83: 18, act_85: 18 };
+    act_84: 12, act_60: 24, act_77: 18, act_83: 18, act_85: 18 };
   // 重复播放动作每遍之间的小停顿（ms，让循环不那么急促，但不要太明显）
   const ACTION_PAUSE_MS = { act_77: 80, act_85: 80 };
   // 个别动作补偿系数微调：hide 帧偏移 -8/-13/-13.5，1.6× 下帧3仍偏右0.7px，1.75× 使帧2/3微偏左（不偏右）
@@ -134,9 +134,19 @@ window.SpriteCore = (() => {
     act_38: { untilEnd: true, speed: 300 },
     act_47: { untilEnd: true, speed: 260 },
     act_53: { untilEnd: true, speed: 280, reverse: true },
-    // act_19：屏幕上方出屏太久自动掉回底部（主进程 pet-fall-back 触发），向下掉落全程
+    // act_19/25/30/60：屏幕上方出屏太久自动掉回底部（主进程 pet-fall-back 随机选一个触发），向下掉落全程
+    // act_25 帧1-3 站立准备、帧4-7 下落（fromFrame=3 起移动，下落段循环）；act_30 帧1-5 准备、帧6-93 下落（fromFrame=5 起移动，下落段循环）
     act_19: { untilEnd: true, speed: 500, dir: 'down' },
+    act_25: { fromFrame: 3, untilEnd: true, speed: 500, dir: 'down' },
+    act_30: { fromFrame: 5, untilEnd: true, speed: 500, dir: 'down' },
+    act_60: { untilEnd: true, speed: 500, dir: 'down' },
   };
+
+  // 掉回下落动作中"下落段循环"的起点帧（0-based）：25/30 开头几帧是站立准备，播完跳回下落段起点循环，
+  // 直到落到底部（pet-fall-done）才结束——而不是播完就回待机
+  const FALL_LOOP_FROM = { act_25: 3, act_30: 5 };
+  // 掉回时随机选用的下落动作池
+  const FALL_ACTIONS = ['act_19', 'act_25', 'act_30', 'act_60'];
 
   // 随机乱跑状态（待机时偶尔自己走动/乱跑）：null 或 { dir, remaining, run }
   let roam = null;
@@ -387,6 +397,9 @@ window.SpriteCore = (() => {
         for (const t of texs) t.baseTexture.scaleMode = PIXI.SCALE_MODES.NEAREST;
         s.onComplete = () => {
           if (SPRITE.state !== 'oneshot' || SPRITE.current !== s) return;
+          // 25/30 下落段循环：播到末尾跳回下落段起点（开头站立准备帧只播一遍），持续循环直到落底结束
+          const loopFrom = FALL_LOOP_FROM[SPRITE.currentName];
+          if (loopFrom !== undefined) { s.gotoAndPlay(loopFrom); return; }
           // 按轮数循环（act_84 等需重复播放的动作）；77/85 每遍间加小停顿；Smug 式动作（65/96/97/111）播完保持最后一帧 2 秒；其余回待机
           if (SPRITE.oneshotLeft > 1) {
             SPRITE.oneshotLeft--;
@@ -425,13 +438,15 @@ window.SpriteCore = (() => {
     window.pet.onFallBack(() => {
       // 已在掉落中/正在播放大动作（48/49/43/24/91）时忽略，避免打断；
       // 走动中也强制播放（用户按着 W 走出屏时也必须掉回，不能保持走路姿势下落）
-      if (SPRITE.currentName === 'act_19' || (SPRITE.state === 'oneshot' && bigSprite)) return;
-      // fallback 模式：act_19 只播动画，向下位移由主进程统一驱动（避免双倍下落/位置竞争）
-      spritePlayOneshot('act_19', { fallback: true });
+      if (FALL_ACTIONS.includes(SPRITE.currentName) || (SPRITE.state === 'oneshot' && bigSprite)) return;
+      // fallback 模式：下落动作只播动画，向下位移由主进程统一驱动（避免双倍下落/位置竞争）
+      // 随机选用一个下落动作（19 全程掉落 / 25、30 准备后掉落 / 60 重复掉落）
+      const pick = FALL_ACTIONS[Math.floor(Math.random() * FALL_ACTIONS.length)];
+      spritePlayOneshot(pick, { fallback: true });
     });
-    // 主进程下落已抵达底部：立即结束 act_19 回待机（避免动画落地后继续空播几秒）
+    // 主进程下落已抵达底部：立即结束下落动作回待机（避免动画落地后继续空播几秒）
     window.pet.onFallDone(() => {
-      if (SPRITE.state === 'oneshot' && SPRITE.currentName === 'act_19') spriteBackToIdle();
+      if (SPRITE.state === 'oneshot' && FALL_ACTIONS.includes(SPRITE.currentName)) spriteBackToIdle();
     });
   }
 
