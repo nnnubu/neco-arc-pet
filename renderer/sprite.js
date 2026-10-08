@@ -31,7 +31,9 @@ window.SpriteCore = (() => {
   // 需重复播放多遍的动作：act_84 飞行 4 帧×12=4秒（循环次数已减半，原 24 轮 8 秒）；act_60 原地重复 2 帧×24=4秒；
   // act_77/83/85 各 2 帧×18=3 秒（用户要求约 3 秒）；其余按 3 遍或 1 遍
   const ACTION_REPEATS = { thinking: 3, push: 3, star: 3, pose1: 3, hide: 3, lie: 3,
-    act_84: 12, act_60: 24, act_77: 18, act_83: 18, act_85: 18, act_44: 3, act_47: 5 };
+    act_84: 12, act_60: 24, act_77: 18, act_83: 18, act_85: 18, act_44: 3, act_47: 5,
+    // 35/45/74/75/76/105 多循环（与 77 类似，总时长≈3 秒：36帧/12fps）
+    act_35: 4, act_45: 4, act_74: 3, act_75: 3, act_76: 2, act_105: 9 };
   // 重复播放动作每遍之间的小停顿（ms，让循环不那么急促，但不要太明显）
   const ACTION_PAUSE_MS = { act_77: 80, act_85: 80 };
   // 循环重播的起始帧（index，0=首帧）：act_47 已裁帧为无缝循环段（原帧9-18），从头循环即可，无需跳帧
@@ -104,7 +106,7 @@ window.SpriteCore = (() => {
   const BIG_OFFSET_Y = { act_48: -35 };
   // 播完保持最后一帧 2 秒再回待机的动作（smug/wine 固定 + act_65/96/97/111）
   const SMUG_HOLD_MS = 2000;
-  const SMUG_HOLD_ACTIONS = ['smug', 'wine', 'act_65', 'act_96', 'act_97', 'act_111', 'act_68', 'act_26'];
+  const SMUG_HOLD_ACTIONS = ['smug', 'wine', 'act_65', 'act_96', 'act_97', 'act_111', 'act_68', 'act_26', 'act_64'];
   // 循环动画的帧集：排除起跑/爆发/收尾/站立帧，循环衔接才自然
   // - walking：去帧 1 与尾帧（首尾跳变最大）
   // - running：用 ping-pong 往返序列 [4,5,6,7,6,5]——帧 4-7 是奔跑段（帧间差异 ≤6.2%），
@@ -147,6 +149,9 @@ window.SpriteCore = (() => {
   // 跑步动作库：Shift+方向键触发，起步时随机选用其一循环播放（按住期间固定，抬键回待机）
   // 含原有 running 基础帧（4 选 1）
   const RUN_ACTIONS = ['act_18', 'act_29', 'act_38', 'running'];
+  // 走路动作池：方向键触发（无 Shift），起步随机选用其一循环播放（walking_left 预镜像帧不翻转；act_92/99 帧朝右，朝左时翻转）
+  const WALK_ACTIONS_R = ['walking_right', 'act_92', 'act_99'];
+  const WALK_ACTIONS_L = ['walking_left', 'act_92', 'act_99'];
   // 掉回下落动作中"下落段循环"的起点帧（0-based）：25/30 开头几帧是站立准备，播完跳回下落段起点循环，
   // 直到落到底部（pet-fall-done）才结束——而不是播完就回待机
   const FALL_LOOP_FROM = { act_25: 5, act_30: 5 };
@@ -603,8 +608,11 @@ window.SpriteCore = (() => {
       if (fallWatchTimer) { clearTimeout(fallWatchTimer); fallWatchTimer = null; }
       if (SPRITE.state === 'oneshot' && FALL_ACTIONS.includes(SPRITE.currentName)) {
         if (entranceFalling) { entranceFalling = false; SPRITE.noRandom = false; } // 入场下落结束：恢复随机（钻地/钻出期间 state 非 idle 不会触发）
-        // 随机衔接：钻地（act_33 隐藏→随机位置钻出闭环）或站立舒展（act_26，播完直接回待机）
-        spritePlayOneshot(Math.random() < 0.5 ? 'act_33' : 'act_26');
+        // 随机衔接：钻地（act_33 隐藏→随机位置钻出闭环）/ 站立舒展（act_26 播完回待机）/ act_64（播完停顿2秒回待机）
+        const r = Math.random();
+        if (r < 1 / 3) spritePlayOneshot('act_33');
+        else if (r < 2 / 3) spritePlayOneshot('act_26');
+        else spritePlayOneshot('act_64');
       }
     });
     // 右键菜单「退出桌宠」：随机退出动画——act_49 火箭点火花后向上飞出屏幕 / act_33 挖地钻入消失，
@@ -640,14 +648,24 @@ window.SpriteCore = (() => {
       const run = keys.shift;
       const spd = run ? 430 : 260;
       window.pet.moveBy(Math.round(vx * spd * dt), Math.round(vy * spd * dt));
-      // 跑步：Shift+方向 → 随机选用 act_18/29/38 之一循环播放（起步时选定，按住期间固定；抬键清空下次重选）
+      // 跑步：Shift+方向 → 随机选用 act_18/29/38/running 之一循环播放（起步时选定，按住期间固定；抬键清空下次重选）
       if (run && !SPRITE.runAct) SPRITE.runAct = RUN_ACTIONS[Math.floor(Math.random() * RUN_ACTIONS.length)];
       if (!run) SPRITE.runAct = null;
-      // 目标动画：跑步动作（帧朝右，向左跑水平翻转）/ 左右走（方向变化时立即切换动画组）
-      const flipX = run ? vx < 0 : false;
+      // 走路：方向键（无 Shift）→ 随机选用 walking_right/left + act_92/act_99 之一（起步选定、方向变化重选，按住固定）
+      if (!run && vx !== 0) {
+        const wantDir = vx > 0 ? 1 : -1;
+        if (!SPRITE.walkAct || SPRITE.walkDir !== wantDir) {
+          SPRITE.walkDir = wantDir;
+          const pool = wantDir > 0 ? WALK_ACTIONS_R : WALK_ACTIONS_L;
+          SPRITE.walkAct = pool[Math.floor(Math.random() * pool.length)];
+        }
+      }
+      // 目标动画：跑步动作（帧朝右，向左跑水平翻转）/ 走路（walking_left 预镜像不翻转，act_92/99 朝左时翻转；垂直走保持当前朝向）
+      const flipX = run ? vx < 0
+        : (vx !== 0 ? (SPRITE.walkAct === 'walking_left' ? false : vx < 0) : SPRITE.runFlip);
       const targetAnim = run ? SPRITE.runAct
-        : (vx !== 0 ? (vx > 0 ? 'walking_right' : 'walking_left')
-          : (SPRITE.currentName === 'walking_right' ? 'walking_right' : 'walking_left'));
+        : (SPRITE.walkAct || (vx !== 0 ? (vx > 0 ? 'walking_right' : 'walking_left')
+          : (SPRITE.currentName === 'walking_right' ? 'walking_right' : 'walking_left')));
       // 方向变化（flipX 变）时也强制重播，使跑步帧翻转更新
       if (SPRITE.state !== 'walk' || SPRITE.currentName !== targetAnim || SPRITE.runFlip !== flipX) {
         spriteShow(targetAnim, true, flipX);
@@ -675,7 +693,7 @@ window.SpriteCore = (() => {
     } else if (SPRITE.state === 'walk') {
       // 抬键：立即回待机，站立朝向 = 最后移动方向（vx 已归零，用移动中记录的 lastMoveX）
       SPRITE.state = 'idle';
-      SPRITE.runAct = null; SPRITE.runFlip = null; // 清跑步动作记忆（下次 Shift 起步重新随机）
+      SPRITE.runAct = null; SPRITE.runFlip = null; SPRITE.walkAct = null; SPRITE.walkDir = null; // 清跑步/走路动作记忆（下次起步重新随机）
       if (SPRITE.lastMoveX !== 0) {
         SPRITE.facing = SPRITE.lastMoveX > 0 ? 1 : -1;
         SPRITE.lastMoveX = 0;
