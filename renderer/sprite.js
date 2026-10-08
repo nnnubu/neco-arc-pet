@@ -58,7 +58,6 @@ window.SpriteCore = (() => {
     act_18: { untilEnd: true, speed: 300 },
     act_29: { untilEnd: true, speed: 300 },
     act_38: { untilEnd: true, speed: 300 },
-    act_22: { untilEnd: true, speed: 140 },
   };
 
   // 随机乱跑状态（待机时偶尔自己走动/乱跑）：null 或 { dir, remaining, run }
