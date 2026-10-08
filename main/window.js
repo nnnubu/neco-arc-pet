@@ -149,7 +149,7 @@ function registerWindowIpc() {
   });
 
   // 屏幕上方停留检测：大动作（49 火箭等）飞出后桌宠停在屏幕顶部/屏外，键盘难以操控，
-  // 窗口顶部位于工作区顶部以下 150px 内（含出屏）持续 FALL_BACK_DELAY 毫秒，
+  // 窗口顶部真正出屏（超出工作区顶部 30px 以上，y < wa.y - 30）持续 FALL_BACK_DELAY 毫秒，
   // 自动触发"掉回底部"：通知渲染层播放 act_19，同时主进程直接驱动窗口向下掉落
   // （窗口完全出屏时 Chromium 暂停渲染循环，rAF/动画/位移都不推进，必须主进程移动窗口）
   let outTopMs = 0;
@@ -187,7 +187,7 @@ function registerWindowIpc() {
     if (!win || win.isDestroyed()) return;
     const [, y] = win.getPosition();
     const wa = screen.getPrimaryDisplay().workArea;
-    if (y < wa.y + 150) {
+    if (y < wa.y - 30) {
       outTopMs += 1000;
       if (outTopMs >= FALL_BACK_DELAY) {
         outTopMs = 0;
