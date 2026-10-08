@@ -167,7 +167,7 @@ function registerWindowIpc() {
       if (!win || win.isDestroyed()) { clearInterval(fallAnim); fallAnim = null; return; }
       const t = Math.min(1, (Date.now() - startT) / DUR);
       const b = win.getBounds();
-      const targetY = Math.min(b0.y, targetBottom - b.height); // 只向下（窗口顶只降不升）
+      const targetY = Math.max(b0.y, targetBottom - b.height); // 只向下（目标不低于起始位置；出屏时取工作区底部位置）
       win.setPosition(Math.round(b.x), Math.round(b0.y + (targetY - b0.y) * t));
       if (t >= 1) { clearInterval(fallAnim); fallAnim = null; }
     }, 16);
