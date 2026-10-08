@@ -15,10 +15,8 @@ window.SpriteCore = (() => {
     frameCount: { standing: 9, standing_left: 9, walking_left: 12, walking_right: 11, running: 11, backflip: 9, kick: 7, thinking: 50, wine: 28, wine_2: 17,
       smug: 5, tongue: 60, push: 10, star: 3, pose1: 3, hide: 3, pout: 8, lie: 8, turn_left: 11, turn_right: 10 },
     FPS: 12,
-    // 个别动作按原始 gif 帧率播放：act_24 原图为 10ms/帧（100fps）高帧率动画，
-    // 12fps 慢放会使其内容波动（周期性收拢）显形为抖动；60fps 则太快。
-    // 取中间 24fps：循环约 1.7 秒、收拢平滑，观感介于"不抖"与"不快"之间
-    ACTION_FPS: { act_24: 24 },
+    // 个别动作按原始 gif 帧率播放（预留；act_24 已改为 5 帧呼吸循环，用统一 12fps 即可）
+    ACTION_FPS: {},
     SCALE: 2,
     sprites: {},
     current: null,
