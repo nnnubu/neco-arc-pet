@@ -99,6 +99,16 @@ function registerWindowIpc() {
     dragState.dragging = false;
   });
 
+  // 钻地联动：窗口移到屏幕内随机位置（渲染层 33 挖地消失后随机钻出用）
+  ipcMain.on('pet-teleport-random', () => {
+    if (!win || win.isDestroyed()) return;
+    const wa = screen.getPrimaryDisplay().workArea;
+    const b = win.getBounds();
+    const x = wa.x + Math.round(Math.random() * (wa.width - b.width));
+    const y = wa.y + Math.round(Math.random() * (wa.height - b.height));
+    win.setPosition(x, y);
+  });
+
   // 走动：按增量移动窗口，并限制在主显示器工作区内
   ipcMain.on('move-by', (_e, { dx, dy }) => {
     stopScaleAnim(); // 走动优先：缩放动画会覆盖移动，造成"走不动"

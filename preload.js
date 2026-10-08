@@ -15,6 +15,8 @@ contextBridge.exposeInMainWorld('pet', {
   // 屏幕上方出屏太久：主进程检测到后通知渲染层播放 act_19 掉回屏幕底部
   onFallBack: (cb) => ipcRenderer.on('pet-fall-back', () => cb()),
   onFallDone: (cb) => ipcRenderer.on('pet-fall-done', () => cb()),
+  // 钻地联动：把窗口移到屏幕内随机位置（33 挖地消失后从随机位置钻出用）
+  teleportRandom: () => ipcRenderer.send('pet-teleport-random'),
   getMaxScale: () => ipcRenderer.invoke('pet-get-max-scale'),
   showMenu: () => ipcRenderer.send('show-context-menu'),
   getActions: () => ipcRenderer.invoke('get-actions'),

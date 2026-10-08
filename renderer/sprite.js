@@ -151,6 +151,29 @@ window.SpriteCore = (() => {
   // 随机乱跑状态（待机时偶尔自己走动/乱跑）：null 或 { dir, remaining, run }
   let roam = null;
 
+  // 钻地联动（33 挖地 → 隐藏 → 随机位置 → 34/72 钻出）：
+  // burrowTimer 为钻出延迟定时器；state='burrow' 表示 arc 已钻地隐藏、等待随机位置钻出
+  let burrowTimer = null;
+  // act_33 播完：arc 挖地消失 → 窗口移到屏幕随机位置 → 随机 2~5 秒后随机选 34/72 钻出
+  function startBurrowExit() {
+    if (SPRITE.current) SPRITE.current.visible = false; // arc 钻地消失
+    SPRITE.state = 'burrow';
+    if (window.pet.teleportRandom) window.pet.teleportRandom(); // 窗口移到屏幕内随机位置
+    const delay = 2000 + Math.random() * 3000; // 2~5 秒随机延迟
+    if (burrowTimer) clearTimeout(burrowTimer);
+    burrowTimer = setTimeout(() => {
+      burrowTimer = null;
+      if (SPRITE.state !== 'burrow') return; // 期间被按键/其他动作打断则取消钻出
+      const pick = Math.random() < 0.5 ? 'act_34' : 'act_72'; // 随机从地里钻出
+      spritePlayOneshot(pick);
+    }, delay);
+  }
+  // 取消钻出（用户按键走动/切动作时）：恢复显示，放弃随机钻出
+  function cancelBurrow() {
+    if (burrowTimer) { clearTimeout(burrowTimer); burrowTimer = null; }
+    if (SPRITE.current) SPRITE.current.visible = true;
+  }
+
   // 动态动作注册表映射（name → {name, frames}），48/49 独立窗口播放取帧数用
   let dynamicActionsMap = {};
 
@@ -280,6 +303,11 @@ window.SpriteCore = (() => {
   function spritePlayOneshot(name, opts) {
     // 走动优先，不打断；但掉回模式（fallback）例外——出屏掉回必须强制播放掉落动画
     if (SPRITE.state === 'walk' && !(opts && opts.fallback)) return;
+    // 钻地隐藏等待中：用户切到其他动作时取消钻出（重新显示 arc，放弃随机钻出）
+    if (SPRITE.state === 'burrow') {
+      if (burrowTimer) { clearTimeout(burrowTimer); burrowTimer = null; }
+      if (SPRITE.current) SPRITE.current.visible = true;
+    }
     roam = null; // 播放动作时立即停止随机乱跑（否则乱跑分支优先，窗口继续移动导致位置偏移）
     // 常驻趴着形态（23）：循环播放不自动回待机，直到用户切其他动作/重置——作为可停留的趴卧姿态
     if (name === 'act_23') {
@@ -397,6 +425,8 @@ window.SpriteCore = (() => {
         for (const t of texs) t.baseTexture.scaleMode = PIXI.SCALE_MODES.NEAREST;
         s.onComplete = () => {
           if (SPRITE.state !== 'oneshot' || SPRITE.current !== s) return;
+          // act_33 挖地钻入：播完 arc 消失，随机延迟后从屏幕随机位置钻出（34/72 二选一）
+          if (SPRITE.currentName === 'act_33') { startBurrowExit(); return; }
           // 25/30 下落段循环：播到末尾跳回下落段起点（开头站立准备帧只播一遍），持续循环直到落底结束
           const loopFrom = FALL_LOOP_FROM[SPRITE.currentName];
           if (loopFrom !== undefined) { s.gotoAndPlay(loopFrom); return; }
@@ -436,9 +466,9 @@ window.SpriteCore = (() => {
     // 屏幕上方停留太久（主进程检测 pet-fall-back）：播放 act_19 向下掉落回屏幕底部
     // （火箭等大动作飞出去后桌宠停在屏幕顶部，键盘难以操控，自动掉回可恢复）
     window.pet.onFallBack(() => {
-      // 已在掉落中/正在播放大动作（48/49/43/24/91）时忽略，避免打断；
+      // 钻地隐藏等待中/已在掉落中/正在播放大动作（48/49/43/24/91）时忽略，避免打断；
       // 走动中也强制播放（用户按着 W 走出屏时也必须掉回，不能保持走路姿势下落）
-      if (FALL_ACTIONS.includes(SPRITE.currentName) || (SPRITE.state === 'oneshot' && bigSprite)) return;
+      if (SPRITE.state === 'burrow' || FALL_ACTIONS.includes(SPRITE.currentName) || (SPRITE.state === 'oneshot' && bigSprite)) return;
       // fallback 模式：下落动作只播动画，向下位移由主进程统一驱动（避免双倍下落/位置竞争）
       // 随机选用一个下落动作（19 全程掉落 / 25、30 准备后掉落 / 60 重复掉落）
       const pick = FALL_ACTIONS[Math.floor(Math.random() * FALL_ACTIONS.length)];
@@ -460,6 +490,8 @@ window.SpriteCore = (() => {
     if (moving) {
       // 用户按键：打断随机乱跑，完全由用户控制
       roam = null;
+      // 钻地隐藏等待中按键：取消钻出（重新显示 arc 正常走动）
+      if (SPRITE.state === 'burrow') cancelBurrow();
       // 记录最后水平移动方向（抬键后 vx 归零，朝向更新要用它）
       if (vx !== 0) SPRITE.lastMoveX = vx;
       // 按住方向键持续移动，动画循环播放直至抬键
