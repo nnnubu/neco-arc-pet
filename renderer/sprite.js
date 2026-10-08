@@ -162,6 +162,9 @@ window.SpriteCore = (() => {
   // 钻地联动（33 挖地 → 隐藏 → 随机位置 → 34/72 钻出）：
   // burrowTimer 为钻出延迟定时器；state='burrow' 表示 arc 已钻地隐藏、等待随机位置钻出
   let burrowTimer = null;
+  // 掉回下落超时兜底：fallback 下落动画播放过久（主进程位移驱动/落底检测偶发失效，卡在屏幕上方）
+  // 时直接衔接钻地（act_33 挖地→隐藏→随机位置钻出），不等待落到底部
+  let fallWatchTimer = null;
   // act_33 播完：arc 挖地消失 → 窗口整体透明（消除随机位置的白点/渲染残留）→
   // 移到屏幕随机位置 → 随机 2~5 秒后恢复可见并随机选 34/72 钻出
   function startBurrowExit() {
@@ -313,6 +316,8 @@ window.SpriteCore = (() => {
   }
 
   function spritePlayOneshot(name, opts) {
+    // 新动作播放：清除下落超时兜底定时器（动作已切换，不再需要兜底）
+    if (fallWatchTimer) { clearTimeout(fallWatchTimer); fallWatchTimer = null; }
     // 走动优先，不打断；但掉回模式（fallback）例外——出屏掉回必须强制播放掉落动画
     if (SPRITE.state === 'walk' && !(opts && opts.fallback)) return;
     // 钻地隐藏等待中：用户切到其他动作时取消钻出（重新显示 arc，放弃随机钻出）
@@ -345,6 +350,17 @@ window.SpriteCore = (() => {
     // 掉回模式（opts.fallback）：act_19 向下位移由主进程驱动窗口，渲染层不叠加位移
     // （避免双倍下落速度 + 两个循环同时 setPosition 的位置竞争/抖动）
     SPRITE.noMove = !!(opts && opts.fallback);
+    // 掉回兜底：主进程位移/落底检测偶发失效时，下落动画会一直卡在屏幕上方循环播放；
+    // 6 秒后仍未落底（未收到 pet-fall-done）则直接衔接钻地（act_33 挖地→随机位置钻出）自救
+    // （正常下落 500px/s 至屏幕底部约 2~4 秒，6 秒为安全阈值，不会误触正常下落）
+    if (opts && opts.fallback) {
+      fallWatchTimer = setTimeout(() => {
+        fallWatchTimer = null;
+        if (SPRITE.state === 'oneshot' && FALL_ACTIONS.includes(SPRITE.currentName)) {
+          spritePlayOneshot('act_33');
+        }
+      }, 6000);
+    }
   }
 
   // 菜单手动播放转向动画：转向动画内容自带方向（turn_left=左→右、turn_right=右→左），
@@ -499,6 +515,8 @@ window.SpriteCore = (() => {
     // 主进程下落已抵达底部：衔接钻地（act_33 挖地）——播完自动进入既有钻地联动
     // （隐藏→窗口随机位置→随机 34/72 钻出），形成"飞出→掉回→钻地→随机位置钻出"闭环
     window.pet.onFallDone(() => {
+      // 正常落底：清除下落超时兜底（不再需要）
+      if (fallWatchTimer) { clearTimeout(fallWatchTimer); fallWatchTimer = null; }
       if (SPRITE.state === 'oneshot' && FALL_ACTIONS.includes(SPRITE.currentName)) {
         spritePlayOneshot('act_33');
       }
