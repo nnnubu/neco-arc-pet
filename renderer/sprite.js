@@ -104,7 +104,7 @@ window.SpriteCore = (() => {
   const BIG_OFFSET_Y = { act_48: -35 };
   // 播完保持最后一帧 2 秒再回待机的动作（smug/wine 固定 + act_65/96/97/111）
   const SMUG_HOLD_MS = 2000;
-  const SMUG_HOLD_ACTIONS = ['smug', 'wine', 'act_65', 'act_96', 'act_97', 'act_111', 'act_68'];
+  const SMUG_HOLD_ACTIONS = ['smug', 'wine', 'act_65', 'act_96', 'act_97', 'act_111', 'act_68', 'act_26'];
   // 循环动画的帧集：排除起跑/爆发/收尾/站立帧，循环衔接才自然
   // - walking：去帧 1 与尾帧（首尾跳变最大）
   // - running：用 ping-pong 往返序列 [4,5,6,7,6,5]——帧 4-7 是奔跑段（帧间差异 ≤6.2%），
