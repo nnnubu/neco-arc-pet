@@ -362,6 +362,23 @@ window.SpriteCore = (() => {
     spriteShow(SPRITE.facing === -1 ? 'standing_left' : 'standing', true, false);
   }
 
+  // 屏幕边缘检测：窗口贴近屏幕左/右/底部边缘（含任务栏可用区，DIP 坐标）返回方向，否则 null
+  function getEdge() {
+    const T = 10; // 贴边阈值（像素）
+    const sx = window.screenX, sy = window.screenY;
+    const sw = window.outerWidth, sh = window.outerHeight;
+    const ax = window.screen.availLeft || 0, ay = window.screen.availTop || 0;
+    const aw = window.screen.availWidth, ah = window.screen.availHeight;
+    if (sx <= ax + T) return 'left';
+    if (sx + sw >= ax + aw - T) return 'right';
+    if (sy + sh >= ay + ah - T) return 'bottom';
+    return null;
+  }
+  // 板边趴着待机：act_40 帧1-3 循环（跟随站立朝向翻转）
+  function showEdgeStanding() {
+    spriteShow('act_40_edge', true, SPRITE.facing === -1);
+  }
+
   // 转身：站立朝向改变时播放转身过渡动画（turn_left 内容=左→右 / turn_right 内容=右→左，
   // 与文件名相反——帧内容实测：turn_left 起点朝左终点朝右，turn_right 起点朝右终点朝左），
   // 播完更新朝向（转向动画终点方向与 standing 一致，不再出现"转完突然又面向反方向"）
@@ -453,6 +470,18 @@ window.SpriteCore = (() => {
         };
         app.stage.addChild(s);
         SPRITE.sprites[a.name] = s;
+        // 板边趴着待机精灵：act_40 只用帧1-3 循环（帧4-8 是躺倒起身，不适合待机循环）
+        if (a.name === 'act_40') {
+          const etexs = [];
+          for (let i = 1; i <= 3; i++) etexs.push(await PIXI.Assets.load(`../assets/sprite/animations/act_40/${i}.png`));
+          const es = new PIXI.AnimatedSprite(etexs);
+          es.anchor.set(0.5, 1);
+          es.animationSpeed = SPRITE.FPS / 60;
+          es.visible = false;
+          for (const t of etexs) t.baseTexture.scaleMode = PIXI.SCALE_MODES.NEAREST;
+          app.stage.addChild(es);
+          SPRITE.sprites['act_40_edge'] = es;
+        }
       }
       // 后台预加载 48/49/43/24/91 原始帧（big_actions/），首次播放时立即就绪，避免加载延迟导致的异常帧
       for (const bn of ['act_48', 'act_49', 'act_43', 'act_24', 'act_91']) {
@@ -570,6 +599,13 @@ window.SpriteCore = (() => {
 
     // 待机时偶尔自己乱跑 / 随机表演动作（互斥触发，随机时长）
     if (SPRITE.state === 'idle' && !roam && !SPRITE.noRandom) {
+      // 贴近屏幕左/右/底部边缘：趴在板边待机（act_40 帧1-3 循环），不触发随机乱跑/动作
+      const edge = getEdge();
+      if (edge) {
+        if (SPRITE.currentName !== 'act_40_edge') showEdgeStanding();
+        return;
+      }
+      if (SPRITE.currentName === 'act_40_edge') showStanding(); // 离开边缘恢复站立
       if (now >= SPRITE.nextRoamAt) {
         // 触发乱跑：水平/垂直两轴各自独立随机（各为 -1/0/1，概率相同），
         // 两轴同时非 0 即斜线移动；排除两轴都 0 的原地不动
