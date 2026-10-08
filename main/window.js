@@ -157,18 +157,24 @@ function registerWindowIpc() {
   const FALL_BACK_DELAY = 4000;
   function startFallBack() {
     if (fallAnim || !win || win.isDestroyed()) return;
-    win.webContents.send('pet-fall-back'); // 渲染层播放 act_19（窗口回到可见区后动画自然推进）
     const wa = screen.getPrimaryDisplay().workArea;
     const b0 = win.getBounds();
     const targetBottom = wa.y + wa.height;
     const startT = Date.now();
     const DUR = 1500; // 1.5 秒掉到工作区底部
+    let sent = false; // 窗口进入可见区后再通知渲染层播放 act_19（出屏时渲染暂停，动画播了也看不到）
     fallAnim = setInterval(() => {
       if (!win || win.isDestroyed()) { clearInterval(fallAnim); fallAnim = null; return; }
       const t = Math.min(1, (Date.now() - startT) / DUR);
       const b = win.getBounds();
       const targetY = Math.max(b0.y, targetBottom - b.height); // 只向下（目标不低于起始位置；出屏时取工作区底部位置）
       win.setPosition(Math.round(b.x), Math.round(b0.y + (targetY - b0.y) * t));
+      const b2 = win.getBounds();
+      if (!sent && b2.y + b2.height > wa.y + 5) {
+        sent = true;
+        win.webContents.send('pet-fall-back');
+        if (process.env.PET_DEBUG === '1') console.log('[fallback] act_19 播放 at y=' + b2.y);
+      }
       if (t >= 1) { clearInterval(fallAnim); fallAnim = null; }
     }, 16);
   }
