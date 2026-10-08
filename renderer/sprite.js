@@ -347,6 +347,17 @@ window.SpriteCore = (() => {
           else window.pet.moveBy(Math.round(SPRITE.facing * mv.speed * dt), 0);
         }
       }
+      // 43/48 播完前淡出：最后约 25% 帧数内透明度逐渐降到 0，柔和过渡到回待机（中间帧的虚化衔接）
+      if (bigSprite && (SPRITE.currentName === 'act_43' || SPRITE.currentName === 'act_48') && bigSprite.alpha > 0) {
+        const s = bigSprite;
+        const fadeFrames = Math.max(4, Math.round(s.totalFrames * 0.25));
+        const remain = s.totalFrames - s.currentFrame;
+        if (remain <= fadeFrames) {
+          // 按时间均匀淡出（update 约 60fps，动画 12fps：fadeFrames 动画帧对应 fadeFrames/12 秒）
+          const step = 1 / (fadeFrames / SPRITE.FPS * 60);
+          s.alpha = Math.max(0, s.alpha - step);
+        }
+      }
     }
 
     // 待机时偶尔自己乱跑 / 随机表演动作（互斥触发，随机时长）
