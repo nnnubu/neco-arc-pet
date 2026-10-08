@@ -480,9 +480,12 @@ window.SpriteCore = (() => {
       const pick = FALL_ACTIONS[Math.floor(Math.random() * FALL_ACTIONS.length)];
       spritePlayOneshot(pick, { fallback: true });
     });
-    // 主进程下落已抵达底部：立即结束下落动作回待机（避免动画落地后继续空播几秒）
+    // 主进程下落已抵达底部：衔接钻地（act_33 挖地）——播完自动进入既有钻地联动
+    // （隐藏→窗口随机位置→随机 34/72 钻出），形成"飞出→掉回→钻地→随机位置钻出"闭环
     window.pet.onFallDone(() => {
-      if (SPRITE.state === 'oneshot' && FALL_ACTIONS.includes(SPRITE.currentName)) spriteBackToIdle();
+      if (SPRITE.state === 'oneshot' && FALL_ACTIONS.includes(SPRITE.currentName)) {
+        spritePlayOneshot('act_33');
+      }
     });
   }
 
