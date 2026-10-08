@@ -374,7 +374,7 @@ window.SpriteCore = (() => {
     if (sy + sh >= ay + ah - T) return 'bottom';
     return null;
   }
-  // 板边趴着待机：act_40 帧1-3 循环（跟随站立朝向翻转）
+  // 板边趴着/侧躺待机：act_40_edge（横向侧躺帧，底部+中心对齐）循环，跟随站立朝向翻转
   function showEdgeStanding() {
     spriteShow('act_40_edge', true, SPRITE.facing === -1);
   }
@@ -470,10 +470,11 @@ window.SpriteCore = (() => {
         };
         app.stage.addChild(s);
         SPRITE.sprites[a.name] = s;
-        // 板边趴着待机精灵：act_40 只用帧1-3 循环（帧4-8 是躺倒起身，不适合待机循环）
+        // 板边趴着/侧躺待机精灵：act_40 帧5-8（横向侧躺）经中心+底部对齐后循环——
+        // 左右边缘侧着躺、底部横向扒底边；对齐帧消除原始帧间水平偏移导致的抖动
         if (a.name === 'act_40') {
           const etexs = [];
-          for (let i = 1; i <= 3; i++) etexs.push(await PIXI.Assets.load(`../assets/sprite/animations/act_40/${i}.png`));
+          for (let i = 1; i <= 4; i++) etexs.push(await PIXI.Assets.load(`../assets/sprite/animations/act_40_edge/${i}.png`));
           const es = new PIXI.AnimatedSprite(etexs);
           es.anchor.set(0.5, 1);
           es.animationSpeed = SPRITE.FPS / 60;
