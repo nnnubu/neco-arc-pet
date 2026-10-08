@@ -235,7 +235,9 @@ window.SpriteCore = (() => {
       // 不放大窗口：原始帧等比缩放到标准角色高度 160 显示（底部中心对齐当前窗口），播完直接回待机
       const k = 160 / texs[0].height;
       const sc = SPRITE.SCALE * shared.petScale * k;
-      s.scale.set(sc, sc);
+      // 跟随桌宠朝向做镜像：朝左（facing=-1）水平翻转帧（scale.x 负），使画面朝向与位移方向一致
+      const flip = SPRITE.facing === -1;
+      s.scale.set(flip ? -sc : sc, sc);
       s.onComplete = () => {
         if (bigSprite !== s) return;
         if (SPRITE.oneshotLeft > 1) { SPRITE.oneshotLeft--; s.gotoAndPlay(0); }
@@ -258,7 +260,7 @@ window.SpriteCore = (() => {
       setTimeout(() => { if (bigSprite === s) spriteBackToIdle(); }, 400);
     };
     s.loop = false;
-    s.scale.set(1.05, 1.05);
+    // scale 在 showSprite 里按桌宠朝向设置（朝左镜像）；此处不再预设
     // 先清空当前 canvas（隐藏 bigSprite 渲染一帧空画面），避免窗口放大瞬间旧待机帧残留（残影）
     s.visible = false;
     app.renderer.render(app.stage);
@@ -292,7 +294,11 @@ window.SpriteCore = (() => {
           if (bigSprite !== s) return;
           app.renderer.render(app.stage); // 显示前再清一次（首次：给 DWM 足够稳定时间）
           s.visible = true;
-          s.position.set(w / 2 + (opts.offsetX || 0), h - 5 + (opts.offsetY || 0));
+          // 大动作跟随桌宠朝向做镜像：朝左（facing=-1）水平翻转帧（scale.x 负），
+          // 使画面朝向与位移方向一致（如 44 朝左走动）；offsetX 同步取反，翻转后画面主体仍对齐原桌宠位置
+          const flip = SPRITE.facing === -1;
+          s.scale.set(flip ? -1.05 : 1.05, 1.05);
+          s.position.set(w / 2 + (flip ? -(opts.offsetX || 0) : (opts.offsetX || 0)), h - 5 + (opts.offsetY || 0));
           SPRITE.state = 'oneshot';
           SPRITE.current = s; // 供 update 的 MOVE_ACTIONS 位移（49 点火后上移）判断
           SPRITE.currentName = name;
