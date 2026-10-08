@@ -30,6 +30,9 @@ window.SpriteCore = (() => {
   };
   // 需重复播放 24 遍的动作（act_84 飞行 4 帧 × 24 @12fps = 8 秒）；其余按 3 遍或 1 遍
   const ACTION_REPEATS = { thinking: 3, push: 3, star: 3, pose1: 3, hide: 3, lie: 3, act_84: 24 };
+  // 个别动作补偿系数微调：hide 帧间偏移波动（-8~-13.5px），1× 补偿下播放中偏右约 5px，
+  // 1.35× 使视觉范围对称居中
+  const FLIP_OFFSET_K = { hide: 1.35 };
   // 朝左翻转播放时的角色中心补偿（px，动作帧角色不居中：正=原始帧角色偏右）
   // 翻转后视觉重心移动 2×offset，播放时 position.x 反向补偿，使朝左/朝右角色视觉同位置
   const FLIP_OFFSET = {
@@ -222,8 +225,8 @@ window.SpriteCore = (() => {
     const sc = SPRITE.SCALE * shared.petScale;
     s.scale.set(flipX ? -sc : sc, sc);
     // 翻转播放时补偿角色视觉中心：动作帧角色不居中（FLIP_OFFSET），翻转后视觉重心偏移，
-    // 补偿 1×offset（半补偿）使朝左播放角色整体居中（2× 全补偿会让波动大的动作整体偏左/超界裁剪）
-    s.position.set(window.innerWidth / 2 + (flipX ? (FLIP_OFFSET[name] || 0) * sc : 0), window.innerHeight - 5); // 底部对齐（-5 避免 0.5 倍时头部裁 1px）
+    // 补偿 offset×系数（默认1×，hide 用 1.35×）使朝左播放角色整体居中（2× 全补偿会让波动大的动作偏左/裁剪）
+    s.position.set(window.innerWidth / 2 + (flipX ? (FLIP_OFFSET[name] || 0) * (FLIP_OFFSET_K[name] || 1) * sc : 0), window.innerHeight - 5); // 底部对齐（-5 避免 0.5 倍时头部裁 1px）
     s.loop = loop;
     s.animationSpeed = (SPRITE.ACTION_FPS[name] || SPRITE.FPS) / 60; // 覆盖创建时的默认帧率（高帧率原图动作）
     s.gotoAndPlay(0);
