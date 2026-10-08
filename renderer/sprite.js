@@ -30,9 +30,8 @@ window.SpriteCore = (() => {
   };
   // 需重复播放 24 遍的动作（act_84 飞行 4 帧 × 24 @12fps = 8 秒）；其余按 3 遍或 1 遍
   const ACTION_REPEATS = { thinking: 3, push: 3, star: 3, pose1: 3, hide: 3, lie: 3, act_84: 24 };
-  // 个别动作补偿系数微调：hide 帧偏移 -8/-13/-13.5，1.35× 下帧2/3（占2/3播放时间）偏右2.2~2.7px，
-  // 1.6× 使帧2/3居中（帧1短暂偏左5px可忽略）
-  const FLIP_OFFSET_K = { hide: 1.6 };
+  // 个别动作补偿系数微调：hide 帧偏移 -8/-13/-13.5，1.6× 下帧3仍偏右0.7px，1.75× 使帧2/3微偏左（不偏右）
+  const FLIP_OFFSET_K = { hide: 1.75 };
   // 朝左翻转播放时的角色中心补偿（px，动作帧角色不居中：正=原始帧角色偏右）
   // 翻转后视觉重心移动 2×offset，播放时 position.x 反向补偿，使朝左/朝右角色视觉同位置
   const FLIP_OFFSET = {
