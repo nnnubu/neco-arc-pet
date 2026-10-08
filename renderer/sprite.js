@@ -15,9 +15,8 @@ window.SpriteCore = (() => {
     frameCount: { standing: 9, standing_left: 9, walking_left: 12, walking_right: 11, running: 11, backflip: 9, kick: 7, thinking: 50, wine: 28, wine_2: 17,
       smug: 5, tongue: 60, push: 10, star: 3, pose1: 3, hide: 3, pout: 8, lie: 8, turn_left: 11, turn_right: 10 },
     FPS: 12,
-    // 个别动作按更低帧率播放：act_24 为 5 帧平滑呼吸序列（等比缩放），
-    // 12fps 下 0.42s 一次呼吸偏快，3fps 下 1.67s 一次更自然
-    ACTION_FPS: { act_24: 3 },
+    // 个别动作按更低帧率播放（预留）
+    ACTION_FPS: {},
     SCALE: 2,
     sprites: {},
     current: null,
@@ -32,7 +31,8 @@ window.SpriteCore = (() => {
   // 需重复播放 24 遍的动作（act_84 飞行 4 帧 × 24 @12fps = 8 秒）；其余按 3 遍或 1 遍
   const ACTION_REPEATS = { thinking: 3, push: 3, star: 3, pose1: 3, hide: 3, lie: 3, act_84: 24 };
   // 特殊大动作（48/49/43）：主窗口播放时临时放大窗口到原始帧尺寸×1.05（原始帧清晰，无需独立窗口）
-  const BIG_ACTIONS = { act_48: true, act_49: true, act_43: true };
+  // act_24：同样用原始帧完整播放（保留 41 帧动画内容），但尺寸正常、不放大窗口（enlarge=false）
+  const BIG_ACTIONS = { act_48: true, act_49: true, act_43: true, act_24: true };
   // smug/wine 播完保持最后一帧的时长（2 秒）再回待机
   const SMUG_HOLD_MS = 2000;
   // 循环动画的帧集：排除起跑/爆发/收尾/站立帧，循环衔接才自然
@@ -79,7 +79,8 @@ window.SpriteCore = (() => {
 
   // 播放特殊大动作：加载原始分辨率帧（big_actions/），窗口临时放大到帧尺寸×1.05（底部保持），
   // 精灵 1:1 显示（原始像素清晰）；播完停留 0.4 秒后回待机并恢复窗口/缩放
-  async function playBigInMain(name) {
+  // opts.enlarge=false：不放大窗口（act_24 等正常尺寸动作），原始帧等比缩放到标准角色高度 160 显示
+  async function playBigInMain(name, opts = {}) {
     if (bigSprite) { app.stage.removeChild(bigSprite); bigSprite.destroy({ children: true }); bigSprite = null; }
     if (bigSaved) restoreBig();
     SPRITE.state = 'oneshot'; // 立即锁定状态，防止加载帧期间待机随机动作/乱跑启动
@@ -92,18 +93,36 @@ window.SpriteCore = (() => {
     }
     const s = new PIXI.AnimatedSprite(texs);
     s.anchor.set(0.5, 1);
-    s.animationSpeed = SPRITE.FPS / 60;
-    s.scale.set(1.05, 1.05);
+    s.animationSpeed = (opts.fps || SPRITE.FPS) / 60;
     for (const t of texs) t.baseTexture.scaleMode = PIXI.SCALE_MODES.NEAREST;
+    app.stage.addChild(s);
+    bigSprite = s;
+    // 隐藏普通精灵（standing 等），避免窗口放大后"两个桌宠"同时显示
+    for (const sp of Object.values(SPRITE.sprites)) sp.visible = false;
+    if (opts.enlarge === false) {
+      // 不放大窗口：原始帧等比缩放到标准角色高度 160 显示（底部中心对齐当前窗口），播完直接回待机
+      const k = 160 / texs[0].height;
+      const sc = SPRITE.SCALE * shared.petScale * k;
+      s.scale.set(sc, sc);
+      s.onComplete = () => {
+        if (bigSprite !== s) return;
+        if (SPRITE.oneshotLeft > 1) { SPRITE.oneshotLeft--; s.gotoAndPlay(0); }
+        else spriteBackToIdle();
+      };
+      s.loop = false;
+      s.position.set(window.innerWidth / 2, window.innerHeight - 5);
+      SPRITE.current = s; // 供 update 的 MOVE_ACTIONS 位移判断
+      SPRITE.currentName = name;
+      SPRITE.oneshotLeft = 1;
+      s.gotoAndPlay(0);
+      return;
+    }
     s.onComplete = () => {
       if (bigSprite !== s) return;
       setTimeout(() => { if (bigSprite === s) spriteBackToIdle(); }, 400);
     };
     s.loop = false;
-    app.stage.addChild(s);
-    bigSprite = s;
-    // 隐藏普通精灵（standing 等），避免窗口放大后"两个桌宠"同时显示
-    for (const sp of Object.values(SPRITE.sprites)) sp.visible = false;
+    s.scale.set(1.05, 1.05);
     // 立即渲染一帧空画面：窗口放大瞬间 canvas 尚未跟随 resize，旧帧会残留在窗口左上角（残影）
     app.renderer.render(app.stage);
     // 窗口放大到帧尺寸×1.05（底部保持不跳动，48 原地播放），精灵底部中心对齐新窗口
@@ -166,14 +185,16 @@ window.SpriteCore = (() => {
   function spritePlayOneshot(name) {
     if (SPRITE.state === 'walk') return; // 走动优先，不打断
     roam = null; // 播放动作时立即停止随机乱跑（否则乱跑分支优先，窗口继续移动导致位置偏移）
-    // 常驻趴着形态（23/24）：循环播放不自动回待机，直到用户切其他动作/重置——作为可停留的趴卧姿态
-    if (name === 'act_23' || name === 'act_24') {
+    // 常驻趴着形态（23）：循环播放不自动回待机，直到用户切其他动作/重置——作为可停留的趴卧姿态
+    if (name === 'act_23') {
       spriteShow(name, true, SPRITE.facing === -1);
       SPRITE.state = 'oneshot';
       SPRITE.oneshotLeft = 0; // 循环播放，onComplete 不再触发
       return;
     }
-    // 特殊大动作（48/49）：主窗口临时放大播放原始帧（不裁剪、不模糊）
+    // act_24：原始帧完整播放（big_actions/），正常尺寸不放大窗口，30fps 保留源动画流畅度
+    if (name === 'act_24') { playBigInMain(name, { enlarge: false, fps: 30 }); return; }
+    // 特殊大动作（48/49/43）：主窗口临时放大播放原始帧（不裁剪、不模糊）
     if (BIG_ACTIONS[name]) { playBigInMain(name); return; }
     SPRITE.oneshotLeft = ACTION_REPEATS[name] || 1;
     // 动作跟随站立朝向：朝左时水平翻转（像素动作本身是朝右的）
@@ -281,8 +302,8 @@ window.SpriteCore = (() => {
         app.stage.addChild(s);
         SPRITE.sprites[a.name] = s;
       }
-      // 后台预加载 48/49/43 原始帧（big_actions/），首次播放时立即就绪，避免加载延迟导致的异常帧
-      for (const bn of ['act_48', 'act_49', 'act_43']) {
+      // 后台预加载 48/49/43/24 原始帧（big_actions/），首次播放时立即就绪，避免加载延迟导致的异常帧
+      for (const bn of ['act_48', 'act_49', 'act_43', 'act_24']) {
         const ba = dynamicActionsMap[bn];
         if (!ba) continue;
         for (let i = 1; i <= ba.frames; i++) {
