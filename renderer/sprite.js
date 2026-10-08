@@ -102,7 +102,7 @@ window.SpriteCore = (() => {
   const BIG_OFFSET_Y = { act_48: -35 };
   // 播完保持最后一帧 2 秒再回待机的动作（smug/wine 固定 + act_65/96/97/111）
   const SMUG_HOLD_MS = 2000;
-  const SMUG_HOLD_ACTIONS = ['smug', 'wine', 'act_65', 'act_96', 'act_97', 'act_111'];
+  const SMUG_HOLD_ACTIONS = ['smug', 'wine', 'act_65', 'act_96', 'act_97', 'act_111', 'act_68'];
   // 循环动画的帧集：排除起跑/爆发/收尾/站立帧，循环衔接才自然
   // - walking：去帧 1 与尾帧（首尾跳变最大）
   // - running：用 ping-pong 往返序列 [4,5,6,7,6,5]——帧 4-7 是奔跑段（帧间差异 ≤6.2%），
@@ -558,10 +558,11 @@ window.SpriteCore = (() => {
       showStanding();
     } else if (SPRITE.state === 'oneshot' && SPRITE.current) {
       // 逐帧中心补偿（act_22/act_69 等）：消除原始帧 ±0.5px 整数舍入交替导致的左右微抖
+      // 补偿量需乘以当前缩放 scale.x（翻转时为负——补偿自动反向），缩放后的桌宠补偿才精确
       const compTable = CENTER_COMP_ACTIONS[SPRITE.currentName];
       if (compTable) {
         const c = compTable[SPRITE.current.currentFrame];
-        if (c !== undefined) SPRITE.current.x = window.innerWidth / 2 + c;
+        if (c !== undefined) SPRITE.current.x = window.innerWidth / 2 + c * SPRITE.current.scale.x;
       }
       // 一次性动作附带位移：wine 走动段（拿起酒杯前）/ lie 全程——沿当前朝向移动桌宠；
       // act_84 全程向上；act_49 点火（帧18）后向上——dir:'up' 时垂直移动（窗口上移）
