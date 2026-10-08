@@ -677,10 +677,13 @@ window.SpriteCore = (() => {
           else window.pet.moveBy(Math.round(dirSign * SPRITE.facing * mv.speed * dt), 0);
         }
       }
-      // 43/48 播完前淡出：最后约 25% 帧数内透明度逐渐降到 0，柔和过渡到回待机（中间帧的虚化衔接）
-      if (bigSprite && (SPRITE.currentName === 'act_43' || SPRITE.currentName === 'act_48') && bigSprite.alpha > 0) {
+      // 43/48/91 播完前淡出：最后约 25% 帧数内透明度逐渐降到 0，柔和过渡到回待机（中间帧的虚化衔接）；
+      // 91 淡出开始较晚（最后 15% 帧，避免过早虚化）
+      if (bigSprite && (SPRITE.currentName === 'act_43' || SPRITE.currentName === 'act_48' || SPRITE.currentName === 'act_91') && bigSprite.alpha > 0) {
         const s = bigSprite;
-        const fadeFrames = Math.max(4, Math.round(s.totalFrames * 0.25));
+        const fadeFrames = SPRITE.currentName === 'act_91'
+          ? Math.max(4, Math.round(s.totalFrames * 0.15))
+          : Math.max(4, Math.round(s.totalFrames * 0.25));
         const remain = s.totalFrames - s.currentFrame;
         if (remain <= fadeFrames) {
           // 按时间均匀淡出（update 约 60fps，动画 12fps：fadeFrames 动画帧对应 fadeFrames/12 秒）
