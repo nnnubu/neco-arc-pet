@@ -269,31 +269,39 @@ window.SpriteCore = (() => {
     // 保持原高后角色在窗口偏下、上方留白（透明无视觉影响），拖影方向恢复为常规扩展方向
     const h = Math.round(Math.max(texs[0].height * 1.05, window.innerHeight));
     bigSaved = { w: window.innerWidth, h: window.innerHeight, scale: shared.petScale };
-    window.pet.resizeWindow(w, h, true);
-    // 等窗口 resize 与 DWM 合成稳定后再定位/播放，避免 canvas 与窗口错位导致偏移；
-    // 首次播放（bigFirstPlay）延长到 200ms 并分两步清屏，预热大窗口合成，消除首次残影
-    const waitMs = bigFirstPlay ? 200 : 80;
+    // 分步放大：窗口先扩到中间尺寸（扩展量减半）再扩到目标，降低 DWM 单次合成幅度，
+    // 消除超宽窗口残影（91=1229px 最宽最频、43=990px 首次、49 偶尔、48=739px 最少——频率与扩展幅度正相关）
+    const midW = Math.round(window.innerWidth + (w - window.innerWidth) * 0.5);
+    const midH = Math.round(window.innerHeight + (h - window.innerHeight) * 0.5);
+    window.pet.resizeWindow(midW, midH, true);
     setTimeout(() => {
       if (bigSprite !== s) return;
-      // 强制 canvas 同步窗口尺寸（不等 resize 事件，防止 canvas 仍是旧尺寸导致定位错位），再清空一次防残留
-      if (app.renderer.width !== w || app.renderer.height !== h) app.renderer.resize(w, h);
-      app.renderer.render(app.stage);
-      const showSprite = () => {
+      window.pet.resizeWindow(w, h, true);
+      // 等窗口 resize 与 DWM 合成稳定后再定位/播放，避免 canvas 与窗口错位导致偏移；
+      // 首次播放（bigFirstPlay）延长到 200ms 并分两步清屏，预热大窗口合成，消除首次残影
+      const waitMs = bigFirstPlay ? 200 : 80;
+      setTimeout(() => {
         if (bigSprite !== s) return;
-        app.renderer.render(app.stage); // 显示前再清一次（首次：给 DWM 足够稳定时间）
-        s.visible = true;
-        s.position.set(w / 2 + (opts.offsetX || 0), h - 5 + (opts.offsetY || 0));
-        SPRITE.state = 'oneshot';
-        SPRITE.current = s; // 供 update 的 MOVE_ACTIONS 位移（49 点火后上移）判断
-        SPRITE.currentName = name;
-        SPRITE.oneshotLeft = 1;
-        s.gotoAndPlay(0);
-      };
-      if (bigFirstPlay) {
-        bigFirstPlay = false;
-        setTimeout(showSprite, 120); // 首次：再等 120ms 双清屏，DWM 稳定后再显示精灵
-      } else showSprite();
-    }, waitMs);
+        // 强制 canvas 同步窗口尺寸（不等 resize 事件，防止 canvas 仍是旧尺寸导致定位错位），再清空一次防残留
+        if (app.renderer.width !== w || app.renderer.height !== h) app.renderer.resize(w, h);
+        app.renderer.render(app.stage);
+        const showSprite = () => {
+          if (bigSprite !== s) return;
+          app.renderer.render(app.stage); // 显示前再清一次（首次：给 DWM 足够稳定时间）
+          s.visible = true;
+          s.position.set(w / 2 + (opts.offsetX || 0), h - 5 + (opts.offsetY || 0));
+          SPRITE.state = 'oneshot';
+          SPRITE.current = s; // 供 update 的 MOVE_ACTIONS 位移（49 点火后上移）判断
+          SPRITE.currentName = name;
+          SPRITE.oneshotLeft = 1;
+          s.gotoAndPlay(0);
+        };
+        if (bigFirstPlay) {
+          bigFirstPlay = false;
+          setTimeout(showSprite, 120); // 首次：再等 120ms 双清屏，DWM 稳定后再显示精灵
+        } else showSprite();
+      }, waitMs);
+    }, 80);
   }
 
   function restoreBig() {
