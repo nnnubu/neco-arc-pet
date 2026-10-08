@@ -145,7 +145,8 @@ window.SpriteCore = (() => {
   };
 
   // 跑步动作库：Shift+方向键触发，起步时随机选用其一循环播放（按住期间固定，抬键回待机）
-  const RUN_ACTIONS = ['act_18', 'act_29', 'act_38'];
+  // 含原有 running 基础帧（4 选 1）
+  const RUN_ACTIONS = ['act_18', 'act_29', 'act_38', 'running'];
   // 掉回下落动作中"下落段循环"的起点帧（0-based）：25/30 开头几帧是站立准备，播完跳回下落段起点循环，
   // 直到落到底部（pet-fall-done）才结束——而不是播完就回待机
   const FALL_LOOP_FROM = { act_25: 5, act_30: 5 };
