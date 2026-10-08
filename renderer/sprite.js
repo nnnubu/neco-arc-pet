@@ -264,7 +264,10 @@ window.SpriteCore = (() => {
     // 有偏移时窗口左右各加宽 |offsetX|（负偏移同样加宽），保证偏移后整个画面不被裁剪
     // offsetY：垂直偏移（px，负=上移）
     const w = Math.round(texs[0].width * 1.05 + Math.abs(opts.offsetX || 0) * 2);
-    const h = Math.round(texs[0].height * 1.05);
+    // 高度不低于当前窗口高度：act_43 帧高仅 162（窗口 170 < 原窗口 265），若高度缩小，
+    // DWM 对"高度压缩"的透明窗口合成会在左下角留下残影（其他大动作都是高度放大，残影在左上/右下）；
+    // 保持原高后角色在窗口偏下、上方留白（透明无视觉影响），拖影方向恢复为常规扩展方向
+    const h = Math.round(Math.max(texs[0].height * 1.05, window.innerHeight));
     bigSaved = { w: window.innerWidth, h: window.innerHeight, scale: shared.petScale };
     window.pet.resizeWindow(w, h, true);
     // 等窗口 resize 与 DWM 合成稳定后再定位/播放，避免 canvas 与窗口错位导致偏移；
