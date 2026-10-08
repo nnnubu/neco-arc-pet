@@ -177,7 +177,10 @@ function registerWindowIpc() {
         win.webContents.send('pet-fall-back');
         if (process.env.PET_DEBUG === '1') console.log('[fallback] act_19 播放 at y=' + b2.y);
       }
-      if (t >= 1) { clearInterval(fallAnim); fallAnim = null; }
+      if (t >= 1) {
+        clearInterval(fallAnim); fallAnim = null;
+        win.webContents.send('pet-fall-done'); // 已抵达底部：通知渲染层结束 act_19 回待机（动画不落地后空播）
+      }
     }, 16);
   }
   const fallCheckTimer = setInterval(() => {

@@ -427,6 +427,10 @@ window.SpriteCore = (() => {
       // fallback 模式：act_19 只播动画，向下位移由主进程统一驱动（避免双倍下落/位置竞争）
       spritePlayOneshot('act_19', { fallback: true });
     });
+    // 主进程下落已抵达底部：立即结束 act_19 回待机（避免动画落地后继续空播几秒）
+    window.pet.onFallDone(() => {
+      if (SPRITE.state === 'oneshot' && SPRITE.currentName === 'act_19') spriteBackToIdle();
+    });
   }
 
   // 每帧更新：走动（按键持续循环播放）、随机乱跑、待机随机动作
