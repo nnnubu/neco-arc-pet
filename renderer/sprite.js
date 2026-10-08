@@ -196,6 +196,9 @@ window.SpriteCore = (() => {
     };
     s.loop = false;
     s.scale.set(1.05, 1.05);
+    // 先清空当前 canvas（隐藏 bigSprite 渲染一帧空画面），避免窗口放大瞬间旧待机帧残留（残影）
+    s.visible = false;
+    app.renderer.render(app.stage);
     // 窗口放大到帧尺寸×1.05（底部保持不跳动，48 原地播放），精灵底部中心对齐新窗口
     // offsetX：水平偏移（px，正=精灵右移），供画面主体不在帧中心的大动作（如 91 猫耳主体在左）播放时主体对齐原桌宠位置；
     // 有偏移时窗口左右各加宽 |offsetX|（负偏移同样加宽），保证偏移后整个画面不被裁剪
@@ -204,11 +207,11 @@ window.SpriteCore = (() => {
     const h = Math.round(texs[0].height * 1.05);
     bigSaved = { w: window.innerWidth, h: window.innerHeight, scale: shared.petScale };
     window.pet.resizeWindow(w, h, true);
-    // 等窗口 resize 事件到达（canvas 已跟随新尺寸）后再定位/播放，避免 canvas 与窗口错位导致偏移
+    // 等窗口 resize 完成（canvas 已跟随新尺寸）后再定位/播放，避免 canvas 与窗口错位导致偏移
     setTimeout(() => {
       if (bigSprite !== s) return;
-      // 清空 canvas：resize 瞬间旧帧会残留在新窗口的左上角/右下角（残影），先隐藏精灵渲染一帧空画面再播放
-      s.visible = false;
+      // 强制 canvas 同步窗口尺寸（不等 resize 事件，防止 canvas 仍是旧尺寸导致定位错位），再清空一次防残留
+      if (app.renderer.width !== w || app.renderer.height !== h) app.renderer.resize(w, h);
       app.renderer.render(app.stage);
       s.visible = true;
       s.position.set(w / 2 + (opts.offsetX || 0), h - 5 + (opts.offsetY || 0));

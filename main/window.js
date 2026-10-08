@@ -105,7 +105,14 @@ function registerWindowIpc() {
     const b = win.getBounds();
     const wa = screen.getPrimaryDisplay().workArea;
     const nx = clampTo(x + dx, wa.x, wa.x + wa.width - b.width);
-    const ny = clampTo(y + dy, wa.y, wa.y + wa.height - b.height);
+    let ny;
+    if (dy < 0) {
+      // 向上移动：允许窗口顶部超出工作区（大动作如 49 火箭发射时向上飞出屏顶，
+      // 若被 clamp 拉回 wa.y 会造成火箭瞬间下跳；窗口出顶时角色底部仍在屏内，无视觉损失）
+      ny = Math.min(y + dy, wa.y + wa.height - b.height);
+    } else {
+      ny = clampTo(y + dy, wa.y, wa.y + wa.height - b.height);
+    }
     win.setPosition(Math.round(nx), Math.round(ny));
     if (process.env.PET_DEBUG === '1') {
       console.log(`[debug] move-by -> (${Math.round(nx)}, ${Math.round(ny)})`);
@@ -123,9 +130,12 @@ function registerWindowIpc() {
     stopScaleAnim(); // 播放特殊大动作时停止缩放动画，避免动画 setBounds 覆盖放大后的窗口位置
     if (keepBottom) {
       // 底部保持不动 + 水平居中（48/49 特殊大动作播放时窗口临时放大，避免角色跳位）
+      // 放大后 clamp 到工作区内：桌宠在屏幕上方时，keepBottom 会让窗口顶部超出屏幕
+      // （火箭内容跑到屏外不可见），clamp 保证窗口/画面完整可见
       const b = win.getBounds();
-      const x = Math.round(b.x + (b.width - width) / 2);
-      const y = Math.round(b.y + b.height - height);
+      const wa = screen.getPrimaryDisplay().workArea;
+      const x = Math.round(clampTo(b.x + (b.width - width) / 2, wa.x, wa.x + wa.width - width));
+      const y = Math.round(clampTo(b.y + b.height - height, wa.y, wa.y + wa.height - height));
       // 隐藏-移动-显示：避免透明窗口快速 resize 时 DWM 合成拖影（左上角残影）
       win.hide();
       win.setBounds({ x, y, width: Math.round(width), height: Math.round(height) });
