@@ -49,11 +49,16 @@ window.SpriteCore = (() => {
   // - lie：躺倒动作全程移动，直到动作结束回待机
   // - act_84：飞行动作一播放就向上平移（全程）
   // - act_49：火箭点火（底部喷火，帧 18 起）之后向上平移，全程到动作结束
+  // - act_18/29/38：奔跑冲刺，全程沿朝向水平移动；act_22：爬行，慢速沿朝向移动
   const MOVE_ACTIONS = {
     wine: { untilFrame: 14, speed: 260 }, // AnimatedSprite currentFrame 0-based：0~13 移动
     lie: { untilEnd: true, speed: 200 },
     act_84: { untilEnd: true, speed: 300, dir: 'up' },
     act_49: { fromFrame: 18, untilEnd: true, speed: 160, dir: 'up' },
+    act_18: { untilEnd: true, speed: 300 },
+    act_29: { untilEnd: true, speed: 300 },
+    act_38: { untilEnd: true, speed: 300 },
+    act_22: { untilEnd: true, speed: 140 },
   };
 
   // 随机乱跑状态（待机时偶尔自己走动/乱跑）：null 或 { dir, remaining, run }
@@ -158,6 +163,13 @@ window.SpriteCore = (() => {
   function spritePlayOneshot(name) {
     if (SPRITE.state === 'walk') return; // 走动优先，不打断
     roam = null; // 播放动作时立即停止随机乱跑（否则乱跑分支优先，窗口继续移动导致位置偏移）
+    // 常驻趴着形态（23/24）：循环播放不自动回待机，直到用户切其他动作/重置——作为可停留的趴卧姿态
+    if (name === 'act_23' || name === 'act_24') {
+      spriteShow(name, true, SPRITE.facing === -1);
+      SPRITE.state = 'oneshot';
+      SPRITE.oneshotLeft = 0; // 循环播放，onComplete 不再触发
+      return;
+    }
     // 特殊大动作（48/49）：主窗口临时放大播放原始帧（不裁剪、不模糊）
     if (BIG_ACTIONS[name]) { playBigInMain(name); return; }
     SPRITE.oneshotLeft = ACTION_REPEATS[name] || 1;
