@@ -28,10 +28,12 @@ window.SpriteCore = (() => {
     lastMoveX: 0, // 最后水平移动方向（抬键后 vx 已归零，需在移动中记录）
     noRandom: false, // 调试：禁用随机乱跑/随机动作（PET_DEBUG 序列用）
   };
-  // 需重复播放多遍的动作：act_84 飞行 4 帧×24=8秒；act_60 斜向飞行 2 帧×24=4秒；
+  // 需重复播放多遍的动作：act_84 飞行 4 帧×24=8秒；act_60 原地重复 2 帧×24=4秒；
   // act_77/83/85 各 2 帧×18=3 秒（用户要求约 3 秒）；其余按 3 遍或 1 遍
   const ACTION_REPEATS = { thinking: 3, push: 3, star: 3, pose1: 3, hide: 3, lie: 3,
     act_84: 24, act_60: 24, act_77: 18, act_83: 18, act_85: 18 };
+  // 重复播放动作每遍之间的小停顿（ms，让循环不那么急促，但不要太明显）
+  const ACTION_PAUSE_MS = { act_77: 80, act_85: 80 };
   // 个别动作补偿系数微调：hide 帧偏移 -8/-13/-13.5，1.6× 下帧3仍偏右0.7px，1.75× 使帧2/3微偏左（不偏右）
   const FLIP_OFFSET_K = { hide: 1.75 };
   // 朝左翻转播放时的角色中心补偿（px，动作帧角色不居中：正=原始帧角色偏右）
@@ -113,8 +115,8 @@ window.SpriteCore = (() => {
   // - act_84：飞行动作一播放就向上平移（全程）
   // - act_49：火箭点火（底部喷火，帧 18 起）之后向上平移，全程到动作结束
   // - act_18/29/38：奔跑冲刺，全程沿朝向水平移动
-  // - act_47：全程沿朝向水平移动；act_53：全程反向（与朝向相反）水平移动
-  // - act_60：斜向上位移（水平分量沿朝向 + 垂直向上），dir:'diag-up'
+  // - act_47：全程沿朝向水平移动（脚步-位移同步尚未做，优先级低，先保留简单位移）
+  // - act_53：全程反向（与朝向相反）水平移动；act_60：只重复播放、无位移
   const MOVE_ACTIONS = {
     wine: { untilFrame: 14, speed: 260 }, // AnimatedSprite currentFrame 0-based：0~13 移动
     lie: { untilEnd: true, speed: 200 },
@@ -124,8 +126,7 @@ window.SpriteCore = (() => {
     act_29: { untilEnd: true, speed: 300 },
     act_38: { untilEnd: true, speed: 300 },
     act_47: { untilEnd: true, speed: 260 },
-    act_53: { untilEnd: true, speed: 200, reverse: true },
-    act_60: { untilEnd: true, speed: 220, dir: 'diag-up' },
+    act_53: { untilEnd: true, speed: 280, reverse: true },
   };
 
   // 随机乱跑状态（待机时偶尔自己走动/乱跑）：null 或 { dir, remaining, run }
@@ -362,8 +363,13 @@ window.SpriteCore = (() => {
         for (const t of texs) t.baseTexture.scaleMode = PIXI.SCALE_MODES.NEAREST;
         s.onComplete = () => {
           if (SPRITE.state !== 'oneshot' || SPRITE.current !== s) return;
-          // 按轮数循环（act_84 等需重复播放的动作）；Smug 式动作（65/96/97/111）播完保持最后一帧 2 秒；其余回待机
-          if (SPRITE.oneshotLeft > 1) { SPRITE.oneshotLeft--; s.gotoAndPlay(0); }
+          // 按轮数循环（act_84 等需重复播放的动作）；77/85 每遍间加小停顿；Smug 式动作（65/96/97/111）播完保持最后一帧 2 秒；其余回待机
+          if (SPRITE.oneshotLeft > 1) {
+            SPRITE.oneshotLeft--;
+            if (ACTION_PAUSE_MS[SPRITE.currentName]) {
+              setTimeout(() => { if (SPRITE.current === s && SPRITE.state === 'oneshot') s.gotoAndPlay(0); }, ACTION_PAUSE_MS[SPRITE.currentName]);
+            } else s.gotoAndPlay(0);
+          }
           else if (SMUG_HOLD_ACTIONS.includes(SPRITE.currentName)) {
             const cur = s;
             setTimeout(() => {
