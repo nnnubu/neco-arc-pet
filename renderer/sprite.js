@@ -91,9 +91,9 @@ window.SpriteCore = (() => {
     act_96: -1.0,
     act_99: -1.0,
   };
-  // 特殊大动作（48/49/43）：主窗口播放时临时放大窗口到原始帧尺寸×1.05（原始帧清晰，无需独立窗口）
+  // 特殊大动作（48/49/43/91）：主窗口播放时临时放大窗口到原始帧尺寸×1.05（原始帧清晰，无需独立窗口）
   // act_24：同样用原始帧完整播放（保留 41 帧动画内容），但尺寸正常、不放大窗口（enlarge=false）
-  const BIG_ACTIONS = { act_48: true, act_49: true, act_43: true, act_24: true };
+  const BIG_ACTIONS = { act_48: true, act_49: true, act_43: true, act_24: true, act_91: true };
   // 播完保持最后一帧 2 秒再回待机的动作（smug/wine 固定 + act_65/96/97/111）
   const SMUG_HOLD_MS = 2000;
   const SMUG_HOLD_ACTIONS = ['smug', 'wine', 'act_65', 'act_96', 'act_97', 'act_111'];
@@ -380,8 +380,8 @@ window.SpriteCore = (() => {
         app.stage.addChild(s);
         SPRITE.sprites[a.name] = s;
       }
-      // 后台预加载 48/49/43/24 原始帧（big_actions/），首次播放时立即就绪，避免加载延迟导致的异常帧
-      for (const bn of ['act_48', 'act_49', 'act_43', 'act_24']) {
+      // 后台预加载 48/49/43/24/91 原始帧（big_actions/），首次播放时立即就绪，避免加载延迟导致的异常帧
+      for (const bn of ['act_48', 'act_49', 'act_43', 'act_24', 'act_91']) {
         const ba = dynamicActionsMap[bn];
         if (!ba) continue;
         for (let i = 1; i <= ba.frames; i++) {
