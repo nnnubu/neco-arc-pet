@@ -17,6 +17,8 @@ contextBridge.exposeInMainWorld('pet', {
   onFallDone: (cb) => ipcRenderer.on('pet-fall-done', () => cb()),
   // 钻地联动：把窗口移到屏幕内随机位置（33 挖地消失后从随机位置钻出用）
   teleportRandom: () => ipcRenderer.send('pet-teleport-random'),
+  // 钻地隐藏：窗口整体透明度（0=全透明消除白点/残留，1=恢复可见）
+  setOpacity: (v) => ipcRenderer.send('pet-opacity', v),
   getMaxScale: () => ipcRenderer.invoke('pet-get-max-scale'),
   showMenu: () => ipcRenderer.send('show-context-menu'),
   getActions: () => ipcRenderer.invoke('get-actions'),

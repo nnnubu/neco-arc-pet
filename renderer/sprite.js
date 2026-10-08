@@ -154,24 +154,28 @@ window.SpriteCore = (() => {
   // 钻地联动（33 挖地 → 隐藏 → 随机位置 → 34/72 钻出）：
   // burrowTimer 为钻出延迟定时器；state='burrow' 表示 arc 已钻地隐藏、等待随机位置钻出
   let burrowTimer = null;
-  // act_33 播完：arc 挖地消失 → 窗口移到屏幕随机位置 → 随机 2~5 秒后随机选 34/72 钻出
+  // act_33 播完：arc 挖地消失 → 窗口整体透明（消除随机位置的白点/渲染残留）→
+  // 移到屏幕随机位置 → 随机 2~5 秒后恢复可见并随机选 34/72 钻出
   function startBurrowExit() {
     if (SPRITE.current) SPRITE.current.visible = false; // arc 钻地消失
     SPRITE.state = 'burrow';
-    if (window.pet.teleportRandom) window.pet.teleportRandom(); // 窗口移到屏幕内随机位置
+    if (window.pet.setOpacity) window.pet.setOpacity(0); // 窗口全透明：钻出位置完全不可见
+    if (window.pet.teleportRandom) window.pet.teleportRandom(); // 窗口移到屏幕内随机位置（透明移动不可见）
     const delay = 2000 + Math.random() * 3000; // 2~5 秒随机延迟
     if (burrowTimer) clearTimeout(burrowTimer);
     burrowTimer = setTimeout(() => {
       burrowTimer = null;
       if (SPRITE.state !== 'burrow') return; // 期间被按键/其他动作打断则取消钻出
+      if (window.pet.setOpacity) window.pet.setOpacity(1); // 恢复窗口可见
       const pick = Math.random() < 0.5 ? 'act_34' : 'act_72'; // 随机从地里钻出
       spritePlayOneshot(pick);
     }, delay);
   }
-  // 取消钻出（用户按键走动/切动作时）：恢复显示，放弃随机钻出
+  // 取消钻出（用户按键走动/切动作时）：恢复显示与窗口透明度，放弃随机钻出
   function cancelBurrow() {
     if (burrowTimer) { clearTimeout(burrowTimer); burrowTimer = null; }
     if (SPRITE.current) SPRITE.current.visible = true;
+    if (window.pet.setOpacity) window.pet.setOpacity(1);
   }
 
   // 动态动作注册表映射（name → {name, frames}），48/49 独立窗口播放取帧数用
@@ -307,6 +311,7 @@ window.SpriteCore = (() => {
     if (SPRITE.state === 'burrow') {
       if (burrowTimer) { clearTimeout(burrowTimer); burrowTimer = null; }
       if (SPRITE.current) SPRITE.current.visible = true;
+      if (window.pet.setOpacity) window.pet.setOpacity(1); // 恢复窗口透明度
     }
     roam = null; // 播放动作时立即停止随机乱跑（否则乱跑分支优先，窗口继续移动导致位置偏移）
     // 常驻趴着形态（23）：循环播放不自动回待机，直到用户切其他动作/重置——作为可停留的趴卧姿态

@@ -109,6 +109,12 @@ function registerWindowIpc() {
     win.setPosition(x, y);
   });
 
+  // 钻地隐藏：窗口整体透明度（0 全透明消除白点/残留，1 恢复可见）
+  ipcMain.on('pet-opacity', (_e, v) => {
+    if (!win || win.isDestroyed()) return;
+    win.setOpacity(Math.max(0, Math.min(1, v)));
+  });
+
   // 走动：按增量移动窗口，并限制在主显示器工作区内
   ipcMain.on('move-by', (_e, { dx, dy }) => {
     stopScaleAnim(); // 走动优先：缩放动画会覆盖移动，造成"走不动"
