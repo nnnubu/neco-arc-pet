@@ -131,7 +131,7 @@ window.SpriteCore = (() => {
     act_18: { untilEnd: true, speed: 300 },
     act_29: { untilEnd: true, speed: 300 },
     act_38: { untilEnd: true, speed: 300 },
-    act_47: { frames: [0, 7, 8, 16, 17], speed: 700 }, // 47 奔跑（19帧）：仅迈步帧前进、收步帧停，位移跟随脚步节奏（前迈帧=脚伸出帧）
+    act_47: { frames: [0, 7, 8, 16, 17], speed: 300 }, // 47 奔跑（19帧）：仅迈步帧前进、收步帧停，位移跟随脚步节奏（speed 300 减小步幅，避免突进感）
     act_44: { untilFrame: 4, speed: 260 }, // 44 戴帽走动（5帧循环）：帧0-3移动、最后帧脚步收回停止位移（播完不再前进）
     act_53: { untilEnd: true, speed: 280, reverse: true },
     // act_19/25/30/60：屏幕上方出屏太久自动掉回底部（主进程 pet-fall-back 随机选一个触发），向下掉落全程
