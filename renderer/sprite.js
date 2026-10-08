@@ -30,6 +30,62 @@ window.SpriteCore = (() => {
   };
   // 需重复播放 24 遍的动作（act_84 飞行 4 帧 × 24 @12fps = 8 秒）；其余按 3 遍或 1 遍
   const ACTION_REPEATS = { thinking: 3, push: 3, star: 3, pose1: 3, hide: 3, lie: 3, act_84: 24 };
+  // 朝左翻转播放时的角色中心补偿（px，动作帧角色不居中：正=原始帧角色偏右）
+  // 翻转后视觉重心移动 2×offset，播放时 position.x 反向补偿，使朝左/朝右角色视觉同位置
+  const FLIP_OFFSET = {
+    tongue: -35.5,
+    push: -22.5,
+    backflip: -19.5,
+    walking_left: -13.5,
+    wine_2: -12.5,
+    pout: -12.0,
+    wine: -11.5,
+    standing_left: -11.5,
+    walking_right: -11.5,
+    smug: -11.0,
+    star: -10.5,
+    standing: -10.5,
+    running: -10.0,
+    turn_left: -9.5,
+    turn_right: -8.5,
+    pose1: -8.0,
+    hide: -8.0,
+    kick: -7.5,
+    lie: -5.5,
+    act_64: -1.5,
+    act_8: -1.0,
+    act_10: -1.0,
+    act_11: -1.0,
+    act_14: -1.0,
+    act_29: -1.0,
+    act_30: -1.0,
+    act_31: -1.0,
+    act_33: -1.0,
+    act_38: -1.0,
+    act_40: -1.0,
+    act_41: -1.0,
+    act_42: -1.0,
+    act_45: -1.0,
+    act_47: -1.0,
+    act_56: -1.0,
+    act_59: -1.0,
+    act_61: -1.0,
+    act_63: -1.0,
+    act_66: -1.0,
+    act_68: -1.0,
+    act_69: -1.0,
+    act_71: -1.0,
+    act_74: -1.0,
+    act_75: -1.0,
+    act_76: -1.0,
+    act_81: -1.0,
+    act_82: -1.0,
+    act_83: -1.0,
+    act_84: -1.0,
+    act_86: -1.0,
+    act_96: -1.0,
+    act_99: -1.0,
+  };
   // 特殊大动作（48/49/43）：主窗口播放时临时放大窗口到原始帧尺寸×1.05（原始帧清晰，无需独立窗口）
   // act_24：同样用原始帧完整播放（保留 41 帧动画内容），但尺寸正常、不放大窗口（enlarge=false）
   const BIG_ACTIONS = { act_48: true, act_49: true, act_43: true, act_24: true };
@@ -165,7 +221,9 @@ window.SpriteCore = (() => {
     s.visible = true;
     const sc = SPRITE.SCALE * shared.petScale;
     s.scale.set(flipX ? -sc : sc, sc);
-    s.position.set(window.innerWidth / 2, window.innerHeight - 5); // 底部对齐（-5 避免 0.5 倍时头部裁 1px）
+    // 翻转播放时补偿角色视觉中心：动作帧角色不居中（FLIP_OFFSET），翻转后视觉重心移动 2×offset，
+    // 反向补偿使朝左/朝右播放角色视觉同位置（否则朝左会"往右闪现一段距离再播放"）
+    s.position.set(window.innerWidth / 2 + (flipX ? 2 * (FLIP_OFFSET[name] || 0) * sc : 0), window.innerHeight - 5); // 底部对齐（-5 避免 0.5 倍时头部裁 1px）
     s.loop = loop;
     s.animationSpeed = (SPRITE.ACTION_FPS[name] || SPRITE.FPS) / 60; // 覆盖创建时的默认帧率（高帧率原图动作）
     s.gotoAndPlay(0);
@@ -194,7 +252,7 @@ window.SpriteCore = (() => {
     }
     // act_24：原始帧完整播放（big_actions/），正常尺寸不放大窗口，20fps 播放（24fps 仍偏快、12fps 慢放显形位移）
     if (name === 'act_24') { playBigInMain(name, { enlarge: false, fps: 20 }); return; }
-    // 特殊大动作（48/49/43）：主窗口临时放大播放原始帧（不裁剪、不模糊）
+  // 特殊大动作（48/49/43）：主窗口临时放大播放原始帧（不裁剪、不模糊）
     if (BIG_ACTIONS[name]) { playBigInMain(name); return; }
     SPRITE.oneshotLeft = ACTION_REPEATS[name] || 1;
     // 动作跟随站立朝向：朝左时水平翻转（像素动作本身是朝右的）
