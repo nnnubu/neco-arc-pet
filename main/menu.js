@@ -52,7 +52,17 @@ function registerMenuIpc() {
       { type: 'separator' },
       { label: '重置动作', click: () => send('RESET') },
       { type: 'separator' },
-      { label: '退出桌宠', click: () => require('electron').app.quit() },
+      { label: '退出桌宠', click: () => {
+        const win = getWin();
+        if (win && !win.isDestroyed()) {
+          // 先播放退出动画（act_49 火箭飞出屏幕），播完由渲染层发 quit 真正退出；
+          // 12 秒兜底：动画播放异常/渲染层无响应时强制退出，避免卡死
+          win.webContents.send('start-exit-anim');
+          setTimeout(() => {
+            if (win && !win.isDestroyed()) require('electron').app.quit();
+          }, 12000);
+        } else require('electron').app.quit();
+      } },
     ];
 
     // 迁移动作（act_*）：按编号每 10 个一组放入「更多动作」子菜单（测试用）

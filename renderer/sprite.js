@@ -199,6 +199,8 @@ window.SpriteCore = (() => {
   // 特殊大动作（48/49）主窗口播放状态：bigSprite=原始帧精灵；bigSaved=播放前窗口/缩放
   let bigSprite = null; // { w, h, scale }
   let bigSaved = null;
+  // 退出动画标记：右键菜单「退出桌宠」→ 播放 act_49（火箭飞出）→ 播完发 quit 真正退出
+  let exitPending = false;
 
   // 播放特殊大动作：加载原始分辨率帧（big_actions/），窗口临时放大到帧尺寸×1.05（底部保持），
   // 精灵 1:1 显示（原始像素清晰）；播完停留 0.4 秒后回待机并恢复窗口/缩放
@@ -242,6 +244,8 @@ window.SpriteCore = (() => {
     }
     s.onComplete = () => {
       if (bigSprite !== s) return;
+      // 退出动画（act_49）播完：直接退出程序（不等待回待机）
+      if (exitPending) { exitPending = false; window.pet.quit(); return; }
       setTimeout(() => { if (bigSprite === s) spriteBackToIdle(); }, 400);
     };
     s.loop = false;
@@ -520,6 +524,11 @@ window.SpriteCore = (() => {
       if (SPRITE.state === 'oneshot' && FALL_ACTIONS.includes(SPRITE.currentName)) {
         spritePlayOneshot('act_33');
       }
+    });
+    // 右键菜单「退出桌宠」：播放退出动画 act_49（火箭点火花后向上飞出屏幕），播完由 onComplete 发 quit 退出
+    window.pet.onExitAnim(() => {
+      exitPending = true;
+      playBigInMain('act_49'); // 窗口临时放大播放原始帧，MOVE_ACTIONS 自动全程向上位移直至飞出屏幕
     });
   }
 

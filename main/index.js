@@ -1,6 +1,6 @@
 // 主进程入口：应用生命周期 + 装配各功能模块
 // 模块职责：window=窗口与移动缩放 / menu=右键菜单 / voice=语音服务
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, ipcMain } = require('electron');
 const { createWindow, registerWindowIpc } = require('./window');
 const { registerMenuIpc } = require('./menu');
 const { registerVoiceIpc } = require('./voice');
@@ -16,6 +16,8 @@ app.whenReady().then(() => {
   registerMenuIpc();
   registerVoiceIpc();
   registerSingIpc();
+  // 渲染层退出动画（act_49 火箭飞出）播完由渲染层发 quit → 真正退出
+  ipcMain.on('quit', () => app.quit());
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();

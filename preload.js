@@ -25,6 +25,8 @@ contextBridge.exposeInMainWorld('pet', {
   debugShot: (name) => ipcRenderer.send('debug-shot', name),
   debugLog: (msg) => ipcRenderer.send('debug-log', msg),
   quit: () => ipcRenderer.send('quit'),
+  // 退出动画：主进程菜单点「退出桌宠」先通知渲染层播放退出动画（act_49 火箭飞出），播完由渲染层发 quit
+  onExitAnim: (cb) => ipcRenderer.on('start-exit-anim', () => cb()),
   // 语音（说句话…）
   speakText: (text, force) => ipcRenderer.send('speak-text', text, !!force),
   onSpeakAudio: (cb) => ipcRenderer.on('play-audio', (_e, p) => cb(p)),
