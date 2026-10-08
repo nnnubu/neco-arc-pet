@@ -78,6 +78,7 @@ function registerWindowIpc() {
 
   ipcMain.on('drag-start', () => {
     stopScaleAnim();
+    if (fallAnim) { clearInterval(fallAnim); fallAnim = null; } // 用户拖拽：取消下落动画
     if (!win || win.isDestroyed()) return;
     dragState.dragging = true;
     dragState.startMouse = screen.getCursorScreenPoint();
@@ -100,6 +101,7 @@ function registerWindowIpc() {
   // 走动：按增量移动窗口，并限制在主显示器工作区内
   ipcMain.on('move-by', (_e, { dx, dy }) => {
     stopScaleAnim(); // 走动优先：缩放动画会覆盖移动，造成"走不动"
+    if (fallAnim) { clearInterval(fallAnim); fallAnim = null; } // 用户按键：取消下落动画，交还控制权
     if (!win || win.isDestroyed()) return;
     const [x, y] = win.getPosition();
     const b = win.getBounds();
@@ -148,9 +150,28 @@ function registerWindowIpc() {
 
   // 屏幕上方停留检测：大动作（49 火箭等）飞出后桌宠停在屏幕顶部/屏外，键盘难以操控，
   // 窗口顶部位于工作区顶部以下 150px 内（含出屏）持续 FALL_BACK_DELAY 毫秒，
-  // 自动通知渲染层播放 act_19 向下掉落回屏幕底部
+  // 自动触发"掉回底部"：通知渲染层播放 act_19，同时主进程直接驱动窗口向下掉落
+  // （窗口完全出屏时 Chromium 暂停渲染循环，rAF/动画/位移都不推进，必须主进程移动窗口）
   let outTopMs = 0;
+  let fallAnim = null;
   const FALL_BACK_DELAY = 4000;
+  function startFallBack() {
+    if (fallAnim || !win || win.isDestroyed()) return;
+    win.webContents.send('pet-fall-back'); // 渲染层播放 act_19（窗口回到可见区后动画自然推进）
+    const wa = screen.getPrimaryDisplay().workArea;
+    const b0 = win.getBounds();
+    const targetBottom = wa.y + wa.height;
+    const startT = Date.now();
+    const DUR = 1500; // 1.5 秒掉到工作区底部
+    fallAnim = setInterval(() => {
+      if (!win || win.isDestroyed()) { clearInterval(fallAnim); fallAnim = null; return; }
+      const t = Math.min(1, (Date.now() - startT) / DUR);
+      const b = win.getBounds();
+      const targetY = Math.min(b0.y, targetBottom - b.height); // 只向下（窗口顶只降不升）
+      win.setPosition(Math.round(b.x), Math.round(b0.y + (targetY - b0.y) * t));
+      if (t >= 1) { clearInterval(fallAnim); fallAnim = null; }
+    }, 16);
+  }
   const fallCheckTimer = setInterval(() => {
     if (!win || win.isDestroyed()) return;
     const [, y] = win.getPosition();
@@ -159,7 +180,7 @@ function registerWindowIpc() {
       outTopMs += 1000;
       if (outTopMs >= FALL_BACK_DELAY) {
         outTopMs = 0;
-        win.webContents.send('pet-fall-back');
+        startFallBack();
         if (process.env.PET_DEBUG === '1') console.log('[fallback] trigger at y=' + y);
       }
     } else {
