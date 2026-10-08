@@ -31,7 +31,7 @@ window.SpriteCore = (() => {
   // 需重复播放多遍的动作：act_84 飞行 4 帧×12=4秒（循环次数已减半，原 24 轮 8 秒）；act_60 原地重复 2 帧×24=4秒；
   // act_77/83/85 各 2 帧×18=3 秒（用户要求约 3 秒）；其余按 3 遍或 1 遍
   const ACTION_REPEATS = { thinking: 3, push: 3, star: 3, pose1: 3, hide: 3, lie: 3,
-    act_84: 12, act_60: 24, act_77: 18, act_83: 18, act_85: 18 };
+    act_84: 12, act_60: 24, act_77: 18, act_83: 18, act_85: 18, act_44: 3 };
   // 重复播放动作每遍之间的小停顿（ms，让循环不那么急促，但不要太明显）
   const ACTION_PAUSE_MS = { act_77: 80, act_85: 80 };
   // 个别动作补偿系数微调：hide 帧偏移 -8/-13/-13.5，1.6× 下帧3仍偏右0.7px，1.75× 使帧2/3微偏左（不偏右）
@@ -92,7 +92,7 @@ window.SpriteCore = (() => {
   };
   // 特殊大动作（48/49/43/91）：主窗口播放时临时放大窗口到原始帧尺寸×1.05（原始帧清晰，无需独立窗口）
   // act_24：同样用原始帧完整播放（保留 41 帧动画内容），但尺寸正常、不放大窗口（enlarge=false）
-  const BIG_ACTIONS = { act_48: true, act_49: true, act_43: true, act_24: true, act_91: true };
+  const BIG_ACTIONS = { act_48: true, act_49: true, act_43: true, act_24: true, act_91: true, act_44: true };
   // BIG 大动作的画面水平/垂直偏移（px）：帧内主体不在中心时，播放时移动精灵让主体对齐原桌宠位置（窗口底部中心）
   // act_91：画面双角色（猫耳主体在左、Saber 在右），右移 271px 使猫耳主体居中（Saber 仍在窗口内）
   // act_48：右移12px + 上移35px（offsetY 负=上移），对齐桌宠位置
@@ -253,6 +253,8 @@ window.SpriteCore = (() => {
       if (bigSprite !== s) return;
       // 退出动画（act_49）播完：直接退出程序（不等待回待机）
       if (exitPending) { exitPending = false; window.pet.quit(); return; }
+      // 需重复播放的动作（act_44 等）：循环重播，MOVE_ACTIONS 位移全程持续
+      if (SPRITE.oneshotLeft > 1) { SPRITE.oneshotLeft--; s.gotoAndPlay(0); return; }
       setTimeout(() => { if (bigSprite === s) spriteBackToIdle(); }, 400);
     };
     s.loop = false;
@@ -294,7 +296,7 @@ window.SpriteCore = (() => {
           SPRITE.state = 'oneshot';
           SPRITE.current = s; // 供 update 的 MOVE_ACTIONS 位移（49 点火后上移）判断
           SPRITE.currentName = name;
-          SPRITE.oneshotLeft = 1;
+          SPRITE.oneshotLeft = ACTION_REPEATS[name] || 1; // 44 等需循环动作：重复次数生效（43/48/49/91 无 → 1 不变）
           s.gotoAndPlay(0);
         };
         if (bigFirstPlay) {
