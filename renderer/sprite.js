@@ -144,6 +144,8 @@ window.SpriteCore = (() => {
     act_60: { untilEnd: true, speed: 500, dir: 'down' },
   };
 
+  // 跑步动作库：Shift+方向键触发，起步时随机选用其一循环播放（按住期间固定，抬键回待机）
+  const RUN_ACTIONS = ['act_18', 'act_29', 'act_38'];
   // 掉回下落动作中"下落段循环"的起点帧（0-based）：25/30 开头几帧是站立准备，播完跳回下落段起点循环，
   // 直到落到底部（pet-fall-done）才结束——而不是播完就回待机
   const FALL_LOOP_FROM = { act_25: 5, act_30: 5 };
@@ -637,13 +639,18 @@ window.SpriteCore = (() => {
       const run = keys.shift;
       const spd = run ? 430 : 260;
       window.pet.moveBy(Math.round(vx * spd * dt), Math.round(vy * spd * dt));
-      // 目标动画：跑 / 左右走（方向变化时立即切换动画组）
-      const targetAnim = run ? 'running'
+      // 跑步：Shift+方向 → 随机选用 act_18/29/38 之一循环播放（起步时选定，按住期间固定；抬键清空下次重选）
+      if (run && !SPRITE.runAct) SPRITE.runAct = RUN_ACTIONS[Math.floor(Math.random() * RUN_ACTIONS.length)];
+      if (!run) SPRITE.runAct = null;
+      // 目标动画：跑步动作（帧朝右，向左跑水平翻转）/ 左右走（方向变化时立即切换动画组）
+      const flipX = run ? vx < 0 : false;
+      const targetAnim = run ? SPRITE.runAct
         : (vx !== 0 ? (vx > 0 ? 'walking_right' : 'walking_left')
           : (SPRITE.currentName === 'walking_right' ? 'walking_right' : 'walking_left'));
-      const flipX = run && vx < 0; // running 只有朝右的帧，向左跑时水平翻转
-      if (SPRITE.state !== 'walk' || SPRITE.currentName !== targetAnim) {
+      // 方向变化（flipX 变）时也强制重播，使跑步帧翻转更新
+      if (SPRITE.state !== 'walk' || SPRITE.currentName !== targetAnim || SPRITE.runFlip !== flipX) {
         spriteShow(targetAnim, true, flipX);
+        SPRITE.runFlip = flipX;
         SPRITE.state = 'walk';
       }
     } else if (roam) {
@@ -667,6 +674,7 @@ window.SpriteCore = (() => {
     } else if (SPRITE.state === 'walk') {
       // 抬键：立即回待机，站立朝向 = 最后移动方向（vx 已归零，用移动中记录的 lastMoveX）
       SPRITE.state = 'idle';
+      SPRITE.runAct = null; SPRITE.runFlip = null; // 清跑步动作记忆（下次 Shift 起步重新随机）
       if (SPRITE.lastMoveX !== 0) {
         SPRITE.facing = SPRITE.lastMoveX > 0 ? 1 : -1;
         SPRITE.lastMoveX = 0;
