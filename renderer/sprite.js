@@ -192,8 +192,8 @@ window.SpriteCore = (() => {
       SPRITE.oneshotLeft = 0; // 循环播放，onComplete 不再触发
       return;
     }
-    // act_24：原始帧完整播放（big_actions/），正常尺寸不放大窗口，30fps 保留源动画流畅度
-    if (name === 'act_24') { playBigInMain(name, { enlarge: false, fps: 30 }); return; }
+    // act_24：原始帧完整播放（big_actions/），正常尺寸不放大窗口，24fps 播放（30fps 偏快、12fps 慢放显形位移）
+    if (name === 'act_24') { playBigInMain(name, { enlarge: false, fps: 24 }); return; }
     // 特殊大动作（48/49/43）：主窗口临时放大播放原始帧（不裁剪、不模糊）
     if (BIG_ACTIONS[name]) { playBigInMain(name); return; }
     SPRITE.oneshotLeft = ACTION_REPEATS[name] || 1;
