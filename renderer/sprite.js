@@ -28,8 +28,8 @@ window.SpriteCore = (() => {
   };
   // 需重复播放 24 遍的动作（act_84 飞行 4 帧 × 24 @12fps = 8 秒）；其余按 3 遍或 1 遍
   const ACTION_REPEATS = { thinking: 3, push: 3, star: 3, pose1: 3, hide: 3, lie: 3, act_84: 24 };
-  // 特殊大动作（48/49）：主窗口播放时临时放大窗口到原始帧尺寸×1.05（原始帧清晰，无需独立窗口）
-  const BIG_ACTIONS = { act_48: true, act_49: true };
+  // 特殊大动作（48/49/43）：主窗口播放时临时放大窗口到原始帧尺寸×1.05（原始帧清晰，无需独立窗口）
+  const BIG_ACTIONS = { act_48: true, act_49: true, act_43: true };
   // smug/wine 播完保持最后一帧的时长（2 秒）再回待机
   const SMUG_HOLD_MS = 2000;
   // 循环动画的帧集：排除起跑/爆发/收尾/站立帧，循环衔接才自然
@@ -248,8 +248,8 @@ window.SpriteCore = (() => {
         app.stage.addChild(s);
         SPRITE.sprites[a.name] = s;
       }
-      // 后台预加载 48/49 原始帧（big_actions/），首次播放时立即就绪，避免加载延迟导致的异常帧
-      for (const bn of ['act_48', 'act_49']) {
+      // 后台预加载 48/49/43 原始帧（big_actions/），首次播放时立即就绪，避免加载延迟导致的异常帧
+      for (const bn of ['act_48', 'act_49', 'act_43']) {
         const ba = dynamicActionsMap[bn];
         if (!ba) continue;
         for (let i = 1; i <= ba.frames; i++) {
