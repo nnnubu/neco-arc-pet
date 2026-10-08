@@ -131,7 +131,7 @@ window.SpriteCore = (() => {
     act_18: { untilEnd: true, speed: 300 },
     act_29: { untilEnd: true, speed: 300 },
     act_38: { untilEnd: true, speed: 300 },
-    act_47: { untilEnd: true, speed: 260 },
+    act_47: { frames: [0, 7, 8, 16, 17], speed: 700 }, // 47 奔跑（19帧）：仅迈步帧前进、收步帧停，位移跟随脚步节奏（前迈帧=脚伸出帧）
     act_44: { untilFrame: 4, speed: 260 }, // 44 戴帽走动（5帧循环）：帧0-3移动、最后帧脚步收回停止位移（播完不再前进）
     act_53: { untilEnd: true, speed: 280, reverse: true },
     // act_19/25/30/60：屏幕上方出屏太久自动掉回底部（主进程 pet-fall-back 随机选一个触发），向下掉落全程
@@ -677,7 +677,9 @@ window.SpriteCore = (() => {
       // act_84 全程向上；act_49 点火（帧18）后向上——dir:'up' 时垂直移动（窗口上移）
       const mv = MOVE_ACTIONS[SPRITE.currentName];
       if (mv) {
+        // frames：仅指定帧位移（47 迈步帧 0/7/8/16/17 前进，收步帧停——位移跟随脚步节奏）
         let moving = mv.untilEnd || SPRITE.current.currentFrame < mv.untilFrame;
+        if (mv.frames) moving = mv.frames.includes(SPRITE.current.currentFrame);
         if (mv.fromFrame !== undefined && SPRITE.current.currentFrame < mv.fromFrame) moving = false;
         if (moving && !SPRITE.noMove) { // 掉回模式（noMove）：位移由主进程驱动，渲染层不叠加
           const dirSign = mv.reverse ? -1 : 1; // reverse：位移方向与朝向相反
