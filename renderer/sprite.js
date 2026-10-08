@@ -149,6 +149,10 @@ window.SpriteCore = (() => {
   // act_22 爬行逐帧中心补偿（0-based 帧序号 → px）：原始帧间角色中心 ±0.5px 整数舍入交替（131.0/131.5），
   // 播放时左右微抖；逐帧把精灵 x 补偿到画布中心 132 统一，消除舍入抖动（帧内容四肢摆动保留）
   const ACT22_CENTER_COMP = [0.5,1.0,0.5,1.0,1.0,1.0,0.5,0.5,1.0,0.5,1.0,0.5,1.0,0.5,0.5,1.0,0.5,1.0,0.5,1.0,0.5,0.5,1.0,0.5,1.0,0.5,1.0,0.5,0.5,1.0,0.5,1.0,0.5,1.0,0.5,0.5,1.0,0.5,1.0,0.5,1.0,0.5,0.5,1.0,0.5,1.0,0.5,1.0,0.5];
+  // act_69 逐帧中心补偿（0-based 帧序号 → px）：角色中心 137.5/138.0 整数舍入交替 → 补偿回画布中心 132 统一
+  const ACT69_CENTER_COMP = [-5.5,-6.0,-6.0,-5.5,-6.0,-6.0,-5.5,-6.0,-5.5,-6.0,-5.5,-5.5,-6.0,-5.5,-5.5,-6.0,-5.5,-5.5,-6.0,-5.5,-5.5,-6.0,-5.5,-5.5,-6.0,-5.5,-5.5,-6.0,-5.5,-5.5,-6.0,-5.5,-5.5,-6.0,-5.5,-5.5,-6.0,-5.5,-6.0];
+  // 需逐帧中心补偿的动作统一映射（消除帧间 ±0.5px 整数舍入交替导致的左右微抖）
+  const CENTER_COMP_ACTIONS = { act_22: ACT22_CENTER_COMP, act_69: ACT69_CENTER_COMP };
 
   // 随机乱跑状态（待机时偶尔自己走动/乱跑）：null 或 { dir, remaining, run }
   let roam = null;
@@ -553,9 +557,10 @@ window.SpriteCore = (() => {
       }
       showStanding();
     } else if (SPRITE.state === 'oneshot' && SPRITE.current) {
-      // act_22 爬行：逐帧补偿角色中心（消除原始帧 ±0.5px 整数舍入交替导致的左右微抖）
-      if (SPRITE.currentName === 'act_22') {
-        const c = ACT22_CENTER_COMP[SPRITE.current.currentFrame];
+      // 逐帧中心补偿（act_22/act_69 等）：消除原始帧 ±0.5px 整数舍入交替导致的左右微抖
+      const compTable = CENTER_COMP_ACTIONS[SPRITE.currentName];
+      if (compTable) {
+        const c = compTable[SPRITE.current.currentFrame];
         if (c !== undefined) SPRITE.current.x = window.innerWidth / 2 + c;
       }
       // 一次性动作附带位移：wine 走动段（拿起酒杯前）/ lie 全程——沿当前朝向移动桌宠；
