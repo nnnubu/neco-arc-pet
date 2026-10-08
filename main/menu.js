@@ -49,15 +49,6 @@ function registerMenuIpc() {
       { type: 'separator' },
       { label: '重置动作', click: () => send('RESET') },
       { type: 'separator' },
-      // 转向测试：单独播放转身过渡动画（turn_left 内容=左→右 / turn_right 内容=右→左，播完自动更新朝向）
-      {
-        label: '转向测试',
-        submenu: [
-          { label: '转身朝左（右→左）', click: () => send('turn_right') },
-          { label: '转身朝右（左→右）', click: () => send('turn_left') },
-        ],
-      },
-      { type: 'separator' },
       { label: '退出桌宠', click: () => require('electron').app.quit() },
     ];
 

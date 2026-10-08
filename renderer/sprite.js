@@ -245,6 +245,9 @@ window.SpriteCore = (() => {
       dynamicActionsMap = {};
       for (const a of dyn || []) {
         dynamicActionsMap[a.name] = a;
+        // 特殊大动作（48/49/43）的帧在 big_actions/ 原始分辨率目录，这里不加载 animations/ 帧
+        // （该目录不存在，加载会抛错中断后续所有动态动作注册）
+        if (BIG_ACTIONS[a.name]) continue;
         const texs = [];
         for (let i = 1; i <= a.frames; i++) {
           texs.push(await PIXI.Assets.load(`../assets/sprite/animations/${a.name}/${i}.png`));
