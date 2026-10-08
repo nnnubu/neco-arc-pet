@@ -34,6 +34,9 @@ window.SpriteCore = (() => {
     act_84: 12, act_60: 24, act_77: 18, act_83: 18, act_85: 18, act_44: 3, act_47: 3 };
   // 重复播放动作每遍之间的小停顿（ms，让循环不那么急促，但不要太明显）
   const ACTION_PAUSE_MS = { act_77: 80, act_85: 80 };
+  // 循环重播的起始帧（index，0=首帧）：act_47 帧1 是独立起步帧（与循环体差异大），
+  // 循环从帧2 开始，帧19->帧2 衔接差异与循环段内部一致，奔跑循环无缝
+  const LOOP_START_FRAMES = { act_47: 1 };
   // 个别动作补偿系数微调：hide 帧偏移 -8/-13/-13.5，1.6× 下帧3仍偏右0.7px，1.75× 使帧2/3微偏左（不偏右）
   const FLIP_OFFSET_K = { hide: 1.75 };
   // 朝左翻转播放时的角色中心补偿（px，动作帧角色不居中：正=原始帧角色偏右）
@@ -488,7 +491,7 @@ window.SpriteCore = (() => {
       // 一次性动画：指定动作按轮数循环；smug/wine 播完保持最后一帧约 2 秒；其余播完直接回待机
       s.onComplete = () => {
         if (SPRITE.state !== 'oneshot' || SPRITE.current !== s) return;
-        if (SPRITE.oneshotLeft > 1) { SPRITE.oneshotLeft--; s.gotoAndPlay(0); }
+        if (SPRITE.oneshotLeft > 1) { SPRITE.oneshotLeft--; s.gotoAndPlay(LOOP_START_FRAMES[SPRITE.currentName] || 0); }
         else if (SMUG_HOLD_ACTIONS.includes(SPRITE.currentName)) {
           const cur = s;
           setTimeout(() => {
