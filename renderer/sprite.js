@@ -135,16 +135,16 @@ window.SpriteCore = (() => {
     act_47: { untilEnd: true, speed: 260 },
     act_53: { untilEnd: true, speed: 280, reverse: true },
     // act_19/25/30/60：屏幕上方出屏太久自动掉回底部（主进程 pet-fall-back 随机选一个触发），向下掉落全程
-    // act_25 帧1-4 站立准备、帧5-7 下落（最后3张循环，fromFrame=4 起移动）；act_30 帧1-5 准备、帧6-93 下落（fromFrame=5 起移动，下落段循环）
+    // act_25 帧1-5 站立准备、帧6-7 下落（直接跳帧6，2张循环）；act_30 帧1-5 准备、帧6-93 下落（直接跳帧6，下落段循环）
     act_19: { untilEnd: true, speed: 500, dir: 'down' },
-    act_25: { fromFrame: 4, untilEnd: true, speed: 500, dir: 'down' },
+    act_25: { fromFrame: 5, untilEnd: true, speed: 500, dir: 'down' },
     act_30: { fromFrame: 5, untilEnd: true, speed: 500, dir: 'down' },
     act_60: { untilEnd: true, speed: 500, dir: 'down' },
   };
 
   // 掉回下落动作中"下落段循环"的起点帧（0-based）：25/30 开头几帧是站立准备，播完跳回下落段起点循环，
   // 直到落到底部（pet-fall-done）才结束——而不是播完就回待机
-  const FALL_LOOP_FROM = { act_25: 4, act_30: 5 };
+  const FALL_LOOP_FROM = { act_25: 5, act_30: 5 };
   // 掉回时随机选用的下落动作池
   const FALL_ACTIONS = ['act_19', 'act_25', 'act_30', 'act_60'];
 
@@ -331,6 +331,8 @@ window.SpriteCore = (() => {
     SPRITE.oneshotLeft = ACTION_REPEATS[name] || 1;
     // 动作跟随站立朝向：朝左时水平翻转（像素动作本身是朝右的）
     spriteShow(name, false, SPRITE.facing === -1);
+    // 25/30 掉回动作：跳过站立准备帧，直接从下落循环段起点播放（避免掉回时先站着不动）
+    if (FALL_LOOP_FROM[name] !== undefined && SPRITE.current) SPRITE.current.gotoAndPlay(FALL_LOOP_FROM[name]);
     SPRITE.state = 'oneshot';
     // 掉回模式（opts.fallback）：act_19 向下位移由主进程驱动窗口，渲染层不叠加位移
     // （避免双倍下落速度 + 两个循环同时 setPosition 的位置竞争/抖动）
