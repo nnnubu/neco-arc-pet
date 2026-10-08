@@ -277,7 +277,7 @@ window.SpriteCore = (() => {
       SPRITE.currentName = name;
       SPRITE.oneshotLeft = 1;
       s.gotoAndPlay(0);
-    }, 50);
+    }, 80); // 等窗口 resize 与 DWM 合成稳定（比 50ms 更充分，降低左上/右下角偶发残影）
   }
 
   function restoreBig() {
@@ -288,6 +288,9 @@ window.SpriteCore = (() => {
       bigSprite.destroy({ children: true });
       bigSprite = null;
     }
+    // 清屏：窗口缩小前先渲染一帧空画面，避免大动作最后一帧残留到缩小后的窗口边缘（左上/右下残影）
+    // （渲染层有 window resize 监听：窗口 setBounds 后会自动 resize canvas 并恢复待机精灵）
+    app.renderer.render(app.stage);
     window.pet.resizeWindow(bigSaved.w, bigSaved.h, true);
     shared.petScale = bigSaved.scale;
     bigSaved = null;
