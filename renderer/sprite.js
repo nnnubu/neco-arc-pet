@@ -97,9 +97,9 @@ window.SpriteCore = (() => {
   // BIG 大动作的画面水平/垂直偏移（px）：帧内主体不在中心时，播放时移动精灵让主体对齐原桌宠位置（窗口底部中心）
   // act_91：画面双角色（猫耳主体在左、Saber 在右），右移 271px 使猫耳主体居中（Saber 仍在窗口内）
   // act_48：右移12px + 上移35px（offsetY 负=上移），对齐桌宠位置
-  // act_49：主体站立猫再左移一点（-260 仍差一点，加大到 -300）
+  // act_49：全部帧已重排居中（火箭全程在画布中心，不再闪现到左侧），offsetX 归零
   // act_43：帧1剪影猫尾巴最左端x=3，右移246px使"左侧小尾巴"从桌宠位置出现
-  const BIG_OFFSET_X = { act_91: 271, act_48: 12, act_49: -300, act_43: 246 };
+  const BIG_OFFSET_X = { act_91: 271, act_48: 12, act_49: 0, act_43: 246 };
   const BIG_OFFSET_Y = { act_48: -35 };
   // 播完保持最后一帧 2 秒再回待机的动作（smug/wine 固定 + act_65/96/97/111）
   const SMUG_HOLD_MS = 2000;
@@ -196,8 +196,6 @@ window.SpriteCore = (() => {
     };
     s.loop = false;
     s.scale.set(1.05, 1.05);
-    // 立即渲染一帧空画面：窗口放大瞬间 canvas 尚未跟随 resize，旧帧会残留在窗口左上角（残影）
-    app.renderer.render(app.stage);
     // 窗口放大到帧尺寸×1.05（底部保持不跳动，48 原地播放），精灵底部中心对齐新窗口
     // offsetX：水平偏移（px，正=精灵右移），供画面主体不在帧中心的大动作（如 91 猫耳主体在左）播放时主体对齐原桌宠位置；
     // 有偏移时窗口左右各加宽 |offsetX|（负偏移同样加宽），保证偏移后整个画面不被裁剪
@@ -209,6 +207,10 @@ window.SpriteCore = (() => {
     // 等窗口 resize 事件到达（canvas 已跟随新尺寸）后再定位/播放，避免 canvas 与窗口错位导致偏移
     setTimeout(() => {
       if (bigSprite !== s) return;
+      // 清空 canvas：resize 瞬间旧帧会残留在新窗口的左上角/右下角（残影），先隐藏精灵渲染一帧空画面再播放
+      s.visible = false;
+      app.renderer.render(app.stage);
+      s.visible = true;
       s.position.set(w / 2 + (opts.offsetX || 0), h - 5 + (opts.offsetY || 0));
       SPRITE.state = 'oneshot';
       SPRITE.current = s; // 供 update 的 MOVE_ACTIONS 位移（49 点火后上移）判断
