@@ -1,0 +1,105 @@
+/* 猫姬桌宠 - 自绘右键菜单样式 */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { background: transparent; overflow: hidden; }
+body {
+  font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+  font-size: 13px;
+  color: #e8ecf4;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#panel {
+  width: 240px;
+  max-height: 100vh;
+  margin: 6px;
+  padding: 8px 0;
+  background: rgba(24, 29, 38, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(0, 0, 0, 0.35);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+#panel::-webkit-scrollbar { width: 6px; }
+#panel::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.18); border-radius: 3px; }
+#panel::-webkit-scrollbar-track { background: transparent; }
+
+/* 分组标题 */
+.sec-title {
+  padding: 6px 14px 4px;
+  font-size: 11px;
+  color: #7f8ba3;
+  letter-spacing: 1px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.sec-title::before {
+  content: '';
+  width: 3px; height: 10px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #6ea8fe, #8f6efd);
+}
+
+/* 菜单项 */
+.item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.12s ease;
+}
+.item:hover { background: rgba(110, 168, 254, 0.16); }
+.item:active { background: rgba(110, 168, 254, 0.26); }
+.item .num {
+  min-width: 26px;
+  text-align: right;
+  font-size: 11px;
+  color: #6b768c;
+  font-variant-numeric: tabular-nums;
+}
+.item .lbl { flex: 1; }
+.item.sep { height: 1px; margin: 5px 12px; padding: 0; background: rgba(255, 255, 255, 0.08); cursor: default; }
+.item.sep:hover { background: rgba(255, 255, 255, 0.08); }
+
+/* 分组折叠块 */
+.fgroup { border-top: 1px solid rgba(255, 255, 255, 0.06); }
+.fgroup:first-of-type { border-top: none; }
+.fgroup summary {
+  list-style: none;
+  padding: 8px 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #aeb8cc;
+  transition: background 0.12s ease;
+}
+.fgroup summary:hover { background: rgba(255, 255, 255, 0.05); }
+.fgroup summary::-webkit-details-marker { display: none; }
+.fgroup summary .gtitle { display: flex; align-items: center; gap: 6px; }
+.fgroup summary .gtitle::before {
+  content: '';
+  width: 3px; height: 10px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #ff9a62, #ff5f6d);
+}
+.fgroup summary .gcount {
+  font-size: 11px;
+  color: #5d677c;
+  font-variant-numeric: tabular-nums;
+}
+.fgroup summary .arrow {
+  font-size: 10px;
+  color: #5d677c;
+  transition: transform 0.18s ease;
+}
+.fgroup[open] summary .arrow { transform: rotate(90deg); }
+
+/* 底部功能 */
+.footer { border-top: 1px solid rgba(255, 255, 255, 0.08); margin-top: 6px; padding-top: 4px; }
+.footer .item .fname { padding-left: 10px; }
+.footer .item.danger .fname { color: #ff7d85; }

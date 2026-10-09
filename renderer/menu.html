@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>猫姬菜单</title>
+  <link rel="stylesheet" href="menu.css">
+</head>
+<body>
+  <div id="panel">
+    <!-- 固定动作（常用） -->
+    <div class="sec-title" id="sec-fixed-title">常用动作</div>
+    <div class="sec-items" id="sec-fixed"></div>
+
+    <!-- 分组动作（默认折叠，点击展开） -->
+    <div id="groups"></div>
+
+    <!-- 底部功能 -->
+    <div class="footer">
+      <div class="item func" data-act="SPEAK"><span class="fname">说句话…</span></div>
+      <div class="item func" data-act="RESET"><span class="fname">重置动作</span></div>
+      <div class="item func danger" data-act="__quit__"><span class="fname">退出桌宠</span></div>
+    </div>
+  </div>
+  <script src="menu.js"></script>
+</body>
+</html>
