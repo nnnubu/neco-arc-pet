@@ -1,95 +1,11 @@
 // 主进程 - 语音服务模块：懒启动长驻 Python 服务，stdin/stdout JSON 协议管理
 // 协议见 voice/voice_server.py：-> {"id":1,"text":"..."}  <- {"event":"ready"} / {"id":1,"ok":true,"wav":"..."}
-// 网络架构（2026-10-09 起）：CosyVoice 请求改由本进程 fetch（Chromium 网络栈可靠）发出，
-// Python 只做本地 RVC 变声（voice-env310 加载 RVC 后 winsock 被污染、curl.exe 域名解析故障均不影响）
-const { ipcMain, net } = require('electron');
+const { ipcMain } = require('electron');
 const path = require('path');
 const fs = require('fs');
-const crypto = require('crypto');
 const { spawn } = require('child_process');
 const { getWin } = require('./window');
 const { askAI } = require('./ai');
-
-// ── .env 读取（手写解析，与 ai.js 一致）──
-function loadEnv() {
-  const envPath = path.join(__dirname, '..', '.env');
-  const env = {};
-  if (!fs.existsSync(envPath)) return env;
-  for (const line of fs.readFileSync(envPath, 'utf8').split(/\r?\n/)) {
-    const l = line.trim();
-    if (!l || l.startsWith('#') || !l.includes('=')) continue;
-    const i = l.indexOf('=');
-    const k = l.slice(0, i).trim();
-    const v = l.slice(i + 1).trim().replace(/^["']|["']$/g, '');
-    if (k && !(k in env)) env[k] = v;
-  }
-  return env;
-}
-const ENV = loadEnv();
-const API_KEY = ENV.LLM_API_KEY || '';
-const COSY_MODEL = 'FunAudioLLM/CosyVoice2-0.5B';
-// 情绪参数表：与 voice_server.py EMOTION_CFG 保持一致（用户逐版验收）
-const EMOTION_CFG = {
-  happy:     { voice: 'diana', desc: '开心欢快', gain: 5, post_gain: 3 },
-  angry:     { voice: 'bella', desc: '生气',     gain: 0, post_gain: 6 },
-  sad:       { voice: 'bella', desc: '悲伤低沉', gain: 5, post_gain: 3 },
-  surprised: { voice: 'bella', desc: '震惊惊讶', gain: 5, post_gain: 3 },
-  neutral:   { voice: 'bella', desc: '平静自然', gain: 0, post_gain: 0 },
-};
-
-// ── 缓存键（与 voice_server.py cache_path 口径完全一致）──
-function normalizeKey(text) {
-  let out = '';
-  for (const ch of String(text)) {
-    const o = ch.codePointAt(0);
-    if (o === 0x3000) out += ' ';
-    else if (o >= 0xFF01 && o <= 0xFF5E) out += String.fromCharCode(o - 0xFEE0);
-    else out += ch;
-  }
-  return out.trim().replace(/\s+/g, ' ');
-}
-function cachePath(text, emotion) {
-  const key = Buffer.from(normalizeKey(text) + '\x00' + emotion, 'utf8');
-  return path.join(__dirname, '..', 'voice', 'cache', crypto.createHash('md5').update(key).digest('hex') + '.wav');
-}
-
-// ── CosyVoice 合成（Electron net.fetch，Chromium 网络栈；校验 wav 有效性后写临时文件）──
-// 用 net.fetch 而非全局 fetch：后者是 Node undici 实现，受系统 winsock/DNS 故障影响；
-// net.fetch 走 Chromium 网络栈（与豆包/浏览器同栈，带 DNS 缓存，本机更可靠）
-async function synthCosy(text, emotion) {
-  if (!API_KEY) throw new Error('未配置 LLM_API_KEY（项目根 .env）');
-  const cfg = EMOTION_CFG[emotion] || EMOTION_CFG.neutral;
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 60000);
-  let resp;
-  try {
-    resp = await net.fetch('https://api.siliconflow.cn/v1/audio/speech', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${API_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: COSY_MODEL,
-        voice: `${COSY_MODEL}:${cfg.voice}`,
-        input: `请用${cfg.desc}的情感说这句话：<|endofprompt|>${text}`,
-        response_format: 'wav',
-        sample_rate: 44100,
-        gain: cfg.gain,
-      }),
-    });
-  } finally {
-    clearTimeout(timer);
-  }
-  if (resp.status !== 200) {
-    const errText = (await resp.text()).slice(0, 200);
-    throw new Error(`CosyVoice API ${resp.status}: ${errText}`);
-  }
-  const buf = Buffer.from(await resp.arrayBuffer());
-  if (buf.length < 100 || buf.toString('latin1', 0, 4) !== 'RIFF') {
-    throw new Error('CosyVoice 返回内容异常（非有效 wav）');
-  }
-  const src = path.join(__dirname, '..', 'voice', 'cache', `_cosy_src_${Date.now()}.wav`);
-  fs.writeFileSync(src, buf);
-  return src;
-}
 
 // ── 情绪标签解析（语音参数映射在 voice_server 侧，此处只传 emotion）──
 const EMOTION_ALIAS = {
@@ -200,26 +116,10 @@ function registerVoiceIpc() {
     console.log(`[ai] 情绪=${emotion} 文本=${speakText}`);
     // 回复文本（去标签）给渲染层显示
     if (!win.isDestroyed()) win.webContents.send('ai-reply', { text: speakText });
-    // 合成回复语音：Electron fetch 请求 CosyVoice（Chromium 网络栈可靠）→ Python 本地 RVC 变声 → 缓存
+    // 合成回复语音（CosyVoice 情绪源 → RVC 变声 → 缓存；情绪进缓存 key）
     win.webContents.send('speak-state', { state: 'generating' });
-    const cp = cachePath(speakText, emotion);
-    if (!force && fs.existsSync(cp)) {
-      // 缓存命中：直接播放
-      win.webContents.send('play-audio', cp.replace(/\\/g, '/'));
-      win.webContents.send('speak-state', { state: 'done' });
-      return;
-    }
-    if (force && fs.existsSync(cp)) { try { fs.unlinkSync(cp); } catch (e) {} }
-    let src;
-    try {
-      src = await synthCosy(speakText, emotion);
-    } catch (e) {
-      console.error('[cosy] CosyVoice 合成失败:', e.message);
-      win.webContents.send('speak-state', { state: 'error', error: '语音合成失败: ' + e.message });
-      return;
-    }
     ensureVoiceServer();
-    const req = { id: Date.now(), cmd: 'vc', src, text: speakText, emotion };
+    const req = { id: Date.now(), text: speakText, emotion };
     if (force) req.force = true; // 重试：绕过缓存强制重新合成（覆盖旧缓存）
     if (voiceReady && voiceProc) {
       voiceProc.stdin.write(JSON.stringify(req) + '\n');

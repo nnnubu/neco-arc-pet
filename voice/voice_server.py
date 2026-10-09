@@ -95,220 +95,56 @@ def _ensure_rvc():
     return _rvc
 
 
-def _repair_wav(path):
-    """修复 wav 头的 RIFF/data size 字段（服务端可能把 size 写成 int32 溢出值，
-    如 0xFFFFFF00，导致 wave 模块解析出 >1800s 假时长被判损坏）。
-    仅当字段与实际不符时改写，正常文件不动。返回是否修复。"""
-    import struct
-    try:
-        with open(path, 'rb') as f:
-            data = f.read()
-        if len(data) < 12 or data[:4] != b'RIFF' or data[8:12] != b'WAVE':
-            return False
-        changed = False
-        buf = bytearray(data)
-        correct_riff = len(data) - 8
-        if struct.unpack('<I', data[4:8])[0] != correct_riff:
-            struct.pack_into('<I', buf, 4, correct_riff)
-            changed = True
-        off = 12
-        while off + 8 <= len(data):
-            cid = data[off:off + 4]
-            csz = struct.unpack('<I', data[off + 4:off + 8])[0]
-            if cid == b'data':
-                correct_data = len(data) - off - 8
-                if csz != correct_data:
-                    struct.pack_into('<I', buf, off + 4, correct_data)
-                    changed = True
-                break
-            off += 8 + csz + (csz & 1)
-        if changed:
-            with open(path, 'wb') as f:
-                f.write(buf)
-        return changed
-    except Exception:
-        return False
-
-
 def _wav_duration(path):
-    """读取 wav 时长（秒）；非 wav/损坏/头异常返回 None。
-    wave 模块对损坏头可能解析出 int32 溢出的帧数（如 2^31-1），
-    超过 30 分钟视为头损坏，返回 None。"""
+    """读取 wav 时长（秒）；非 wav/损坏返回 None"""
     try:
         import wave as _wave
         with _wave.open(path, "rb") as w:
-            dur = w.getnframes() / w.getframerate()
-            if dur > 1800:  # >30min 不可能是正常合成结果
-                return None
-            return dur
+            return w.getnframes() / w.getframerate()
     except Exception:
         return None
 
 
 def _check_text_duration(text, path, tag):
-    """校验音频时长与文本长度是否匹配（内容错乱/缺字/空音频为异常短；念出无关大段内容为异常长）。
-    中文语速约 0.25s/字：下限按 0.1s/字 + 最短 0.3s 兜底；上限按 0.45s/字 + 0.5s 兜底
-    （留足停顿/中英混合余量，避免误杀正常长句）。明显超范围视为生成异常，
+    """校验音频时长与文本长度是否匹配（内容错乱/缺字/空音频时长为异常短）。
+    中文语速约 0.25s/字，下限按 0.1s/字 + 最短 0.3s 兜底；明显过短视为生成异常，
     抛错拒绝写入缓存（防止坏内容被缓存复用，下次命中仍然错乱）。"""
     dur = _wav_duration(path)
     if dur is None:
-        raise RuntimeError(
-            f"{tag} 音频文件无效或损坏（可能为 API 返回异常数据），已拒绝写入缓存"
-        )
-    n = len(text)
-    min_dur = max(0.3, n * 0.1)
-    max_dur = n * 0.45 + 0.5
+        raise RuntimeError(tag + " 音频文件无效或损坏")
+    min_dur = max(0.3, len(text) * 0.1)
     if dur < min_dur:
         raise RuntimeError(
-            f"{tag} 音频时长过短（{dur:.2f}s < 预期 {min_dur:.1f}s），"
-            f"可能内容缺失/错乱，已拒绝写入缓存"
+            f"{tag} 音频时长异常（{dur:.2f}s < 预期 {min_dur:.1f}s），"
+            f"可能内容错乱，已拒绝写入缓存"
         )
-    if dur > max_dur:
-        raise RuntimeError(
-            f"{tag} 音频时长过长（{dur:.2f}s > 预期上限 {max_dur:.1f}s，文本 {n} 字），"
-            f"可能念出无关大段内容，已拒绝写入缓存"
-        )
-
-
-def _doh_resolve(host):
-    """系统 DNS 解析失败时的兜底：用 HTTPS-DNS(DoH, 阿里 223.5.5.5 是 IP 直连不依赖域名解析)
-    解析域名，返回 A 记录 IP 列表；全部失败返回 None。"""
-    import requests as _r
-    for url in ("https://223.5.5.5/resolve", "https://dns.alidns.com/resolve"):
-        try:
-            rr = _r.get(url, params={"name": host, "type": "A"}, timeout=6)
-            if rr.status_code == 200:
-                ips = [a["data"] for a in rr.json().get("Answer", []) if a.get("type") == 1 and a.get("data")]
-                if ips:
-                    return ips
-        except Exception as _e:
-            sys.stderr.write(f"[doh] {url} 失败: {type(_e).__name__} {_e}\n")
-            sys.stderr.flush()
-    return None
-
-
-def _curl_doh_resolve(host):
-    """用系统 curl 直连 DoH（IP，不解析域名）拿 A 记录，完全绕开系统 DNS 客户端。
-    本机系统 DNS 客户端间歇性 getaddrinfo 失败（nslookup 显式查询/curl IP 直连均正常），
-    因此解析也不走系统栈。返回 IPv4 列表；全失败返回 []。"""
-    import subprocess, json
-    for doh in ('https://223.5.5.5/resolve', 'https://1.12.12.12/resolve'):
-        try:
-            r = subprocess.run(
-                ['curl.exe', '-s', '--max-time', '8',
-                 f'{doh}?name={host}&type=A'],
-                capture_output=True, timeout=12)
-            if r.returncode != 0:
-                continue
-            data = json.loads(r.stdout.decode('utf-8', 'replace'))
-            ans = data.get('Answer') or []
-            ips = [a['data'] for a in ans if a.get('type') == 1]
-            if ips:
-                return ips
-        except Exception:
-            continue
-    return []
-
-
-_FALLBACK_IPS = ['47.117.38.205', '47.117.173.229', '8.133.255.105', '47.100.67.98']
-
-
-def _resolve_api_ips():
-    """拿 api.siliconflow.cn 的 IPv4 列表（多通道容错）：
-    1) Python socket.getaddrinfo（系统解析，本机正常）；
-    2) curl 直连 DoH（IP，无域名解析）刷新；
-    3) 硬编码 ALB IP 兜底。返回非空列表。"""
-    import socket
-    try:
-        infos = socket.getaddrinfo('api.siliconflow.cn', 443, socket.AF_INET)
-        ips = [i[4][0] for i in infos]
-        if ips:
-            return ips
-    except Exception:
-        pass
-    ips = _curl_doh_resolve('api.siliconflow.cn')
-    if ips:
-        return ips
-    return list(_FALLBACK_IPS)
 
 
 def _cosy_synth(text, voice, desc, gain, tmp_path):
-    """CosyVoice API 合成带情绪的中文源音频到 tmp_path（在线，按 UTF-8 字节计费）。
-
-    网络链路设计（本机已踩坑总结，多通道容错）：
-    1. voice-env310 加载 RVC 链路后 Python 进程 winsock 被污染（socket 创建 10038），
-       requests 无法连网 → 改用系统 curl.exe 子进程发出请求（独立进程）；
-    2. curl.exe 在本机域名解析间歇失败（getaddrinfo() thread failed to start，rc=6），
-       但 IP 直连正常 → 默认用 Python socket.getaddrinfo（系统解析正常）拿真实 IP，
-       再以 --resolve 指定 IP 直连（curl 保留域名 SNI/Host/证书语义，无需 -k）；
-    3. Python 解析失败 → curl 直连 DoH（IP，无域名解析）刷新 IP；
-    4. 仍失败 → 硬编码 ALB IP 兜底；最后才尝试普通 curl（万一 curl 解析恢复）。
-    JSON 经临时文件传入（--data-binary @file），避免命令行转义/编码问题。"""
+    """CosyVoice API 合成带情绪的中文源音频到 tmp_path（在线，按 UTF-8 字节计费）"""
     if not API_KEY:
         raise RuntimeError('未配置 LLM_API_KEY（项目根 .env）')
-    import subprocess, json
-    payload = {
-        'model': COSY_MODEL,
-        'voice': COSY_MODEL + ':' + voice,
-        'input': f'请用{desc}的情感说这句话：<|endofprompt|>{text}',
-        'response_format': 'wav',
-        'sample_rate': 44100,
-        'gain': gain,
-    }
-    req_file = tmp_path + '.req.json'
-    base = ['curl.exe', '-s', '-S', '--max-time', '120',
-            '-o', tmp_path, '-w', '%{http_code}',
-            '-X', 'POST', 'https://api.siliconflow.cn/v1/audio/speech',
-            '-H', 'Authorization: Bearer ' + API_KEY,
-            '-H', 'Content-Type: application/json',
-            '--data-binary', '@' + req_file]
-    r = None
-    try:
-        with open(req_file, 'w', encoding='utf-8') as f:
-            json.dump(payload, f, ensure_ascii=False)
-        ok = False
-        # 通道 1：Python 解析 IP → curl --resolve 直连（逐个 IP 试）
-        for ip in _resolve_api_ips():
-            rr = subprocess.run(
-                base + ['--resolve', 'api.siliconflow.cn:443:' + ip],
-                capture_output=True, timeout=130)
-            if rr.returncode == 0 and rr.stdout.decode('utf-8', 'replace').strip() == '200':
-                r, ok = rr, True
-                break
-        # 通道 2：普通 curl（万一 curl 域名解析恢复）
-        if not ok:
-            rr = subprocess.run(base, capture_output=True, timeout=130)
-            if rr.returncode == 0 and rr.stdout.decode('utf-8', 'replace').strip() == '200':
-                r, ok = rr, True
-        if not ok:
-            if r is None:
-                raise RuntimeError('CosyVoice API 网络请求全部失败（无可达 IP）')
-            raise RuntimeError(f'CosyVoice API curl 失败 rc={r.returncode}: {r.stderr[:200]}')
-        code = r.stdout.decode('utf-8', 'replace').strip()
-        if code != '200':
-            # 出错时响应体可能写入了 tmp_path，读前 200 字符辅助定位
-            err = ''
-            try:
-                with open(tmp_path, 'rb') as f:
-                    err = f.read(200).decode('utf-8', 'replace')
-            except Exception:
-                pass
-            raise RuntimeError(f'CosyVoice API {code}: {err}')
-    finally:
-        try:
-            os.remove(req_file)
-        except Exception:
-            pass
+    import requests
+    r = requests.post(
+        'https://api.siliconflow.cn/v1/audio/speech',
+        headers={'Authorization': 'Bearer ' + API_KEY, 'Content-Type': 'application/json'},
+        json={
+            'model': COSY_MODEL,
+            'voice': COSY_MODEL + ':' + voice,
+            'input': f'请用{desc}的情感说这句话：<|endofprompt|>{text}',
+            'response_format': 'wav',
+            'sample_rate': 44100,
+            'gain': gain,
+        },
+        timeout=120,
+    )
+    if r.status_code != 200:
+        raise RuntimeError(f'CosyVoice API {r.status_code}: {r.text[:200]}')
     # 校验响应是合法 wav（网络异常时可能返回 HTML 错误页/空内容但状态码 200）
-    try:
-        with open(tmp_path, 'rb') as f:
-            head = f.read(4)
-            size = os.path.getsize(tmp_path)
-    except Exception as e:
-        raise RuntimeError(f'CosyVoice 响应写入失败: {e}')
-    if size < 100 or head != b'RIFF':
+    if len(r.content) < 100 or r.content[:4] != b'RIFF':
         raise RuntimeError('CosyVoice 返回内容异常（非有效 wav），已拒绝写入缓存')
-    _repair_wav(tmp_path)  # 服务端可能写坏 size 字段（int32 溢出），修复后 wave 模块才能正常解析
+    with open(tmp_path, 'wb') as f:
+        f.write(r.content)
     _check_text_duration(text, tmp_path, 'CosyVoice 源音频')
 
 
@@ -369,31 +205,6 @@ def synth(text, emotion, out_path):
         )
         rvc_out = os.path.join(CACHE_DIR, '_cosy_out.wav')
         # 变声后先校验时长与文本匹配（内容错乱/缺字则拒绝写入缓存），再落位
-        _check_text_duration(text, rvc_out, 'RVC 变声后')
-        os.replace(rvc_out, out_path)
-    _to_44100(out_path)
-    _apply_gain(out_path, cfg['post_gain'])
-
-
-def synth_from_src(text, emotion, src, out_path):
-    """Electron 已用 fetch（Chromium 网络栈）生成 CosyVoice 源 wav → 本地 RVC 变声 + 校验 + 落位。
-    全程不联网：绕开本机 Python winsock 污染（socket 10038）与 curl.exe 域名解析故障（thread failed）。
-    src 需先经 _repair_wav 修复头（服务端可能写坏 size 字段），再校验时长。"""
-    cfg = EMOTION_CFG.get(emotion, EMOTION_CFG['neutral'])
-    with _synth_lock:
-        _repair_wav(src)
-        _check_text_duration(text, src, 'CosyVoice 源音频')
-        rvc = _ensure_rvc()
-        rvc.convert(
-            model_path=_rvc_model,
-            f0_up_key=0,
-            input_path=src,
-            file_index=_rvc_index,
-            index_rate=0.75,
-            output_dir_path=CACHE_DIR,
-            output_filename='_cosy_out.wav',
-        )
-        rvc_out = os.path.join(CACHE_DIR, '_cosy_out.wav')
         _check_text_duration(text, rvc_out, 'RVC 变声后')
         os.replace(rvc_out, out_path)
     _to_44100(out_path)
@@ -509,38 +320,6 @@ def main():
             if req.get("cmd") == "preset":
                 threading.Thread(target=run_preset, daemon=True).start()
                 print(json.dumps({"id": req.get("id"), "ok": True, "preset": "started"}), flush=True)
-                continue
-            # 本地变声命令：Electron 已用 fetch 生成 CosyVoice 源 wav（Chromium 网络栈可靠），
-            # Python 只做本地 RVC 变声 + 校验 + 缓存，全程不联网
-            if req.get("cmd") == "vc":
-                text = clean_text(req.get("text") or "")
-                if not text:
-                    print(json.dumps({"id": req.get("id"), "ok": False, "error": "empty text"}), flush=True)
-                    continue
-                emotion = str(req.get("emotion", "neutral"))
-                if emotion not in EMOTION_CFG:
-                    emotion = "neutral"
-                cp = cache_path(text, emotion)
-                force = bool(req.get("force"))
-                if not force and os.path.exists(cp):
-                    print(json.dumps({"id": req.get("id"), "ok": True, "wav": cp.replace(os.sep, "/"), "cached": True}), flush=True)
-                    continue
-                if force and os.path.exists(cp):
-                    try:
-                        os.remove(cp)
-                    except OSError:
-                        pass
-                src = str(req.get("src") or "")
-                if not src or not os.path.exists(src):
-                    print(json.dumps({"id": req.get("id"), "ok": False, "error": "Electron 未提供 CosyVoice 源音频"}), flush=True)
-                    continue
-                _user_waiting.set()
-                try:
-                    synth_from_src(text, emotion, src, cp)
-                    trim_cache()
-                finally:
-                    _user_waiting.clear()
-                print(json.dumps({"id": req.get("id"), "ok": True, "wav": cp.replace(os.sep, "/"), "cached": False}), flush=True)
                 continue
             text = clean_text(req.get("text") or "")
             if not text:
