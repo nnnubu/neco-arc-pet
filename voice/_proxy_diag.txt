@@ -1,0 +1,18 @@
+﻿[WinINET 代理设置]
+ProxyEnable: 0
+ProxyServer: 127.0.0.1:7890
+[winhttp 代理]
+
+Current WinHTTP proxy settings:
+
+    Direct access (no proxy server).
+
+[代理类进程]
+
+ProcessName   Id
+-----------   --
+NisSrv      9804
+
+
+
+[环境变量代理]

@@ -1,0 +1,191 @@
+﻿[Node 本地 socket]
+LOCAL_TCP_ERR: ENOTSOCK
+[Node 出站 443]
+OUT_TCP_ERR: ENOTSOCK
+[当前运行的第三方驱动]
+
+Name                               State   PathName                                                                    
+----                               -----   --------                                                                    
+aavktap6                           Running C:\WINDOWS\system32\drivers\vktap.sys                                       
+ACPI                               Running C:\WINDOWS\system32\drivers\ACPI.sys                                        
+AcpiBridge                         Running C:\WINDOWS\system32\drivers\AcpiBridge.sys                                  
+acpiex                             Running C:\WINDOWS\system32\Drivers\acpiex.sys                                      
+acpipagr                           Running C:\WINDOWS\system32\drivers\acpipagr.sys                                    
+afunix                             Running C:\WINDOWS\system32\drivers\afunix.sys                                      
+ahcache                            Running C:\WINDOWS\system32\DRIVERS\ahcache.sys                                     
+bam                                Running C:\WINDOWS\system32\drivers\bam.sys                                         
+BasicDisplay                       Running C:\WINDOWS\system32\DriverStore\FileRepository\basicdisplay.inf_amd64_02d...
+BasicRender                        Running C:\WINDOWS\system32\DriverStore\FileRepository\basicrender.inf_amd64_4026...
+Beep                               Running C:\WINDOWS\system32\drivers\Beep.sys                                        
+bfs                                Running C:\WINDOWS\system32\drivers\bfs.sys                                         
+bhtsddr                            Running C:\WINDOWS\system32\DRIVERS\bhtsddr.sys                                     
+BthA2dp                            Running C:\WINDOWS\system32\drivers\BthA2dp.sys                                     
+BthEnum                            Running C:\WINDOWS\system32\drivers\BthEnum.sys                                     
+BthHFEnum                          Running C:\WINDOWS\system32\drivers\bthhfenum.sys                                   
+BthLEEnum                          Running C:\WINDOWS\system32\drivers\Microsoft.Bluetooth.Legacy.LEEnumerator.sys     
+BTHMODEM                           Running C:\WINDOWS\system32\drivers\bthmodem.sys                                    
+BthPan                             Running C:\WINDOWS\system32\drivers\bthpan.sys                                      
+BTHPORT                            Running C:\WINDOWS\system32\drivers\BTHport.sys                                     
+BTHUSB                             Running C:\WINDOWS\system32\drivers\BTHUSB.sys                                      
+CAD                                Running C:\WINDOWS\system32\drivers\CAD.sys                                         
+CimFS                              Running C:\WINDOWS\system32\drivers\CimFS.sys                                       
+CldFlt                             Running C:\WINDOWS\system32\drivers\cldflt.sys                                      
+CmBatt                             Running C:\WINDOWS\system32\drivers\CmBatt.sys                                      
+CNG                                Running C:\WINDOWS\system32\Drivers\cng.sys                                         
+CompositeBus                       Running C:\WINDOWS\system32\DriverStore\FileRepository\compositebus.inf_amd64_2e5...
+condrv                             Running C:\WINDOWS\system32\drivers\condrv.sys                                      
+Dfsc                               Running C:\WINDOWS\system32\Drivers\dfsc.sys                                        
+DXGKrnl                            Running C:\WINDOWS\system32\drivers\dxgkrnl.sys                                     
+EhStorClass                        Running C:\WINDOWS\system32\drivers\EhStorClass.sys                                 
+fastfat                            Running C:\WINDOWS\system32\drivers\fastfat.sys                                     
+FileCrypt                          Running C:\WINDOWS\system32\drivers\filecrypt.sys                                   
+fse                                Running C:\WINDOWS\system32\drivers\fse.sys                                         
+fvevol                             Running C:\WINDOWS\system32\DRIVERS\fvevol.sys                                      
+gameflt                            Running C:\WINDOWS\system32\DriverStore\FileRepository\gameflt.inf_amd64_c03f7ce9...
+GPIOClx0101                        Running C:\WINDOWS\system32\Drivers\msgpioclx.sys                                   
+HDAudBus                           Running C:\WINDOWS\system32\drivers\HDAudBus.sys                                    
+HidBth                             Running C:\WINDOWS\system32\drivers\hidbth.sys                                      
+HidEventFilter                     Running C:\WINDOWS\system32\DriverStore\FileRepository\hideventfilter.inf_amd64_1...
+hidi2c                             Running C:\WINDOWS\system32\drivers\hidi2c.sys                                      
+HidUsb                             Running C:\WINDOWS\system32\drivers\hidusb.sys                                      
+HKKbdFltr                          Running C:\WINDOWS\system32\DRIVERS\HKKbdFltr.sys                                   
+HKMouFltr                          Running C:\WINDOWS\system32\DRIVERS\HKMouFltr.sys                                   
+HTTP                               Running C:\WINDOWS\system32\drivers\HTTP.sys                                        
+hvservice                          Running C:\WINDOWS\system32\drivers\hvservice.sys                                   
+hvsocketcontrol                    Running C:\WINDOWS\system32\drivers\hvsocketcontrol.sys                             
+i8042prt                           Running C:\WINDOWS\system32\drivers\i8042prt.sys                                    
+iaLPSS2_GPIO2_ADL                  Running C:\WINDOWS\system32\DriverStore\FileRepository\ialpss2_gpio2_adl.inf_amd6...
+iaLPSS2_I2C_ADL                    Running C:\WINDOWS\system32\DriverStore\FileRepository\ialpss2_i2c_adl.inf_amd64_...
+ibtusb                             Running C:\WINDOWS\system32\DriverStore\FileRepository\ibtusb.inf_amd64_a85c323da...
+igfxn                              Running C:\WINDOWS\system32\DriverStore\FileRepository\iigd_dch.inf_amd64_06b3f99...
+IndirectKmd                        Running C:\WINDOWS\system32\drivers\IndirectKmd.sys                                 
+inpoutx64                          Running C:\WINDOWS\system32\Drivers\inpoutx64.sys                                   
+IntcAudioBus                       Running C:\WINDOWS\system32\DriverStore\FileRepository\intcaudiobus.inf_amd64_b36...
+IntcAzAudAddService                Running C:\WINDOWS\system32\drivers\RTKVHD64.sys                                    
+IntcBTAu                           Running C:\WINDOWS\system32\DriverStore\FileRepository\intcbtau.inf_amd64_10b07dc...
+IntcOED                            Running C:\WINDOWS\system32\DriverStore\FileRepository\intcoed.inf_amd64_5e376a20...
+IntcUSB                            Running C:\WINDOWS\system32\DriverStore\FileRepository\intcusb.inf_amd64_99af88b5...
+IntelGNA                           Running C:\WINDOWS\system32\DriverStore\FileRepository\gna.inf_amd64_04d4eecc5838...
+intelpep                           Running C:\WINDOWS\system32\drivers\intelpep.sys                                    
+IntelPMT                           Running C:\WINDOWS\system32\drivers\IntelPMT.sys                                    
+intelppm                           Running C:\WINDOWS\system32\drivers\intelppm.sys                                    
+iorate                             Running C:\WINDOWS\system32\drivers\iorate.sys                                      
+ipf_acpi                           Running C:\WINDOWS\system32\DriverStore\FileRepository\ipf_acpi.inf_amd64_6808233...
+ipf_cpu                            Running C:\WINDOWS\system32\DriverStore\FileRepository\ipf_cpu.inf_amd64_07e81e06...
+ipf_lf                             Running C:\WINDOWS\system32\DriverStore\FileRepository\ipf_cpu.inf_amd64_07e81e06...
+kbdclass                           Running C:\WINDOWS\system32\drivers\kbdclass.sys                                    
+kbdhid                             Running C:\WINDOWS\system32\drivers\kbdhid.sys                                      
+kdnic                              Running C:\WINDOWS\system32\drivers\kdnic.sys                                       
+KSecDD                             Running C:\WINDOWS\system32\Drivers\ksecdd.sys                                      
+KSecPkg                            Running C:\WINDOWS\system32\Drivers\ksecpkg.sys                                     
+ksthunk                            Running C:\WINDOWS\system32\drivers\ksthunk.sys                                     
+lltdio                             Running C:\WINDOWS\system32\drivers\lltdio.sys                                      
+logi_joy_bus_enum                  Running C:\WINDOWS\system32\drivers\logi_joy_bus_enum.sys                           
+logi_joy_xlcore                    Running C:\WINDOWS\system32\drivers\logi_joy_xlcore.sys                             
+logi_lamparray                     Running C:\WINDOWS\system32\DriverStore\FileRepository\logi_lamparray_usb.inf_amd...
+MBfilt                             Running C:\WINDOWS\system32\drivers\MBfilt64.sys                                    
+MEIx64                             Running C:\WINDOWS\system32\DriverStore\FileRepository\heci.inf_amd64_6b6e8cc42a3...
+Microsoft_Bluetooth_AvrcpTransport Running C:\WINDOWS\system32\drivers\Microsoft.Bluetooth.AvrcpTransport.sys          
+MMCSS                              Running C:\WINDOWS\system32\drivers\mmcss.sys                                       
+monitor                            Running C:\WINDOWS\system32\drivers\monitor.sys                                     
+mouclass                           Running C:\WINDOWS\system32\drivers\mouclass.sys                                    
+mouhid                             Running C:\WINDOWS\system32\drivers\mouhid.sys                                      
+mpsdrv                             Running C:\WINDOWS\system32\drivers\mpsdrv.sys                                      
+Msfs                               Running C:\WINDOWS\system32\drivers\Msfs.sys                                        
+mshidkmdf                          Running C:\WINDOWS\system32\drivers\mshidkmdf.sys                                   
+mshidumdf                          Running C:\WINDOWS\system32\drivers\mshidumdf.sys                                   
+msisadrv                           Running C:\WINDOWS\system32\drivers\msisadrv.sys                                    
+MsLldp                             Running C:\WINDOWS\system32\drivers\mslldp.sys                                      
+MsQuic                             Running C:\WINDOWS\system32\drivers\msquic.sys                                      
+mssmbios                           Running C:\WINDOWS\system32\drivers\mssmbios.sys                                    
+MTConfig                           Running C:\WINDOWS\system32\drivers\MTConfig.sys                                    
+MuMuVMMDrv                         Running \??\C:\Program Files\MuMuVMMVbox\LoadedDrivers\MuMuVMMDrv.sys               
+NativeWifiP                        Running C:\WINDOWS\system32\DRIVERS\nwifi.sys                                       
+ndproxy                            Running C:\WINDOWS\system32\DRIVERS\NDProxy.sys                                     
+Ndu                                Running C:\WINDOWS\system32\drivers\Ndu.sys                                         
+NetBIOS                            Running C:\WINDOWS\system32\drivers\netbios.sys                                     
+Netwtw12                           Running C:\WINDOWS\system32\DriverStore\FileRepository\netwtw6e.inf_amd64_4d2bf8e...
+Npfs                               Running C:\WINDOWS\system32\drivers\Npfs.sys                                        
+npsvctrig                          Running C:\WINDOWS\system32\drivers\npsvctrig.sys                                   
+Null                               Running C:\WINDOWS\system32\drivers\Null.sys                                        
+NVHDA                              Running C:\WINDOWS\system32\drivers\nvhda64v.sys                                    
+nvlddmkm                           Running C:\WINDOWS\system32\DriverStore\FileRepository\nvcvi.inf_amd64_7b37d73bea...
+nvpcf                              Running C:\WINDOWS\system32\drivers\nvpcf.sys                                       
+nvvad_WaveExtensible               Running C:\WINDOWS\system32\drivers\nvvad64v.sys                                    
+P9Rdr                              Running C:\WINDOWS\system32\drivers\p9rdr.sys                                       
+pci                                Running C:\WINDOWS\system32\drivers\pci.sys                                         
+pcw                                Running C:\WINDOWS\system32\drivers\pcw.sys                                         
+pdc                                Running C:\WINDOWS\system32\drivers\pdc.sys                                         
+PEAUTH                             Running C:\WINDOWS\system32\drivers\peauth.sys                                      
+PptpMiniport                       Running C:\WINDOWS\system32\drivers\raspptp.sys                                     
+PRM                                Running C:\WINDOWS\system32\DriverStore\FileRepository\prm.inf_amd64_de435dc5c75d...
+RasAcd                             Running C:\WINDOWS\system32\DRIVERS\rasacd.sys                                      
+RasAgileVpn                        Running C:\WINDOWS\system32\drivers\AgileVpn.sys                                    
+Rasl2tp                            Running C:\WINDOWS\system32\drivers\rasl2tp.sys                                     
+RasPppoe                           Running C:\WINDOWS\system32\drivers\raspppoe.sys                                    
+RasSstp                            Running C:\WINDOWS\system32\drivers\rassstp.sys                                     
+rdpbus                             Running C:\WINDOWS\system32\drivers\rdpbus.sys                                      
+RDPDR                              Running C:\WINDOWS\system32\drivers\rdpdr.sys                                       
+rdyboost                           Running C:\WINDOWS\system32\drivers\rdyboost.sys                                    
+RFCOMM                             Running C:\WINDOWS\system32\drivers\rfcomm.sys                                      
+rspndr                             Running C:\WINDOWS\system32\drivers\rspndr.sys                                      
+rt640x64                           Running C:\WINDOWS\system32\drivers\rt640x64.sys                                    
+spaceport                          Running C:\WINDOWS\system32\drivers\spaceport.sys                                   
+SpbCx                              Running C:\WINDOWS\system32\drivers\SpbCx.sys                                       
+stornvme                           Running C:\WINDOWS\system32\drivers\stornvme.sys                                    
+storqosflt                         Running C:\WINDOWS\system32\drivers\storqosflt.sys                                  
+storvsp                            Running C:\WINDOWS\system32\drivers\storvsp.sys                                     
+swenum                             Running C:\WINDOWS\system32\DriverStore\FileRepository\swenum.inf_amd64_d84a23507...
+tap0901                            Running C:\WINDOWS\system32\drivers\tap0901.sys                                     
+TPM                                Running C:\WINDOWS\system32\drivers\tpm.sys                                         
+UASPStor                           Running C:\WINDOWS\system32\drivers\uaspstor.sys                                    
+UCPD                               Running C:\WINDOWS\system32\drivers\UCPD.sys                                        
+Ucx01000                           Running C:\WINDOWS\system32\drivers\ucx01000.sys                                    
+UEFI                               Running C:\WINDOWS\system32\DriverStore\FileRepository\uefi.inf_amd64_3abb917fc03...
+umbus                              Running C:\WINDOWS\system32\DriverStore\FileRepository\umbus.inf_amd64_3702527f0d...
+UmPass                             Running C:\WINDOWS\system32\drivers\umpass.sys                                      
+usbccgp                            Running C:\WINDOWS\system32\drivers\usbccgp.sys                                     
+USBHUB3                            Running C:\WINDOWS\system32\drivers\UsbHub3.sys                                     
+usbvideo                           Running C:\WINDOWS\system32\Drivers\usbvideo.sys                                    
+USBXHCI                            Running C:\WINDOWS\system32\drivers\USBXHCI.SYS                                     
+vdrvroot                           Running C:\WINDOWS\system32\drivers\vdrvroot.sys                                    
+VfpExt                             Running C:\WINDOWS\system32\drivers\vfpext.sys                                      
+vhf                                Running C:\WINDOWS\system32\drivers\vhf.sys                                         
+Vid                                Running C:\WINDOWS\system32\drivers\Vid.sys                                         
+ViGEmBus                           Running C:\WINDOWS\system32\drivers\ViGEmBus.sys                                    
+vmbusr                             Running C:\WINDOWS\system32\drivers\vmbusr.sys                                      
+vmsmp                              Running C:\WINDOWS\system32\drivers\vmswitch.sys                                    
+VMSNPXY                            Running C:\WINDOWS\system32\drivers\VmsProxyHNic.sys                                
+VMSP                               Running C:\WINDOWS\system32\drivers\vmswitch.sys                                    
+VmsProxy                           Running C:\WINDOWS\system32\drivers\VmsProxy.sys                                    
+volmgr                             Running C:\WINDOWS\system32\drivers\volmgr.sys                                      
+volmgrx                            Running C:\WINDOWS\system32\drivers\volmgrx.sys                                     
+volume                             Running C:\WINDOWS\system32\drivers\volume.sys                                      
+vpcivsp                            Running C:\WINDOWS\system32\drivers\vpcivsp.sys                                     
+vwifibus                           Running C:\WINDOWS\system32\drivers\vwifibus.sys                                    
+vwififlt                           Running C:\WINDOWS\system32\drivers\vwififlt.sys                                    
+vwifimp                            Running C:\WINDOWS\system32\drivers\vwifimp.sys                                     
+wanarp                             Running C:\WINDOWS\system32\DRIVERS\wanarp.sys                                      
+wcifs                              Running C:\WINDOWS\system32\drivers\wcifs.sys                                       
+WindowsTrustedRT                   Running C:\WINDOWS\system32\drivers\WindowsTrustedRT.sys                            
+WindowsTrustedRTProxy              Running C:\WINDOWS\system32\drivers\WindowsTrustedRTProxy.sys                       
+WmiAcpi                            Running C:\WINDOWS\system32\drivers\wmiacpi.sys                                     
+WpdUpFltr                          Running C:\WINDOWS\system32\drivers\WpdUpFltr.sys                                   
+wtd                                Running C:\WINDOWS\system32\drivers\wtd.sys                                         
+WUDFRd                             Running C:\WINDOWS\system32\drivers\WUDFRd.sys                                      
+WUDFWpdFs                          Running C:\WINDOWS\system32\DRIVERS\WUDFRd.sys                                      
+WUDFWpdMtp                         Running C:\WINDOWS\system32\DRIVERS\WUDFRd.sys                                      
+Xvdd                               Running C:\WINDOWS\system32\DriverStore\FileRepository\xvdd.inf_amd64_1e22073ba71...
+
+
+
+[Defender 防火墙状态]
+
+Name    Enabled
+----    -------
+Domain     True
+Private    True
+Public     True
+
+
+

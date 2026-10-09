@@ -1,0 +1,65 @@
+﻿=== voice_server.log 尾部 60 行 ===
+    resp = conn.urlopen(
+  File "C:\Users\nnnubu\Desktop\neco arc\猫姬桌宠-成品\voice-env310\lib\site-packages\urllib3\connectionpool.py", line 847, in urlopen
+    retries = retries.increment(
+  File "C:\Users\nnnubu\Desktop\neco arc\猫姬桌宠-成品\voice-env310\lib\site-packages\urllib3\util\retry.py", line 555, in increment
+    raise MaxRetryError(_pool, url, reason) from reason  # type: ignore[arg-type]
+urllib3.exceptions.MaxRetryError: HTTPSConnectionPool(host='api.siliconflow.cn', port=443): Max retries exceeded with url: /v1/audio/speech (Caused by NameResolutionError("HTTPSConnection(host='api.siliconflow.cn', port=443): Failed to resolve 'api.siliconflow.cn' ([Errno 11003] getaddrinfo failed)"))
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\nnnubu\Desktop\neco arc\猫姬桌宠-成品\voice\voice_server.py", line 358, in main
+    raise last_err
+  File "C:\Users\nnnubu\Desktop\neco arc\猫姬桌宠-成品\voice\voice_server.py", line 350, in main
+    synth(text, emotion, cp)
+  File "C:\Users\nnnubu\Desktop\neco arc\猫姬桌宠-成品\voice\voice_server.py", line 195, in synth
+    _cosy_synth(text, cfg['voice'], cfg['desc'], cfg['gain'], src)
+  File "C:\Users\nnnubu\Desktop\neco arc\猫姬桌宠-成品\voice\voice_server.py", line 128, in _cosy_synth
+    r = requests.post(
+  File "C:\Users\nnnubu\Desktop\neco arc\猫姬桌宠-成品\voice-env310\lib\site-packages\requests\api.py", line 134, in post
+    return request("post", url, data=data, json=json, **kwargs)
+  File "C:\Users\nnnubu\Desktop\neco arc\猫姬桌宠-成品\voice-env310\lib\site-packages\requests\api.py", line 71, in request
+    return session.request(method=method, url=url, **kwargs)
+  File "C:\Users\nnnubu\Desktop\neco arc\猫姬桌宠-成品\voice-env310\lib\site-packages\requests\sessions.py", line 651, in request
+    resp = self.send(prep, **send_kwargs)
+  File "C:\Users\nnnubu\Desktop\neco arc\猫姬桌宠-成品\voice-env310\lib\site-packages\requests\sessions.py", line 784, in send
+    r = adapter.send(request, **kwargs)
+  File "C:\Users\nnnubu\Desktop\neco arc\猫姬桌宠-成品\voice-env310\lib\site-packages\requests\adapters.py", line 729, in send
+    raise ConnectionError(e, request=request)
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='api.siliconflow.cn', port=443): Max retries exceeded with url: /v1/audio/speech (Caused by NameResolutionError("HTTPSConnection(host='api.siliconflow.cn', port=443): Failed to resolve 'api.siliconflow.cn' ([Errno 11003] getaddrinfo failed)"))
+2026-10-09 20:32:56 | INFO | fairseq.tasks.text_to_speech | Please install tensorboardX: pip install tensorboardX
+2026-10-09 20:33:01 | INFO | faiss.loader | Loading faiss with AVX2 support.
+2026-10-09 20:33:01 | INFO | faiss.loader | Successfully loaded faiss with AVX2 support.
+2026-10-09 20:33:01 | INFO | faiss | Failed to load GPU Faiss: name 'GpuIndexIVFFlat' is not defined. Will not load constructor refs for GPU indexes.
+C:\Users\nnnubu\Desktop\neco arc\猫姬桌宠-成品\voice-env310\lib\site-packages\librosa\util\files.py:10: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_filename
+2026-10-09 20:33:04 | INFO | tts_with_rvc.runtime | RVC runtime configured: device=cuda:0, dtype=torch.float16, gpu_memory_gib=6.0
+2026-10-09 20:33:04 | INFO | tts_with_rvc.infer.vc.modules | Loading RVC model: C:\Users\nnnubu\Desktop\neco arc\猫姬桌宠-成品\voice\models\agg\model.pth
+Couldn't access the Hub to check for update but local file already exists. Defaulting to existing file. (error: timed out)
+2026-10-09 20:33:19 | WARNING | huggingface_hub.file_download | Couldn't access the Hub to check for update but local file already exists. Defaulting to existing file. (error: timed out)
+2026-10-09 20:33:19 | INFO | fairseq.tasks.hubert_pretraining | current directory is C:\Users\nnnubu\Desktop\neco arc\猫姬桌宠-成品\voice
+2026-10-09 20:33:19 | INFO | fairseq.tasks.hubert_pretraining | HubertPretrainingTask Config {'_name': 'hubert_pretraining', 'data': 'metadata', 'fine_tuning': False, 'labels': ['km'], 'label_dir': 'label', 'label_rate': 50.0, 'sample_rate': 16000, 'normalize': False, 'enable_padding': False, 'max_keep_size': None, 'max_sample_size': 250000, 'min_sample_size': 32000, 'single_target': False, 'random_crop': True, 'pad_audio': False}
+2026-10-09 20:33:19 | INFO | fairseq.models.hubert.hubert | HubertModel Config: {'_name': 'hubert', 'label_rate': 50.0, 'extractor_mode': default, 'encoder_layers': 12, 'encoder_embed_dim': 768, 'encoder_ffn_embed_dim': 3072, 'encoder_attention_heads': 12, 'activation_fn': gelu, 'layer_type': transformer, 'dropout': 0.1, 'attention_dropout': 0.1, 'activation_dropout': 0.0, 'encoder_layerdrop': 0.05, 'dropout_input': 0.1, 'dropout_features': 0.1, 'final_dim': 256, 'untie_final_proj': True, 'layer_norm_first': False, 'conv_feature_layers': '[(512,10,5)] + [(512,3,2)] * 4 + [(512,2,2)] * 2', 'conv_bias': False, 'logit_temp': 0.1, 'target_glu': False, 'feature_grad_mult': 0.1, 'mask_length': 10, 'mask_prob': 0.8, 'mask_selection': static, 'mask_other': 0.0, 'no_mask_overlap': False, 'mask_min_space': 1, 'mask_channel_length': 10, 'mask_channel_prob': 0.0, 'mask_channel_selection': static, 'mask_channel_other': 0.0, 'no_mask_channel_overlap': False, 'mask_channel_min_space': 1, 'conv_pos': 128, 'conv_pos_groups': 16, 'latent_temp': [2.0, 0.5, 0.999995], 'skip_masked': False, 'skip_nomask': False, 'checkpoint_activations': False, 'required_seq_len_multiple': 2, 'depthwise_conv_kernel_size': 31, 'attn_type': '', 'pos_enc_type': 'abs', 'fp16': False}
+C:\Users\nnnubu\Desktop\neco arc\猫姬桌宠-成品\voice-env310\lib\site-packages\torch\nn\utils\weight_norm.py:143: FutureWarning: `torch.nn.utils.weight_norm` is deprecated in favor of `torch.nn.utils.parametrizations.weight_norm`.
+  WeightNorm.apply(module, name, dim)
+Couldn't access the Hub to check for update but local file already exists. Defaulting to existing file. (error: timed out)
+2026-10-09 20:33:32 | WARNING | huggingface_hub.file_download | Couldn't access the Hub to check for update but local file already exists. Defaulting to existing file. (error: timed out)
+2026-10-09 20:33:32 | INFO | tts_with_rvc.infer.vc.f0 | Loading RMVPE model on cuda:0
+2026-10-09 20:33:37 | INFO | tts_with_rvc.vc_infer | Saved: C:\Users\nnnubu\Desktop\neco arc\猫姬桌宠-成品\voice\cache\_cosy_out.wav
+2026-10-09 20:33:38 | INFO | tts_with_rvc.vc_infer | Saved: C:\Users\nnnubu\Desktop\neco arc\猫姬桌宠-成品\voice\cache\_cosy_out.wav
+2026-10-09 20:33:40 | INFO | tts_with_rvc.vc_infer | Saved: C:\Users\nnnubu\Desktop\neco arc\猫姬桌宠-成品\voice\cache\_cosy_out.wav
+2026-10-09 20:33:41 | INFO | tts_with_rvc.vc_infer | Saved: C:\Users\nnnubu\Desktop\neco arc\猫姬桌宠-成品\voice\cache\_cosy_out.wav
+2026-10-09 20:33:43 | INFO | tts_with_rvc.vc_infer | Saved: C:\Users\nnnubu\Desktop\neco arc\猫姬桌宠-成品\voice\cache\_cosy_out.wav
+2026-10-09 20:33:44 | INFO | tts_with_rvc.vc_infer | Saved: C:\Users\nnnubu\Desktop\neco arc\猫姬桌宠-成品\voice\cache\_cosy_out.wav
+2026-10-09 20:33:46 | INFO | tts_with_rvc.vc_infer | Saved: C:\Users\nnnubu\Desktop\neco arc\猫姬桌宠-成品\voice\cache\_cosy_out.wav
+2026-10-09 20:33:47 | INFO | tts_with_rvc.vc_infer | Saved: C:\Users\nnnubu\Desktop\neco arc\猫姬桌宠-成品\voice\cache\_cosy_out.wav
+2026-10-09 20:33:49 | INFO | tts_with_rvc.vc_infer | Saved: C:\Users\nnnubu\Desktop\neco arc\猫姬桌宠-成品\voice\cache\_cosy_out.wav
+2026-10-09 20:33:50 | INFO | tts_with_rvc.vc_infer | Saved: C:\Users\nnnubu\Desktop\neco arc\猫姬桌宠-成品\voice\cache\_cosy_out.wav
+2026-10-09 20:33:52 | INFO | tts_with_rvc.vc_infer | Saved: C:\Users\nnnubu\Desktop\neco arc\猫姬桌宠-成品\voice\cache\_cosy_out.wav
+2026-10-09 20:35:06 | INFO | tts_with_rvc.vc_infer | Saved: C:\Users\nnnubu\Desktop\neco arc\猫姬桌宠-成品\voice\cache\_cosy_out.wav
+2026-10-09 20:37:45 | INFO | tts_with_rvc.vc_infer | Saved: C:\Users\nnnubu\Desktop\neco arc\猫姬桌宠-成品\voice\cache\_cosy_out.wav
+=== cache 目录最新文件 ===
+20:37:45 7e8a8d13d776ce596c3209e1e750630a.wav 1123712B
+20:37:44 _cosy_src.wav 1125374B
+20:35:06 c600790d7e816e05a2096fe8821bf846.wav 827360B
