@@ -375,6 +375,31 @@ def synth(text, emotion, out_path):
     _apply_gain(out_path, cfg['post_gain'])
 
 
+def synth_from_src(text, emotion, src, out_path):
+    """Electron 已用 fetch（Chromium 网络栈）生成 CosyVoice 源 wav → 本地 RVC 变声 + 校验 + 落位。
+    全程不联网：绕开本机 Python winsock 污染（socket 10038）与 curl.exe 域名解析故障（thread failed）。
+    src 需先经 _repair_wav 修复头（服务端可能写坏 size 字段），再校验时长。"""
+    cfg = EMOTION_CFG.get(emotion, EMOTION_CFG['neutral'])
+    with _synth_lock:
+        _repair_wav(src)
+        _check_text_duration(text, src, 'CosyVoice 源音频')
+        rvc = _ensure_rvc()
+        rvc.convert(
+            model_path=_rvc_model,
+            f0_up_key=0,
+            input_path=src,
+            file_index=_rvc_index,
+            index_rate=0.75,
+            output_dir_path=CACHE_DIR,
+            output_filename='_cosy_out.wav',
+        )
+        rvc_out = os.path.join(CACHE_DIR, '_cosy_out.wav')
+        _check_text_duration(text, rvc_out, 'RVC 变声后')
+        os.replace(rvc_out, out_path)
+    _to_44100(out_path)
+    _apply_gain(out_path, cfg['post_gain'])
+
+
 def _apply_gain(src, db):
     """音量增益（dB：正=更响、负=更轻；生气 +6dB 提音量）；就地覆盖，失败静默"""
     if not db:
@@ -484,6 +509,38 @@ def main():
             if req.get("cmd") == "preset":
                 threading.Thread(target=run_preset, daemon=True).start()
                 print(json.dumps({"id": req.get("id"), "ok": True, "preset": "started"}), flush=True)
+                continue
+            # 本地变声命令：Electron 已用 fetch 生成 CosyVoice 源 wav（Chromium 网络栈可靠），
+            # Python 只做本地 RVC 变声 + 校验 + 缓存，全程不联网
+            if req.get("cmd") == "vc":
+                text = clean_text(req.get("text") or "")
+                if not text:
+                    print(json.dumps({"id": req.get("id"), "ok": False, "error": "empty text"}), flush=True)
+                    continue
+                emotion = str(req.get("emotion", "neutral"))
+                if emotion not in EMOTION_CFG:
+                    emotion = "neutral"
+                cp = cache_path(text, emotion)
+                force = bool(req.get("force"))
+                if not force and os.path.exists(cp):
+                    print(json.dumps({"id": req.get("id"), "ok": True, "wav": cp.replace(os.sep, "/"), "cached": True}), flush=True)
+                    continue
+                if force and os.path.exists(cp):
+                    try:
+                        os.remove(cp)
+                    except OSError:
+                        pass
+                src = str(req.get("src") or "")
+                if not src or not os.path.exists(src):
+                    print(json.dumps({"id": req.get("id"), "ok": False, "error": "Electron 未提供 CosyVoice 源音频"}), flush=True)
+                    continue
+                _user_waiting.set()
+                try:
+                    synth_from_src(text, emotion, src, cp)
+                    trim_cache()
+                finally:
+                    _user_waiting.clear()
+                print(json.dumps({"id": req.get("id"), "ok": True, "wav": cp.replace(os.sep, "/"), "cached": False}), flush=True)
                 continue
             text = clean_text(req.get("text") or "")
             if not text:
