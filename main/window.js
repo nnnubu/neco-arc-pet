@@ -67,6 +67,19 @@ function clampTo(v, lo, hi) {
   return Math.max(lo, Math.min(hi, v));
 }
 
+// 环绕穿屏：去掉左右/上下板边限制——窗口离开工作区一侧约 90%（几乎走出屏幕，保留小尾巴
+// 保证 Chromium 渲染循环不暂停）时，从对侧边缘补回：出左→右、出右→左、出顶→底、出底→顶
+function wrapAround(b, wa) {
+  let x = b.x, y = b.y;
+  const overX = Math.round(b.width * 0.1);
+  const overY = Math.round(b.height * 0.1);
+  if (b.x + b.width <= wa.x + overX) x += wa.width;
+  else if (b.x >= wa.x + wa.width - overX) x -= wa.width;
+  if (b.y + b.height <= wa.y + overY) y += wa.height;
+  else if (b.y >= wa.y + wa.height - overY) y -= wa.height;
+  return [x, y];
+}
+
 function registerWindowIpc() {
   // 立即停止缩放动画（拖拽/走动优先：动画 setBounds 会反复覆盖用户操作，造成残影/位置丢失）
   function stopScaleAnim() {
@@ -89,10 +102,13 @@ function registerWindowIpc() {
     if (!win || win.isDestroyed() || !dragState.dragging) return;
     if (fallAnim) { clearInterval(fallAnim); fallAnim = null; } // 拖拽中：取消下落动画，交还控制权
     const now = screen.getCursorScreenPoint();
-    win.setPosition(
-      dragState.startWin[0] + now.x - dragState.startMouse.x,
-      dragState.startWin[1] + now.y - dragState.startMouse.y
-    );
+    const nx = dragState.startWin[0] + now.x - dragState.startMouse.x;
+    const ny = dragState.startWin[1] + now.y - dragState.startMouse.y;
+    // 拖拽同样环绕穿屏：拖出屏幕约 90% 从对侧出现
+    const wa = screen.getPrimaryDisplay().workArea;
+    const b = win.getBounds();
+    const wrapped = wrapAround({ x: Math.round(nx), y: Math.round(ny), width: b.width, height: b.height }, wa);
+    win.setPosition(wrapped[0], wrapped[1]);
   });
 
   ipcMain.on('drag-end', () => {
@@ -127,7 +143,7 @@ function registerWindowIpc() {
     startFallBack();
   });
 
-  // 走动：按增量移动窗口，并限制在主显示器工作区内
+  // 走动：按增量移动窗口，去掉左右/上下板边限制（环绕穿屏：出屏约 90% 从对侧出现）
   ipcMain.on('move-by', (_e, { dx, dy }) => {
     stopScaleAnim(); // 走动优先：缩放动画会覆盖移动，造成"走不动"
     if (fallAnim) return; // 下落中忽略移动请求：乱跑/按键不会中断下落（2.2 秒后自然完成；拖拽 drag-start 仍可打断交还控制权）
@@ -135,18 +151,10 @@ function registerWindowIpc() {
     const [x, y] = win.getPosition();
     const b = win.getBounds();
     const wa = screen.getPrimaryDisplay().workArea;
-    const nx = clampTo(x + dx, wa.x, wa.x + wa.width - b.width);
-    let ny;
-    if (dy < 0) {
-      // 向上移动：允许窗口顶部超出工作区（大动作如 49 火箭发射时向上飞出屏顶，
-      // 若被 clamp 拉回 wa.y 会造成火箭瞬间下跳；窗口出顶时角色底部仍在屏内，无视觉损失）
-      ny = Math.min(y + dy, wa.y + wa.height - b.height);
-    } else {
-      ny = clampTo(y + dy, wa.y, wa.y + wa.height - b.height);
-    }
-    win.setPosition(Math.round(nx), Math.round(ny));
+    const wrapped = wrapAround({ x: Math.round(x + dx), y: Math.round(y + dy), width: b.width, height: b.height }, wa);
+    win.setPosition(wrapped[0], wrapped[1]);
     if (process.env.PET_DEBUG === '1') {
-      console.log(`[debug] move-by -> (${Math.round(nx)}, ${Math.round(ny)})`);
+      console.log(`[debug] move-by -> (${wrapped[0]}, ${wrapped[1]})`);
     }
   });
 
@@ -177,13 +185,10 @@ function registerWindowIpc() {
     }
   });
 
-  // 屏幕上方停留检测：大动作（49 火箭等）飞出后桌宠停在屏幕顶部/屏外，键盘难以操控，
-  // 窗口顶部真正出屏超过窗口高度 40%（明显出去，头部露出一点不算）持续 FALL_BACK_DELAY 毫秒，
-  // 自动触发"掉回底部"：通知渲染层播放 act_19，同时主进程直接驱动窗口向下掉落
-  // （窗口完全出屏时 Chromium 暂停渲染循环，rAF/动画/位移都不推进，必须主进程移动窗口）
-  let outTopMs = 0;
+  // 掉回底部驱动（入场下落 pet-entrance-fall 使用；出屏后 Chromium 渲染循环暂停，rAF/位移不推进，
+  // 必须主进程直接驱动窗口向下掉落；原先"顶部停留 4 秒自动掉回"的兜底检测已移除——上下板边改为环绕穿屏，
+  // 出顶 90% 会自动从底部出现，无需再掉回）
   let fallAnim = null;
-  const FALL_BACK_DELAY = 4000;
   function startFallBack() {
     if (fallAnim || !win || win.isDestroyed()) return;
     const wa = screen.getPrimaryDisplay().workArea;
@@ -232,21 +237,6 @@ function registerWindowIpc() {
       }
     }, DUR + 800);
   }
-  const fallCheckTimer = setInterval(() => {
-    if (!win || win.isDestroyed()) return;
-    const b = win.getBounds();
-    const wa = screen.getPrimaryDisplay().workArea;
-    if (b.y < wa.y - Math.round(b.height * 0.4)) {
-      outTopMs += 1000;
-      if (outTopMs >= FALL_BACK_DELAY) {
-        outTopMs = 0;
-        startFallBack();
-        if (process.env.PET_DEBUG === '1') console.log('[fallback] trigger at y=' + b.y);
-      }
-    } else {
-      outTopMs = 0;
-    }
-  }, 1000);
 
   // 桌宠缩放：滚轮控制。保持窗口底部位置，水平居中；限制窗口不超出工作区
   // 平滑缩放动画：窗口逐帧（16ms）向目标尺寸/位置指数趋近，每步同步通知渲染层
