@@ -152,13 +152,38 @@ def _doh_resolve(host):
     return None
 
 
+def _curl_doh_resolve(host):
+    """用系统 curl 直连 DoH（IP，不解析域名）拿 A 记录，完全绕开系统 DNS 客户端。
+    本机系统 DNS 客户端间歇性 getaddrinfo 失败（nslookup 显式查询/curl IP 直连均正常），
+    因此解析也不走系统栈。返回 IPv4 列表；全失败返回 []。"""
+    import subprocess, json
+    for doh in ('https://223.5.5.5/resolve', 'https://1.12.12.12/resolve'):
+        try:
+            r = subprocess.run(
+                ['curl.exe', '-s', '--max-time', '8',
+                 f'{doh}?name={host}&type=A'],
+                capture_output=True, timeout=12)
+            if r.returncode != 0:
+                continue
+            data = json.loads(r.stdout.decode('utf-8', 'replace'))
+            ans = data.get('Answer') or []
+            ips = [a['data'] for a in ans if a.get('type') == 1]
+            if ips:
+                return ips
+        except Exception:
+            continue
+    return []
+
+
 def _cosy_synth(text, voice, desc, gain, tmp_path):
     """CosyVoice API 合成带情绪的中文源音频到 tmp_path（在线，按 UTF-8 字节计费）。
 
-    注意：用系统 curl.exe 子进程发出请求，而非 Python requests ——
-    本机 voice-env310 加载 RVC 链路（faiss/hubert 等）后 Python 进程的 winsock 被
-    污染（socket 创建报 10038），requests 无法连网；而 curl.exe 是独立进程，
-    走系统正常网络栈（Chromium/浏览器/命令行均正常），彻底绕开 Python socket 层。
+    网络链路设计（本机已踩坑总结）：
+    1. voice-env310 加载 RVC 链路后 Python 进程 winsock 被污染（socket 10038），
+       requests 无法连网 → 改用系统 curl.exe 子进程（独立进程、系统栈正常）；
+    2. 系统 DNS 客户端间歇性 getaddrinfo 失败（11003/rc=6）→ 普通 curl 解析失败时，
+       用 curl 直连 DoH（IP 223.5.5.5，无需域名解析）拿真实 IP，
+       再以 --resolve 指定 IP 连接（curl 保留域名 SNI/Host/证书语义，无需 -k）。
     JSON 经临时文件传入（--data-binary @file），避免命令行转义/编码问题。"""
     if not API_KEY:
         raise RuntimeError('未配置 LLM_API_KEY（项目根 .env）')
@@ -172,35 +197,47 @@ def _cosy_synth(text, voice, desc, gain, tmp_path):
         'gain': gain,
     }
     req_file = tmp_path + '.req.json'
+    base = ['curl.exe', '-s', '-S', '--max-time', '120',
+            '-o', tmp_path, '-w', '%{http_code}',
+            '-X', 'POST', 'https://api.siliconflow.cn/v1/audio/speech',
+            '-H', 'Authorization: Bearer ' + API_KEY,
+            '-H', 'Content-Type: application/json',
+            '--data-binary', '@' + req_file]
+    r = None
     try:
         with open(req_file, 'w', encoding='utf-8') as f:
             json.dump(payload, f, ensure_ascii=False)
-        r = subprocess.run(
-            ['curl.exe', '-s', '-S', '--max-time', '120',
-             '-o', tmp_path, '-w', '%{http_code}',
-             '-X', 'POST', 'https://api.siliconflow.cn/v1/audio/speech',
-             '-H', 'Authorization: Bearer ' + API_KEY,
-             '-H', 'Content-Type: application/json',
-             '--data-binary', '@' + req_file],
-            capture_output=True, timeout=130,
-        )
+        # 第 1 次：走系统 DNS 解析（系统正常时一次成功）
+        r = subprocess.run(base, capture_output=True, timeout=130)
+        ok = (r.returncode == 0 and r.stdout.decode('utf-8', 'replace').strip() == '200')
+        # 兜底：系统解析失败 → DoH 拿 IP → --resolve 直连（逐个 IP 试）
+        if not ok:
+            ips = _curl_doh_resolve('api.siliconflow.cn')
+            if ips:
+                for ip in ips:
+                    rr = subprocess.run(
+                        base + ['--resolve', 'api.siliconflow.cn:443:' + ip],
+                        capture_output=True, timeout=130)
+                    if rr.returncode == 0 and rr.stdout.decode('utf-8', 'replace').strip() == '200':
+                        r, ok = rr, True
+                        break
+        if not ok:
+            raise RuntimeError(f'CosyVoice API curl 失败 rc={r.returncode}: {r.stderr[:200]}')
+        code = r.stdout.decode('utf-8', 'replace').strip()
+        if code != '200':
+            # 出错时响应体可能写入了 tmp_path，读前 200 字符辅助定位
+            err = ''
+            try:
+                with open(tmp_path, 'rb') as f:
+                    err = f.read(200).decode('utf-8', 'replace')
+            except Exception:
+                pass
+            raise RuntimeError(f'CosyVoice API {code}: {err}')
     finally:
         try:
             os.remove(req_file)
         except Exception:
             pass
-    if r.returncode != 0:
-        raise RuntimeError(f'CosyVoice API curl 失败 rc={r.returncode}: {r.stderr[:200]}')
-    code = r.stdout.decode('utf-8', 'replace').strip()
-    if code != '200':
-        # 出错时响应体可能写入了 tmp_path，读前 200 字符辅助定位
-        err = ''
-        try:
-            with open(tmp_path, 'rb') as f:
-                err = f.read(200).decode('utf-8', 'replace')
-        except Exception:
-            pass
-        raise RuntimeError(f'CosyVoice API {code}: {err}')
     # 校验响应是合法 wav（网络异常时可能返回 HTML 错误页/空内容但状态码 200）
     try:
         with open(tmp_path, 'rb') as f:
