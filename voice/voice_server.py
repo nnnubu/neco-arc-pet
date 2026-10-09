@@ -172,8 +172,9 @@ def _cosy_synth(text, voice, desc, gain, tmp_path):
             'https://api.siliconflow.cn/v1/audio/speech',
             headers=headers, json=payload, timeout=120,
         )
-    except (requests.exceptions.ConnectionError, requests.exceptions.NameResolutionError):
-        # 系统 DNS 解析失败 → DoH 兜底
+    except requests.exceptions.ConnectionError:
+        # 系统 DNS 解析失败（urllib3 NameResolutionError 会被包装为 requests ConnectionError）
+        # → DoH 兜底解析 + IP 直连
         ips = _doh_resolve('api.siliconflow.cn')
         if not ips:
             raise
