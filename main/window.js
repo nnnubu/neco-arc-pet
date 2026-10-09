@@ -72,14 +72,15 @@ function clampTo(v, lo, hi) {
   return Math.max(lo, Math.min(hi, v));
 }
 
-// 水平环绕穿屏（仅左右）：窗口完全离开工作区（无任何部分可见）时，把出屏量连续映射到对侧边缘——
-// 视觉上无缝"穿屏"（完全从一侧消失、从另一侧同偏移滑入）。完全出屏瞬间 Chromium 渲染循环会暂停，
-// 由主进程轮询（mouseTimer 40ms）检测并立即补回，窗口回屏内后渲染自动恢复，移动不中断。
-// 垂直方向不做环绕：底部禁止走出（clamp），顶部出屏由 fallCheckTimer 触发下落掉回底部。
+// 水平环绕穿屏（仅左右）：出屏量超过窗口宽度一半时，把窗口整体平移到对侧——出右半身、左半身
+// 从对侧露出，反之亦然，视觉上像穿过屏幕两侧的"传送门"（半边消失、半边在对侧出现）。
+// 窗口始终保留至少一半在工作区内，Chromium 渲染循环不会暂停，由主进程轮询（mouseTimer 40ms）
+// 检测并补回，移动不中断。垂直方向不做环绕：走出上下边由 fallCheckTimer 触发下落掉回底部。
 function wrapAroundX(b, wa) {
   let x = b.x;
-  if (b.x + b.width <= wa.x) x += wa.width;          // 完全出左 → 右侧同偏移
-  else if (b.x >= wa.x + wa.width) x -= wa.width;    // 完全出右 → 左侧同偏移
+  const halfW = Math.round(b.width * 0.5);
+  if (b.x + b.width <= wa.x + halfW) x += wa.width;      // 出左超过一半 → 右侧露出
+  else if (b.x >= wa.x + wa.width - halfW) x -= wa.width; // 出右超过一半 → 左侧露出
   return x;
 }
 
