@@ -49,14 +49,24 @@ def main():
     log({'stage': 'convert_pre'})
     pre_wav = os.path.join(OUT, '_pre.wav')
     rr = subprocess.run([FFMPEG, '-y', '-i', src, '-ac', '2', '-ar', '44100', pre_wav],
-                        capture_output=True, text=True, timeout=600)
+                        capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=600)
     if rr.returncode != 0 or not os.path.exists(pre_wav):
         log({'error': '文件无法解码（格式不支持或文件损坏）: ' + (rr.stderr[-200:] if rr.stderr else '')}); return
 
     # ── 1. 人声分离（demucs htdemucs，模型已缓存在用户目录）──
     log({'stage': 'separate'})
-    rr = subprocess.run([PY, '-m', 'demucs', '--two-stems', 'vocals', '-o', OUT, pre_wav],
-                        capture_output=True, text=True, timeout=1800)
+    demucs_cmd = [PY, '-m', 'demucs', '--two-stems', 'vocals', '-o', OUT, pre_wav]
+    # encoding/errors：demucs stderr 混有 GBK 字节，text=True 严格 utf-8 会让读取线程抛
+    # UnicodeDecodeError 导致 stderr 不完整（日志已出现过一次）；errors='replace' 兜底
+    rr = subprocess.run(demucs_cmd, capture_output=True, text=True,
+                        encoding='utf-8', errors='replace', timeout=1800)
+    if rr.returncode != 0:
+        # 偶发环境故障（Windows 上 import _overlapped 偶发 WinError 10038——杀软 winsock 钩子 /
+        # 多 python 进程并发竞争句柄等瞬态问题）→ 清理残留产物后自动重试一次
+        log({'stage': 'separate_retry'})
+        shutil.rmtree(os.path.join(OUT, 'htdemucs'), ignore_errors=True)
+        rr = subprocess.run(demucs_cmd, capture_output=True, text=True,
+                            encoding='utf-8', errors='replace', timeout=1800)
     if rr.returncode != 0:
         log({'error': '人声分离失败: ' + (rr.stderr[-300:] if rr.stderr else '未知')}); return
     sepdir = os.path.join(OUT, 'htdemucs', '_pre')
@@ -99,7 +109,7 @@ def main():
         rr = subprocess.run([FFMPEG, '-y', '-i', tmp, '-i', inst,
                              '-filter_complex', '[0:a]volume=1.0[v];[v][1:a]amix=inputs=2:duration=first',
                              '-c:a', 'pcm_s16le', full],
-                            capture_output=True, text=True, timeout=600)
+                            capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=600)
         if rr.returncode != 0:
             log({'error': '混音失败: ' + (rr.stderr[-300:] if rr.stderr else '未知')}); return
     except Exception as e:
