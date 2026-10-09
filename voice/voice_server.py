@@ -173,18 +173,21 @@ def _cosy_synth(text, voice, desc, gain, tmp_path):
     if not API_KEY:
         raise RuntimeError('未配置 LLM_API_KEY（项目根 .env）')
     import requests
+    payload = {
+        'model': COSY_MODEL,
+        'voice': COSY_MODEL + ':' + voice,
+        'input': f'请用{desc}的情感说这句话：<|endofprompt|>{text}',
+        'response_format': 'wav',
+        'sample_rate': 44100,
+        'gain': gain,
+    }
     r = requests.post(
         'https://api.siliconflow.cn/v1/audio/speech',
         headers={'Authorization': 'Bearer ' + API_KEY, 'Content-Type': 'application/json'},
-        json={
-            'model': COSY_MODEL,
-            'voice': COSY_MODEL + ':' + voice,
-            'input': f'请用{desc}的情感说这句话：<|endofprompt|>{text}',
-            'response_format': 'wav',
-            'sample_rate': 44100,
-            'gain': gain,
-        },
+        json=payload,
         timeout=120,
+        # 强制直连：绕过环境/系统代理（防 Clash 等代理残留把请求转发到异常节点）
+        proxies={'http': None, 'https': None},
     )
     if r.status_code != 200:
         raise RuntimeError(f'CosyVoice API {r.status_code}: {r.text[:200]}')
@@ -337,6 +340,7 @@ def run_preset():
             synth(t.strip(), "neutral", cp)
             trim_cache()
             done += 1
+            time.sleep(1.5)  # 预生成间隔：避免瞬时连发触发 SiliconFlow 高频风控
         except Exception:
             traceback.print_exc()
     print(json.dumps({"event": "preset_done", "count": done}), flush=True)
@@ -353,6 +357,14 @@ def clean_text(s):
 def main():
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     os.makedirs(CACHE_DIR, exist_ok=True)
+    # 关键修复：Electron 以 UTF-8 写 stdin，而 Windows 上 sys.stdin 对管道默认按
+    # 本地代码页(GBK/cp936)解码 → 中文变乱码 → CosyVoice 收到乱码文本 → 瞎念。
+    # 必须显式指定 UTF-8 读取，否则所有中文输入都会错乱。
+    if hasattr(sys.stdin, 'reconfigure'):
+        try:
+            sys.stdin.reconfigure(encoding='utf-8')
+        except Exception:
+            pass
     # 废弃 output 临时目录：启动时清空残留（播放后不保留临时文件）
     for f in glob.glob(os.path.join(OUTPUT_DIR, "*.wav")):
         try:
