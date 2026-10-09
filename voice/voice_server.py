@@ -135,24 +135,56 @@ def _check_text_duration(text, path, tag):
         )
 
 
+def _doh_resolve(host):
+    """系统 DNS 解析失败时的兜底：用 HTTPS-DNS(DoH, 阿里 223.5.5.5 是 IP 直连不依赖域名解析)
+    解析域名，返回 A 记录 IP 列表；全部失败返回 None。"""
+    import requests as _r
+    for url in ("https://223.5.5.5/resolve", "https://dns.alidns.com/resolve"):
+        try:
+            rr = _r.get(url, params={"name": host, "type": "A"}, timeout=6)
+            if rr.status_code == 200:
+                ips = [a["data"] for a in rr.json().get("Answer", []) if a.get("type") == 1 and a.get("data")]
+                if ips:
+                    return ips
+        except Exception:
+            continue
+    return None
+
+
 def _cosy_synth(text, voice, desc, gain, tmp_path):
-    """CosyVoice API 合成带情绪的中文源音频到 tmp_path（在线，按 UTF-8 字节计费）"""
+    """CosyVoice API 合成带情绪的中文源音频到 tmp_path（在线，按 UTF-8 字节计费）。
+    系统 DNS 解析失败(getaddrinfo 11003)时自动 DoH 兜底解析 + IP 直连(verify=False,
+    证书按 Host 校验不适用于 IP 直连)，保证运营商/系统 DNS 抽风不影响合成。"""
     if not API_KEY:
         raise RuntimeError('未配置 LLM_API_KEY（项目根 .env）')
     import requests
-    r = requests.post(
-        'https://api.siliconflow.cn/v1/audio/speech',
-        headers={'Authorization': 'Bearer ' + API_KEY, 'Content-Type': 'application/json'},
-        json={
-            'model': COSY_MODEL,
-            'voice': COSY_MODEL + ':' + voice,
-            'input': f'请用{desc}的情感说这句话：<|endofprompt|>{text}',
-            'response_format': 'wav',
-            'sample_rate': 44100,
-            'gain': gain,
-        },
-        timeout=120,
-    )
+    payload = {
+        'model': COSY_MODEL,
+        'voice': COSY_MODEL + ':' + voice,
+        'input': f'请用{desc}的情感说这句话：<|endofprompt|>{text}',
+        'response_format': 'wav',
+        'sample_rate': 44100,
+        'gain': gain,
+    }
+    headers = {'Authorization': 'Bearer ' + API_KEY, 'Content-Type': 'application/json'}
+    try:
+        r = requests.post(
+            'https://api.siliconflow.cn/v1/audio/speech',
+            headers=headers, json=payload, timeout=120,
+        )
+    except (requests.exceptions.ConnectionError, requests.exceptions.NameResolutionError):
+        # 系统 DNS 解析失败 → DoH 兜底
+        ips = _doh_resolve('api.siliconflow.cn')
+        if not ips:
+            raise
+        import urllib3
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+        h = dict(headers)
+        h['Host'] = 'api.siliconflow.cn'
+        r = requests.post(
+            f'https://{ips[0]}/v1/audio/speech',
+            headers=h, json=payload, verify=False, timeout=120,
+        )
     if r.status_code != 200:
         raise RuntimeError(f'CosyVoice API {r.status_code}: {r.text[:200]}')
     # 校验响应是合法 wav（网络异常时可能返回 HTML 错误页/空内容但状态码 200）
