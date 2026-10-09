@@ -105,11 +105,9 @@ function registerWindowIpc() {
     if (!win || win.isDestroyed() || !dragState.dragging) return;
     if (fallAnim) { clearInterval(fallAnim); fallAnim = null; } // 拖拽中：取消下落动画，交还控制权
     const now = screen.getCursorScreenPoint();
-    // 水平自由（完全出屏由轮询环绕回对侧）；垂直底部禁止走出（拖到屏幕底即止），顶部自由
+    // 水平自由（完全出屏由轮询环绕回对侧）；垂直自由（走出上下边由 fallCheckTimer 触发下落掉回）
     const nx = dragState.startWin[0] + now.x - dragState.startMouse.x;
-    const wa = screen.getPrimaryDisplay().workArea;
-    const b = win.getBounds();
-    const ny = Math.min(dragState.startWin[1] + now.y - dragState.startMouse.y, wa.y + wa.height - b.height);
+    const ny = dragState.startWin[1] + now.y - dragState.startMouse.y;
     win.setPosition(Math.round(nx), Math.round(ny));
   });
 
@@ -145,17 +143,15 @@ function registerWindowIpc() {
     startFallBack();
   });
 
-  // 走动：按增量移动窗口——水平自由（完全出屏由轮询环绕回对侧）；底部禁止走出；
-  // 顶部自由（出顶由 fallCheckTimer 检测后触发下落掉回底部）
+  // 走动：按增量移动窗口——水平自由（完全出屏由轮询环绕回对侧）；垂直自由（走出上下边
+  // 由 fallCheckTimer 检测后触发下落：出顶直接掉回底部，出底先瞬移到顶部再掉回底部）
   ipcMain.on('move-by', (_e, { dx, dy }) => {
     stopScaleAnim(); // 走动优先：缩放动画会覆盖移动，造成"走不动"
     if (fallAnim) return; // 下落中忽略移动请求：乱跑/按键不会中断下落（2.2 秒后自然完成；拖拽 drag-start 仍可打断交还控制权）
     if (!win || win.isDestroyed()) return;
     const [x, y] = win.getPosition();
-    const b = win.getBounds();
-    const wa = screen.getPrimaryDisplay().workArea;
     const nx = x + dx;
-    const ny = Math.min(y + dy, wa.y + wa.height - b.height);
+    const ny = y + dy;
     win.setPosition(Math.round(nx), Math.round(ny));
     if (process.env.PET_DEBUG === '1') {
       console.log(`[debug] move-by -> (${Math.round(nx)}, ${Math.round(ny)})`);
@@ -241,9 +237,10 @@ function registerWindowIpc() {
     }, DUR + 800);
   }
 
-  // 顶部出屏检测：桌宠走出屏幕顶部（大动作飞出/向上走动）超过窗口高度 40% 并持续 FALL_BACK_DELAY，
-  // 自动触发"掉回底部"（播放下落动画 act_19 + 主进程驱动下落）——"上边走出屏幕就自动触发下落逻辑"
-  let outTopMs = 0;
+  // 上下出屏检测：桌宠走出屏幕顶部或底部超过窗口高度 40% 并持续 FALL_BACK_DELAY，
+  // 自动触发"下落掉回底部"（播放下落动画 act_19 + 主进程驱动下落）——"上下边走出屏幕就自动触发下落逻辑"。
+  // 出顶：当前位置已在屏幕上方，直接下落；出底：先瞬移到屏幕上方出屏位置，再从上方掉回底部（与出顶同方向）
+  let outTopMs = 0, outBottomMs = 0;
   const FALL_BACK_DELAY = 2000;
   const fallCheckTimer = setInterval(() => {
     if (!win || win.isDestroyed()) return;
@@ -254,10 +251,22 @@ function registerWindowIpc() {
       if (outTopMs >= FALL_BACK_DELAY) {
         outTopMs = 0;
         startFallBack();
-        if (process.env.PET_DEBUG === '1') console.log('[fallback] trigger at y=' + b.y);
+        if (process.env.PET_DEBUG === '1') console.log('[fallback] top trigger at y=' + b.y);
       }
     } else {
       outTopMs = 0;
+    }
+    if (b.y > wa.y + wa.height - Math.round(b.height * 0.4)) {
+      outBottomMs += 1000;
+      if (outBottomMs >= FALL_BACK_DELAY) {
+        outBottomMs = 0;
+        // 瞬移到屏幕上方出屏位置（x 保持当前水平位置），再从上方下落掉回底部
+        win.setPosition(Math.round(b.x), wa.y - Math.round(b.height * 0.9));
+        startFallBack();
+        if (process.env.PET_DEBUG === '1') console.log('[fallback] bottom trigger at y=' + b.y);
+      }
+    } else {
+      outBottomMs = 0;
     }
   }, 1000);
 
