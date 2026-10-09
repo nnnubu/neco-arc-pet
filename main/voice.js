@@ -2,7 +2,7 @@
 // 协议见 voice/voice_server.py：-> {"id":1,"text":"..."}  <- {"event":"ready"} / {"id":1,"ok":true,"wav":"..."}
 // 网络架构（2026-10-09 起）：CosyVoice 请求改由本进程 fetch（Chromium 网络栈可靠）发出，
 // Python 只做本地 RVC 变声（voice-env310 加载 RVC 后 winsock 被污染、curl.exe 域名解析故障均不影响）
-const { ipcMain } = require('electron');
+const { ipcMain, net } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
@@ -53,7 +53,9 @@ function cachePath(text, emotion) {
   return path.join(__dirname, '..', 'voice', 'cache', crypto.createHash('md5').update(key).digest('hex') + '.wav');
 }
 
-// ── CosyVoice 合成（Electron fetch，Chromium 网络栈；校验 wav 有效性后写临时文件）──
+// ── CosyVoice 合成（Electron net.fetch，Chromium 网络栈；校验 wav 有效性后写临时文件）──
+// 用 net.fetch 而非全局 fetch：后者是 Node undici 实现，受系统 winsock/DNS 故障影响；
+// net.fetch 走 Chromium 网络栈（与豆包/浏览器同栈，带 DNS 缓存，本机更可靠）
 async function synthCosy(text, emotion) {
   if (!API_KEY) throw new Error('未配置 LLM_API_KEY（项目根 .env）');
   const cfg = EMOTION_CFG[emotion] || EMOTION_CFG.neutral;
@@ -61,7 +63,7 @@ async function synthCosy(text, emotion) {
   const timer = setTimeout(() => ctrl.abort(), 60000);
   let resp;
   try {
-    resp = await fetch('https://api.siliconflow.cn/v1/audio/speech', {
+    resp = await net.fetch('https://api.siliconflow.cn/v1/audio/speech', {
       method: 'POST',
       headers: { Authorization: `Bearer ${API_KEY}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
