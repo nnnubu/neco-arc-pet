@@ -210,15 +210,39 @@ def _curl_doh_resolve(host):
     return []
 
 
+_FALLBACK_IPS = ['47.117.38.205', '47.117.173.229', '8.133.255.105', '47.100.67.98']
+
+
+def _resolve_api_ips():
+    """拿 api.siliconflow.cn 的 IPv4 列表（多通道容错）：
+    1) Python socket.getaddrinfo（系统解析，本机正常）；
+    2) curl 直连 DoH（IP，无域名解析）刷新；
+    3) 硬编码 ALB IP 兜底。返回非空列表。"""
+    import socket
+    try:
+        infos = socket.getaddrinfo('api.siliconflow.cn', 443, socket.AF_INET)
+        ips = [i[4][0] for i in infos]
+        if ips:
+            return ips
+    except Exception:
+        pass
+    ips = _curl_doh_resolve('api.siliconflow.cn')
+    if ips:
+        return ips
+    return list(_FALLBACK_IPS)
+
+
 def _cosy_synth(text, voice, desc, gain, tmp_path):
     """CosyVoice API 合成带情绪的中文源音频到 tmp_path（在线，按 UTF-8 字节计费）。
 
-    网络链路设计（本机已踩坑总结）：
-    1. voice-env310 加载 RVC 链路后 Python 进程 winsock 被污染（socket 10038），
-       requests 无法连网 → 改用系统 curl.exe 子进程（独立进程、系统栈正常）；
-    2. 系统 DNS 客户端间歇性 getaddrinfo 失败（11003/rc=6）→ 普通 curl 解析失败时，
-       用 curl 直连 DoH（IP 223.5.5.5，无需域名解析）拿真实 IP，
-       再以 --resolve 指定 IP 连接（curl 保留域名 SNI/Host/证书语义，无需 -k）。
+    网络链路设计（本机已踩坑总结，多通道容错）：
+    1. voice-env310 加载 RVC 链路后 Python 进程 winsock 被污染（socket 创建 10038），
+       requests 无法连网 → 改用系统 curl.exe 子进程发出请求（独立进程）；
+    2. curl.exe 在本机域名解析间歇失败（getaddrinfo() thread failed to start，rc=6），
+       但 IP 直连正常 → 默认用 Python socket.getaddrinfo（系统解析正常）拿真实 IP，
+       再以 --resolve 指定 IP 直连（curl 保留域名 SNI/Host/证书语义，无需 -k）；
+    3. Python 解析失败 → curl 直连 DoH（IP，无域名解析）刷新 IP；
+    4. 仍失败 → 硬编码 ALB IP 兜底；最后才尝试普通 curl（万一 curl 解析恢复）。
     JSON 经临时文件传入（--data-binary @file），避免命令行转义/编码问题。"""
     if not API_KEY:
         raise RuntimeError('未配置 LLM_API_KEY（项目根 .env）')
@@ -242,21 +266,23 @@ def _cosy_synth(text, voice, desc, gain, tmp_path):
     try:
         with open(req_file, 'w', encoding='utf-8') as f:
             json.dump(payload, f, ensure_ascii=False)
-        # 第 1 次：走系统 DNS 解析（系统正常时一次成功）
-        r = subprocess.run(base, capture_output=True, timeout=130)
-        ok = (r.returncode == 0 and r.stdout.decode('utf-8', 'replace').strip() == '200')
-        # 兜底：系统解析失败 → DoH 拿 IP → --resolve 直连（逐个 IP 试）
+        ok = False
+        # 通道 1：Python 解析 IP → curl --resolve 直连（逐个 IP 试）
+        for ip in _resolve_api_ips():
+            rr = subprocess.run(
+                base + ['--resolve', 'api.siliconflow.cn:443:' + ip],
+                capture_output=True, timeout=130)
+            if rr.returncode == 0 and rr.stdout.decode('utf-8', 'replace').strip() == '200':
+                r, ok = rr, True
+                break
+        # 通道 2：普通 curl（万一 curl 域名解析恢复）
         if not ok:
-            ips = _curl_doh_resolve('api.siliconflow.cn')
-            if ips:
-                for ip in ips:
-                    rr = subprocess.run(
-                        base + ['--resolve', 'api.siliconflow.cn:443:' + ip],
-                        capture_output=True, timeout=130)
-                    if rr.returncode == 0 and rr.stdout.decode('utf-8', 'replace').strip() == '200':
-                        r, ok = rr, True
-                        break
+            rr = subprocess.run(base, capture_output=True, timeout=130)
+            if rr.returncode == 0 and rr.stdout.decode('utf-8', 'replace').strip() == '200':
+                r, ok = rr, True
         if not ok:
+            if r is None:
+                raise RuntimeError('CosyVoice API 网络请求全部失败（无可达 IP）')
             raise RuntimeError(f'CosyVoice API curl 失败 rc={r.returncode}: {r.stderr[:200]}')
         code = r.stdout.decode('utf-8', 'replace').strip()
         if code != '200':
