@@ -116,8 +116,13 @@ window.SpriteCore = (() => {
     walking_right: [2, 3, 4, 5, 6, 7, 8, 9, 10],
     running: [4, 5, 6, 7, 6, 5],
   };
-  const ONESHOT_NAMES = ['backflip', 'kick', 'wine', 'wine_2', 'thinking',
+  // 固定表演动作（基础帧组）
+  const FIXED_ONESHOOT = ['backflip', 'kick', 'wine', 'wine_2', 'thinking',
     'smug', 'tongue', 'push', 'star', 'pose1', 'hide', 'pout', 'lie'];
+  // 待机随机动作池：固定表演 + 全部迁移动作（act_*），initSprite 加载动态动作后填充；
+  // 排除下落类（19/25/30/60，随机触发会掉出屏幕且无掉回兜底）与常驻趴（act_23，播完不自动回待机）
+  let ONESHOT_NAMES = [...FIXED_ONESHOOT];
+  const RANDOM_EXCLUDE = ['act_19', 'act_25', 'act_30', 'act_60', 'act_23'];
 
   // oneshot 动作附带位移（沿当前朝向水平移动桌宠）：
   // - wine：前段走动（帧 1~14：行走/弯腰/抬手），播放到拿起酒杯（帧 15）后停下
@@ -520,6 +525,8 @@ window.SpriteCore = (() => {
       dynamicActionsMap = {};
       for (const a of dyn || []) {
         dynamicActionsMap[a.name] = a;
+        // 除特殊动作外全部加入待机随机池（桌宠空闲时自动随机表演；下落类/常驻趴排除）
+        if (!RANDOM_EXCLUDE.includes(a.name)) ONESHOT_NAMES.push(a.name);
         // 特殊大动作（48/49/43）的帧在 big_actions/ 原始分辨率目录，这里不加载 animations/ 帧
         // （该目录不存在，加载会抛错中断后续所有动态动作注册）
         if (BIG_ACTIONS[a.name]) continue;

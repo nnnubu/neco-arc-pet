@@ -45,9 +45,6 @@ function registerMenuIpc() {
       { label: 'Pout（撇嘴）', click: () => send('pout') },
       { label: 'Lie（躺倒）', click: () => send('lie') },
       { type: 'separator' },
-      { label: '转向测试 → 朝左', click: () => send('turn_right') },
-      { label: '转向测试 → 朝右', click: () => send('turn_left') },
-      { type: 'separator' },
       { label: '说句话…', click: () => send('SPEAK') },
       { type: 'separator' },
       { label: '重置动作', click: () => send('RESET') },
@@ -65,7 +62,7 @@ function registerMenuIpc() {
       } },
     ];
 
-    // 迁移动作（act_*）：按编号每 10 个一组放入「更多动作」子菜单（测试用）
+    // 迁移动作（act_*）：与固定动作合并为一个「更多动作」子菜单，每 10 个编号一组，显示「编号 中文名」
     const acts = loadActions();
     if (acts.length) {
       const sorted = [...acts].sort((a, b) => parseInt(a.name.slice(4)) - parseInt(b.name.slice(4)));
@@ -84,7 +81,7 @@ function registerMenuIpc() {
       if (group.length) groups.push({ gStart, gEnd: parseInt(group[group.length - 1].name.slice(4)), items: group });
       const submenu = groups.map((g) => ({
         label: `动作 ${g.gStart}-${g.gEnd}`,
-        submenu: g.items.map((a) => ({ label: `动作 ${a.name.slice(4)}（${a.frames}帧）`, click: () => send(a.name) })),
+        submenu: g.items.map((a) => ({ label: `${a.name.slice(4)} ${a.cn || '动作'}`, click: () => send(a.name) })),
       }));
       template.push({ label: `更多动作（${acts.length}）`, submenu });
     }
