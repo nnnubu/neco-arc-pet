@@ -95,6 +95,31 @@ def _ensure_rvc():
     return _rvc
 
 
+def _wav_duration(path):
+    """读取 wav 时长（秒）；非 wav/损坏返回 None"""
+    try:
+        import wave as _wave
+        with _wave.open(path, "rb") as w:
+            return w.getnframes() / w.getframerate()
+    except Exception:
+        return None
+
+
+def _check_text_duration(text, path, tag):
+    """校验音频时长与文本长度是否匹配（内容错乱/缺字/空音频时长为异常短）。
+    中文语速约 0.25s/字，下限按 0.1s/字 + 最短 0.3s 兜底；明显过短视为生成异常，
+    抛错拒绝写入缓存（防止坏内容被缓存复用，下次命中仍然错乱）。"""
+    dur = _wav_duration(path)
+    if dur is None:
+        raise RuntimeError(tag + " 音频文件无效或损坏")
+    min_dur = max(0.3, len(text) * 0.1)
+    if dur < min_dur:
+        raise RuntimeError(
+            f"{tag} 音频时长异常（{dur:.2f}s < 预期 {min_dur:.1f}s），"
+            f"可能内容错乱，已拒绝写入缓存"
+        )
+
+
 def _cosy_synth(text, voice, desc, gain, tmp_path):
     """CosyVoice API 合成带情绪的中文源音频到 tmp_path（在线，按 UTF-8 字节计费）"""
     if not API_KEY:
@@ -115,8 +140,12 @@ def _cosy_synth(text, voice, desc, gain, tmp_path):
     )
     if r.status_code != 200:
         raise RuntimeError(f'CosyVoice API {r.status_code}: {r.text[:200]}')
+    # 校验响应是合法 wav（网络异常时可能返回 HTML 错误页/空内容但状态码 200）
+    if len(r.content) < 100 or r.content[:4] != b'RIFF':
+        raise RuntimeError('CosyVoice 返回内容异常（非有效 wav），已拒绝写入缓存')
     with open(tmp_path, 'wb') as f:
         f.write(r.content)
+    _check_text_duration(text, tmp_path, 'CosyVoice 源音频')
 
 
 def ensure_tts():
@@ -174,7 +203,10 @@ def synth(text, emotion, out_path):
             output_dir_path=CACHE_DIR,
             output_filename='_cosy_out.wav',
         )
-        os.replace(os.path.join(CACHE_DIR, '_cosy_out.wav'), out_path)
+        rvc_out = os.path.join(CACHE_DIR, '_cosy_out.wav')
+        # 变声后先校验时长与文本匹配（内容错乱/缺字则拒绝写入缓存），再落位
+        _check_text_duration(text, rvc_out, 'RVC 变声后')
+        os.replace(rvc_out, out_path)
     _to_44100(out_path)
     _apply_gain(out_path, cfg['post_gain'])
 
