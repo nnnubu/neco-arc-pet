@@ -1,0 +1,63 @@
+/* 桌面歌词窗口样式：全透明底，当前句卡拉OK式颜色渐变（已唱部分亮色，未唱部分暗色，
+ * 分界点 --p 由渲染层每帧 rAF 驱动 lyric-progress 更新，颜色渐变跟随播放进度） */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+  background: transparent;
+  overflow: hidden;
+  -webkit-user-select: none;
+  user-select: none;
+}
+#bar {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+  padding: 0 10px 8px 10px;
+  text-align: center;
+  -webkit-app-region: drag; /* 整条可拖动 */
+}
+#title {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.55);
+  font-family: "Microsoft YaHei", sans-serif;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+  margin-bottom: 2px;
+  white-space: nowrap;
+  max-width: 90%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* 句切换渐变过渡：淡出/淡入（JS 控制 opacity + transform） */
+#prev, #cur, #next {
+  font-family: "Microsoft YaHei", sans-serif;
+  white-space: nowrap;
+  max-width: 94%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: opacity 0.28s ease, transform 0.28s ease;
+}
+#prev, #next {
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.35);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+}
+/* 当前句：卡拉OK渐变—— 已唱（--p 之前）亮黄白，未唱（--p 之后）暗色；
+   颜色分界随音频进度移动，即"字体颜色渐变跟随进度" */
+#cur {
+  font-size: 22px;
+  font-weight: bold;
+  background: linear-gradient(
+    90deg,
+    #fff2b0 0%,
+    #ffd04d var(--p, 0%),
+    rgba(255, 255, 255, 0.4) var(--p, 0%),
+    rgba(255, 255, 255, 0.4) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.95)) drop-shadow(0 2px 6px rgba(0, 0, 0, 0.7));
+}

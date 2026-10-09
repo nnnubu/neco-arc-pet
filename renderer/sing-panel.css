@@ -1,0 +1,182 @@
+/* 翻唱面板样式：深色工具窗，拖拽区醒目，进度步骤条，历史列表滚动 */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+  background: #1c1c26;
+  color: #eee;
+  font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+  font-size: 13px;
+  overflow: hidden;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* 标题栏 */
+#titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 34px;
+  padding: 0 8px 0 14px;
+  background: #262634;
+  -webkit-app-region: drag;
+}
+#titlebar .t { font-weight: 700; letter-spacing: 1px; color: #ff9aa0; }
+#tbBtns { display: flex; gap: 6px; -webkit-app-region: no-drag; }
+#btnClose, #btnMin {
+  width: 26px; height: 26px;
+  border: none; border-radius: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #ccc; font-size: 15px; line-height: 1;
+  cursor: pointer;
+}
+#btnMin:hover { background: rgba(255, 255, 255, 0.2); }
+#btnClose:hover { background: #d93a42; color: #fff; }
+
+/* 拖拽区 */
+.drop {
+  margin: 12px;
+  padding: 18px 12px;
+  border: 2px dashed rgba(255, 154, 160, 0.45);
+  border-radius: 12px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.55);
+  background: rgba(255, 154, 160, 0.05);
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+.drop.over { border-color: #ff5a60; background: rgba(255, 92, 98, 0.14); }
+#dropHint { line-height: 1.6; }
+#picked {
+  margin-top: 8px;
+  color: #ffe9a8;
+  font-size: 12px;
+  word-break: break-all;
+  display: none;
+}
+
+/* 开始按钮 */
+#startRow { padding: 0 12px; text-align: center; }
+#btnStart {
+  width: 100%;
+  padding: 9px 0;
+  border: none; border-radius: 10px;
+  background: linear-gradient(180deg, #ff5a60, #d93a42);
+  color: #fff; font-size: 14px; font-weight: 700; letter-spacing: 2px;
+  cursor: pointer;
+  transition: filter 0.15s, opacity 0.15s;
+}
+#btnStart:hover { filter: brightness(1.15); }
+#btnStart:disabled { opacity: 0.35; cursor: not-allowed; filter: none; }
+
+/* 进度 */
+#progress {
+  display: flex;
+  gap: 6px;
+  margin: 14px 12px 6px;
+}
+.step {
+  flex: 1;
+  text-align: center;
+  padding: 4px 0;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 12px;
+  transition: background 0.2s, color 0.2s;
+}
+.step.on { background: rgba(255, 154, 160, 0.25); color: #ff9aa0; font-weight: 700; }
+.step.done { background: rgba(120, 220, 160, 0.22); color: #7ce4a8; font-weight: 700; }
+#progressBar {
+  margin: 0 12px;
+  height: 5px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+#barFill {
+  width: 0%;
+  height: 100%;
+  background: linear-gradient(90deg, #ff5a60, #ffd166);
+  border-radius: 3px;
+  transition: width 0.25s;
+}
+#statusText {
+  margin: 6px 12px;
+  color: #ffd9a0;
+  font-size: 12px;
+  min-height: 16px;
+}
+
+/* 播放控制 */
+#playRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 12px 10px;
+}
+#playRow.hidden { display: none; }
+#btnToggle {
+  width: 30px; height: 30px;
+  border: none; border-radius: 50%;
+  background: rgba(255, 154, 160, 0.28);
+  color: #fff; font-size: 14px;
+  cursor: pointer;
+}
+#btnToggle:hover { background: rgba(255, 92, 98, 0.55); }
+#playingName {
+  flex: 1;
+  color: #ffe9a8;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 历史 */
+#historyHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px 6px;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 12px;
+}
+#btnDir {
+  width: 26px; height: 26px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #ccc; font-size: 13px;
+  cursor: pointer;
+}
+#btnDir:hover { background: rgba(255, 255, 255, 0.15); }
+#historyList {
+  margin: 0 12px;
+  max-height: 148px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+.hitem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.hitem:hover { background: rgba(255, 255, 255, 0.07); }
+.hitem .nm {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hitem .play {
+  width: 24px; height: 24px;
+  border: none; border-radius: 50%;
+  background: rgba(255, 154, 160, 0.25);
+  color: #fff; font-size: 11px;
+  cursor: pointer;
+}
+.hitem .play:hover { background: rgba(255, 92, 98, 0.5); }
+.hempty { color: rgba(255, 255, 255, 0.35); text-align: center; padding: 10px 0; }

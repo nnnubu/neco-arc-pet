@@ -109,11 +109,11 @@ window.DebugSeq = (() => {
     await wait(800);
     await shot('scale-10');
 
-    // 输入框验证：打开语音条抽帧（小窗口不溢出、样式正常）
-    window.VoiceUI.open();
-    await wait(300);
-    await shot('speakbar');
-    window.VoiceUI.hide();
+    // 对话窗口验证：打开对话窗口抽帧（独立窗口，不再遮桌宠）
+    window.pet.openChat();
+    await wait(500);
+    await shot('chat-window');
+    window.pet.openChat(); // 已打开则聚焦；验证完成后用户自行关闭
     console.log('[debug] sequence done');
   }
   return { run };

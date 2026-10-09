@@ -5,7 +5,16 @@ const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
 const { getWin } = require('./window');
+const { getChatWin } = require('./chat');
 const { askAI } = require('./ai');
+
+// 对话事件广播：桌宠窗（播放音频/透明文字逐字）+ 对话窗（消息气泡/状态显示）
+function broadcast(channel, payload) {
+  const win = getWin();
+  if (win && !win.isDestroyed()) win.webContents.send(channel, payload);
+  const chat = getChatWin();
+  if (chat && !chat.isDestroyed()) chat.webContents.send(channel, payload);
+}
 
 // ── 情绪标签解析（语音参数映射在 voice_server 侧，此处只传 emotion）──
 const EMOTION_ALIAS = {
@@ -58,20 +67,18 @@ function ensureVoiceServer() {
         flushVoiceQueue();
         // 后台预生成常用短语（缓存预热）：说话命中缓存时秒出
         try { voiceProc.stdin.write(JSON.stringify({ id: 'preset', cmd: 'preset' }) + '\n'); } catch {}
-        if (getWin() && !getWin().isDestroyed()) getWin().webContents.send('speak-state', { state: 'ready' });
+        broadcast('speak-state', { state: 'ready' });
       } else if (msg.event === 'preset_done') {
         // 预生成完成：只记录，不触发播放/状态（避免误报"出错了"）
         console.log('[voice] 预生成完成:', msg.count);
       } else if (msg.ok && msg.wav) {
-        if (getWin() && !getWin().isDestroyed()) {
-          getWin().webContents.send('play-audio', msg.wav);
-          getWin().webContents.send('speak-state', { state: 'done' });
-        }
+        broadcast('play-audio', msg.wav);
+        broadcast('speak-state', { state: 'done' });
       } else if (msg.ok) {
         // 其他 ok（如 preset started）：无需处理
       } else {
         console.error('[voice] 生成失败:', msg.error);
-        if (getWin() && !getWin().isDestroyed()) getWin().webContents.send('speak-state', { state: 'error', error: msg.error });
+        broadcast('speak-state', { state: 'error', error: msg.error });
       }
     }
   });
@@ -85,48 +92,48 @@ function flushVoiceQueue() {
   }
 }
 
-function registerVoiceIpc() {
-  ipcMain.on('speak-text', async (_e, text, force) => {
-    const win = getWin();
-    if (!win || win.isDestroyed()) return;
-    // 清除孤立代理项（输入法/粘贴可能产生），防止传给 Python 时编码崩溃
-    const t = String(text || '').replace(/[\uD800-\uDFFF]/g, '').trim();
-    if (!t) return;
-    // 新链路：输入一律先问 AI（Neco Arc 人设）→ 流式 token → 回复文本 → 合成回复语音播放
-    win.webContents.send('speak-state', { state: 'ai' }); // 思考中…
-    let reply;
-    try {
-      reply = await askAI(t, {
-        force: !!force, // 重试（↻）：绕过 AI 问答缓存重新生成
-        onToken: (tok) => {
-          if (getWin() && !getWin().isDestroyed()) getWin().webContents.send('ai-token', { text: tok });
-        },
-      });
-    } catch (e) {
-      console.error('[ai] 问答失败:', e.message);
-      win.webContents.send('speak-state', { state: 'error', error: 'AI 思考失败: ' + e.message });
-      return;
-    }
-    if (!reply) {
-      win.webContents.send('speak-state', { state: 'error', error: 'AI 没有回复' });
-      return;
-    }
-    // 解析情绪标签：标签决定语音合成情绪（voice_server 内部映射到 CosyVoice 参数）
-    const { emotion, text: speakText } = parseEmotion(reply);
-    console.log(`[ai] 情绪=${emotion} 文本=${speakText}`);
-    // 回复文本（去标签）给渲染层显示
-    if (!win.isDestroyed()) win.webContents.send('ai-reply', { text: speakText });
-    // 合成回复语音（CosyVoice 情绪源 → RVC 变声 → 缓存；情绪进缓存 key）
-    win.webContents.send('speak-state', { state: 'generating' });
-    ensureVoiceServer();
-    const req = { id: Date.now(), text: speakText, emotion };
-    if (force) req.force = true; // 重试：绕过缓存强制重新合成（覆盖旧缓存）
-    if (voiceReady && voiceProc) {
-      voiceProc.stdin.write(JSON.stringify(req) + '\n');
-    } else {
-      voiceQueue.push(req); // 模型仍在加载，排队等 READY
-    }
-  });
+// 说话入口（对话窗 chat-send / 桌宠输入共用）：输入一律先问 AI（Neco Arc 人设）→ 流式 token → 回复文本 → 合成回复语音播放
+async function handleSpeakText(text, force) {
+  const win = getWin();
+  if (!win || win.isDestroyed()) return;
+  // 清除孤立代理项（输入法/粘贴可能产生），防止传给 Python 时编码崩溃
+  const t = String(text || '').replace(/[\uD800-\uDFFF]/g, '').trim();
+  if (!t) return;
+  broadcast('speak-state', { state: 'ai' }); // 思考中…
+  let reply;
+  try {
+    reply = await askAI(t, {
+      force: !!force, // 重试（↻）：绕过 AI 问答缓存重新生成
+      onToken: (tok) => broadcast('ai-token', { text: tok }),
+    });
+  } catch (e) {
+    console.error('[ai] 问答失败:', e.message);
+    broadcast('speak-state', { state: 'error', error: 'AI 思考失败: ' + e.message });
+    return;
+  }
+  if (!reply) {
+    broadcast('speak-state', { state: 'error', error: 'AI 没有回复' });
+    return;
+  }
+  // 解析情绪标签：标签决定语音合成情绪（voice_server 内部映射到 CosyVoice 参数）
+  const { emotion, text: speakText } = parseEmotion(reply);
+  console.log(`[ai] 情绪=${emotion} 文本=${speakText}`);
+  // 回复文本（去标签）给渲染层显示
+  if (!win.isDestroyed()) broadcast('ai-reply', { text: speakText });
+  // 合成回复语音（CosyVoice 情绪源 → RVC 变声 → 缓存；情绪进缓存 key）
+  broadcast('speak-state', { state: 'generating' });
+  ensureVoiceServer();
+  const req = { id: Date.now(), text: speakText, emotion };
+  if (force) req.force = true; // 重试：绕过缓存强制重新合成（覆盖旧缓存）
+  if (voiceReady && voiceProc) {
+    voiceProc.stdin.write(JSON.stringify(req) + '\n');
+  } else {
+    voiceQueue.push(req); // 模型仍在加载，排队等 READY
+  }
 }
 
-module.exports = { registerVoiceIpc };
+function registerVoiceIpc() {
+  ipcMain.on('speak-text', (_e, text, force) => handleSpeakText(text, force));
+}
+
+module.exports = { registerVoiceIpc, handleSpeakText };

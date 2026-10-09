@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>猫姬翻唱</title>
+  <link rel="stylesheet" href="sing-panel.css">
+</head>
+<body>
+  <!-- 自绘标题栏：可拖动 + 最小化/关闭 -->
+  <div id="titlebar">
+    <span class="t">♪ 猫姬翻唱</span>
+    <div id="tbBtns">
+      <button id="btnMin" title="最小化">—</button>
+      <button id="btnClose" title="关闭">×</button>
+    </div>
+  </div>
+
+  <!-- 拖拽区：拖音频进来 或 点击选择 -->
+  <div id="dropZone" class="drop" title="拖拽音频文件到这里，或点击选择">
+    <div id="dropHint">拖拽音频文件到这里<br>或点击选择文件</div>
+    <div id="picked"></div>
+  </div>
+
+  <!-- 开始翻唱 -->
+  <div id="startRow">
+    <button id="btnStart" disabled>开始翻唱</button>
+  </div>
+
+  <!-- 进度步骤 -->
+  <div id="progress">
+    <div class="step" id="st-sep">分离人声</div>
+    <div class="step" id="st-cvt">变声喵声</div>
+    <div class="step" id="st-mix">混音完成</div>
+  </div>
+  <div id="progressBar"><div id="barFill"></div></div>
+  <div id="statusText"></div>
+
+  <!-- 播放控制 -->
+  <div id="playRow" class="hidden">
+    <button id="btnToggle" title="播放 / 暂停">⏸</button>
+    <span id="playingName"></span>
+  </div>
+
+  <!-- 历史 -->
+  <div id="historyHead">
+    <span>已翻唱</span>
+    <button id="btnDir" title="打开翻唱文件夹">📂</button>
+  </div>
+  <div id="historyList"></div>
+
+  <script src="sing-panel.js"></script>
+</body>
+</html>

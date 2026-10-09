@@ -1,6 +1,6 @@
 {
   "randomAction": {
     "enabled": true,
-    "intervalSec": 15
+    "intervalSec": 10
   }
 }

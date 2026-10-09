@@ -34,6 +34,10 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
+      // 关键：禁用后台节流。否则桌宠窗口被其他置顶窗口（翻唱面板/菜单/歌词窗）完全遮挡时，
+      // Chromium 判定页面不可见 → 暂停 rAF → PixiJS 动画循环停 → "桌宠卡住不动"。
+      // 桌宠必须始终在渲染（呼吸/待机/随机动作），遮挡不影响动画。
+      backgroundThrottling: false,
     },
   });
 

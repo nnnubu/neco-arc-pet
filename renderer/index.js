@@ -33,7 +33,6 @@
     shared.petScale = scale;
     window.SpriteCore.resizeRenderer(width, height);
     window.SpriteCore.applyPetScale(width, height);
-    window.VoiceUI.updatePosition(scale); // 输入框跟随桌宠脚底（固定间隙）
     // 验证用：对比通知尺寸与实际 canvas 尺寸（仅 PET_DEBUG 输出）
     const cv = document.querySelector('#stage canvas');
     window.pet.debugLog(`[canvas] notify=${width}x${height} css=${cv?.style.width}x${cv?.style.height} attr=${cv?.width}x${cv?.height}`);
@@ -44,7 +43,6 @@
   window.SpriteCore.init(app, shared);
   window.Controls.init(shared, window.SpriteCore);
   window.VoiceUI.init();
-  window.VoiceUI.updatePosition(shared.petScale); // 初始定位（0.5 倍）
 
   // 窗口 resize（缩放桌宠）时：canvas 跟随 + 精灵 scale/位置同步，避免裁剪/闪烁
   window.addEventListener('resize', () => {

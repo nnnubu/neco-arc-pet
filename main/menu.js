@@ -1,8 +1,12 @@
 // 主进程 - 右键菜单模块：自绘 HTML 菜单窗口（动作统合一个模块 + 设置模块可配置随机播放），点击后向桌宠渲染层发送 menu-action
-const { ipcMain, BrowserWindow, screen } = require('electron');
+const { ipcMain, BrowserWindow, screen, shell } = require('electron');
 const fs = require('fs');
 const path = require('path');
 const { getWin } = require('./window');
+const { scanSingHistory, getLyricsByTitle } = require('./lyric');
+const { showSingPanel } = require('./sing-panel');
+const { showChat } = require('./chat');
+const { broadcast } = require('./sing');
 
 let menuWin = null;
 
@@ -75,7 +79,7 @@ function buildMenuData() {
       .map((a) => ({ id: a.name, num: a.name.slice(4), label: a.cn || '动作' }));
     return { cat: c.cat, title: c.title, items };
   });
-  return { fixed: FIXED_ITEMS, groups, config: loadConfig() };
+  return { fixed: FIXED_ITEMS, groups, config: loadConfig(), singHistory: scanSingHistory() };
 }
 
 function closeMenu() {
@@ -141,6 +145,35 @@ function registerMenuIpc() {
       setTimeout(() => {
         if (win && !win.isDestroyed()) require('electron').app.quit();
       }, 12000);
+    } else if (action === 'SING_DIR') {
+      // 「打开翻唱文件夹」：资源管理器打开 voice/sing_output
+      const dir = path.join(__dirname, '..', 'voice', 'sing_output');
+      if (fs.existsSync(dir)) shell.openPath(dir);
+    } else if (action === 'SING_PANEL') {
+      // 「翻唱面板」：独立窗口（拖拽音频 → 处理 → 播放）
+      showSingPanel();
+    } else if (action === 'SPEAK') {
+      // 「说句话…」：打开对话窗口（独立窗口，不遮桌宠）
+      showChat();
+    } else if (typeof action === 'string' && action.startsWith('sing:')) {
+      // 菜单「翻唱历史」点击某首歌：立即播放（无歌词也能播），歌词搜到后异步补发
+      const name = action.slice(5);
+      const dir = path.join(__dirname, '..', 'voice', 'sing_output', name);
+      try {
+        const full = fs.readdirSync(dir).find((f) => f.endsWith('_猫姬翻唱.wav'));
+        if (full) {
+          const p = path.join(dir, full);
+          if (!fs.existsSync(p)) return; // 文件被删/占位：不播
+          broadcast('sing-play', { full: p, vocal: null, name, dir });
+          getLyricsByTitle(name).then((lyr) => {
+            if (win && !win.isDestroyed() && lyr && lyr.lyrics && lyr.lyrics.length) {
+              win.webContents.send('sing-lyric', lyr);
+            }
+          }).catch(() => {});
+        }
+      } catch (e) {
+        // 目录缺失/读取失败：静默
+      }
     } else {
       win.webContents.send('menu-action', action);
     }

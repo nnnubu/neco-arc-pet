@@ -43,4 +43,23 @@ contextBridge.exposeInMainWorld('pet', {
   onSingProgress: (cb) => ipcRenderer.on('sing-progress', (_e, s) => cb(s)),
   onSingDone: (cb) => ipcRenderer.on('sing-done', (_e, r) => cb(r)),
   onSingError: (cb) => ipcRenderer.on('sing-error', (_e, e) => cb(e)),
+  // 菜单「翻唱历史」播放：主进程发来 {full, vocal, name, dir}
+  onSingPlay: (cb) => ipcRenderer.on('sing-play', (_e, r) => cb(r)),
+  // 歌词异步补发：播放不等歌词，搜索完成后再显示桌面歌词 {lyrics, title, source}
+  onSingLyric: (cb) => ipcRenderer.on('sing-lyric', (_e, r) => cb(r)),
+  // 翻唱播放/暂停：歌词窗口按钮 / 翻唱面板按钮 → 主进程 → 这里
+  onSingToggle: (cb) => ipcRenderer.on('sing-toggle', () => cb()),
+  // 对话窗口打开后请求当前播放状态：回发 sing-state 让按钮显示与面板一致
+  onSingAskState: (cb) => ipcRenderer.on('sing-ask-state', () => cb()),
+  // 翻唱播放状态广播（playing/paused/ended）→ 主进程 → 歌词窗口按钮/翻唱面板回显
+  singState: (s) => ipcRenderer.send('sing-state', s),
+  // 桌面歌词窗口控制（渲染层 → 主进程歌词窗口）
+  lyricShow: (lyrics, title) => ipcRenderer.send('lyric-show', { lyrics, title }),
+  lyricUpdate: (index) => ipcRenderer.send('lyric-update', index),
+  lyricProgress: (index, t) => ipcRenderer.send('lyric-progress', { index, t }),
+  lyricHide: () => ipcRenderer.send('lyric-hide'),
+  // 打开翻唱输出文件夹（资源管理器）
+  openSingDir: (dir) => ipcRenderer.send('open-sing-dir', dir),
+  // 打开对话窗口（右键菜单「说句话…」→ 主进程）
+  openChat: () => ipcRenderer.send('chat-open'),
 });

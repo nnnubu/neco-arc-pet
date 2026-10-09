@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>猫姬对话</title>
+  <link rel="stylesheet" href="chat.css" />
+</head>
+<body>
+  <div id="win">
+    <!-- 自绘标题栏：可拖动 + 右侧按钮 -->
+    <div id="titlebar">
+      <span class="dot"></span>
+      <span id="titleText">猫姬对话</span>
+      <div id="tbBtns">
+        <button id="tbMin" title="最小化">—</button>
+        <button id="tbToggle" title="播放 / 暂停翻唱">▶</button>
+        <button id="tbSing" title="打开翻唱面板">♪</button>
+        <button id="tbClose" title="关闭">×</button>
+      </div>
+    </div>
+
+    <!-- 消息记录：用户右红 / 猫姬左浅 -->
+    <div id="chatMsgs"></div>
+
+    <!-- 当前翻唱播放提示 + 暂停（不依赖桌面歌词窗口，找不到歌词也能暂停） -->
+    <div id="nowPlaying" class="hidden">
+      <span id="npIcon">♪</span>
+      <span id="npName"></span>
+      <button id="npToggle" title="播放 / 暂停">⏸</button>
+    </div>
+
+    <!-- 状态行（思考中/生成语音中/翻唱进度/错误） -->
+    <div id="chatStatus"></div>
+
+    <!-- 输入行 -->
+    <div id="inputRow">
+      <input id="chatInput" type="text" placeholder="说点什么喵…" maxlength="200" />
+      <button id="btnSend">发送</button>
+      <button id="btnRetry" title="重新合成（绕过缓存）">↻</button>
+    </div>
+  </div>
+  <script src="chat.js"></script>
+</body>
+</html>

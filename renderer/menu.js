@@ -3,6 +3,7 @@
   const $ = (s) => document.querySelector(s);
   const secFixed = $('#sec-fixed');
   const groupsBox = $('#groups');
+  const secSing = $('#sec-sing');
   let cfg = { randomAction: { enabled: true, intervalSec: 15 } };
 
   // 渲染一个动作项
@@ -96,6 +97,12 @@
     for (const g of data.groups) groupsBox.appendChild(groupEl(g));
     const total = data.fixed.length + data.groups.reduce((s, g) => s + g.items.length, 0);
     $('#act-count').textContent = total;
+    // 翻唱历史：每首歌一个可点击项（点击 → pick('sing:歌名')），并显示数量
+    const hist = data.singHistory || [];
+    $('#sing-count').textContent = hist.length;
+    for (const h of hist) {
+      secSing.appendChild(itemEl({ id: 'sing:' + h.name, label: h.name }, false));
+    }
     renderCfg();
     bindCfg();
     bindClick();

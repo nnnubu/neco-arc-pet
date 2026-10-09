@@ -64,7 +64,7 @@ window.Controls = (() => {
       window.pet.showMenu();
     });
     window.pet.onMenuAction((name) => {
-      if (name === 'SPEAK') { window.VoiceUI.open(); return; }
+      if (name === 'SPEAK') { window.pet.openChat(); return; } // 打开独立对话窗口（不再用桌宠内输入条）
       if (name === 'RESET') { sprite.backToIdle(); return; }
       // 转向动画内容自带方向，走专用播放（不按当前朝向翻转，避免方向反掉）
       if (name === 'turn_left' || name === 'turn_right') { sprite.playTurn(name); return; }

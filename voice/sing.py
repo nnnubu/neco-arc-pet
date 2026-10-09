@@ -8,6 +8,11 @@ import os, sys, shutil, subprocess, json, re
 import numpy as np
 import wave as _wave
 
+# Windows 管道下 Python stdout 默认按 GBK 编码，Electron 按 UTF-8 解码 → 中文路径乱码
+# （同 voice_server.py 的 stdin 乱码根因）。强制 UTF-8 输出，保证 done 里的中文歌名/路径完好
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8')
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # 项目根（voice/ 的上级）
 PY = os.path.join(ROOT, 'voice-env310', 'Scripts', 'python.exe')
 FFMPEG = os.path.join(ROOT, 'voice', 'bin', 'ffmpeg.exe')
