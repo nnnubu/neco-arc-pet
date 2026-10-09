@@ -154,11 +154,15 @@ def _doh_resolve(host):
 
 def _cosy_synth(text, voice, desc, gain, tmp_path):
     """CosyVoice API 合成带情绪的中文源音频到 tmp_path（在线，按 UTF-8 字节计费）。
-    系统 DNS 解析失败(getaddrinfo 11003)时自动 DoH 兜底解析 + IP 直连(verify=False,
-    证书按 Host 校验不适用于 IP 直连)，保证运营商/系统 DNS 抽风不影响合成。"""
+
+    注意：用系统 curl.exe 子进程发出请求，而非 Python requests ——
+    本机 voice-env310 加载 RVC 链路（faiss/hubert 等）后 Python 进程的 winsock 被
+    污染（socket 创建报 10038），requests 无法连网；而 curl.exe 是独立进程，
+    走系统正常网络栈（Chromium/浏览器/命令行均正常），彻底绕开 Python socket 层。
+    JSON 经临时文件传入（--data-binary @file），避免命令行转义/编码问题。"""
     if not API_KEY:
         raise RuntimeError('未配置 LLM_API_KEY（项目根 .env）')
-    import requests
+    import subprocess, json
     payload = {
         'model': COSY_MODEL,
         'voice': COSY_MODEL + ':' + voice,
@@ -167,33 +171,45 @@ def _cosy_synth(text, voice, desc, gain, tmp_path):
         'sample_rate': 44100,
         'gain': gain,
     }
-    headers = {'Authorization': 'Bearer ' + API_KEY, 'Content-Type': 'application/json'}
+    req_file = tmp_path + '.req.json'
     try:
-        r = requests.post(
-            'https://api.siliconflow.cn/v1/audio/speech',
-            headers=headers, json=payload, timeout=120,
+        with open(req_file, 'w', encoding='utf-8') as f:
+            json.dump(payload, f, ensure_ascii=False)
+        r = subprocess.run(
+            ['curl.exe', '-s', '-S', '--max-time', '120',
+             '-o', tmp_path, '-w', '%{http_code}',
+             '-X', 'POST', 'https://api.siliconflow.cn/v1/audio/speech',
+             '-H', 'Authorization: Bearer ' + API_KEY,
+             '-H', 'Content-Type: application/json',
+             '--data-binary', '@' + req_file],
+            capture_output=True, timeout=130,
         )
-    except requests.exceptions.ConnectionError:
-        # 系统 DNS 解析失败（urllib3 NameResolutionError 会被包装为 requests ConnectionError）
-        # → DoH 兜底解析 + IP 直连
-        ips = _doh_resolve('api.siliconflow.cn')
-        if not ips:
-            raise
-        import urllib3
-        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-        h = dict(headers)
-        h['Host'] = 'api.siliconflow.cn'
-        r = requests.post(
-            f'https://{ips[0]}/v1/audio/speech',
-            headers=h, json=payload, verify=False, timeout=120,
-        )
-    if r.status_code != 200:
-        raise RuntimeError(f'CosyVoice API {r.status_code}: {r.text[:200]}')
+    finally:
+        try:
+            os.remove(req_file)
+        except Exception:
+            pass
+    if r.returncode != 0:
+        raise RuntimeError(f'CosyVoice API curl 失败 rc={r.returncode}: {r.stderr[:200]}')
+    code = r.stdout.decode('utf-8', 'replace').strip()
+    if code != '200':
+        # 出错时响应体可能写入了 tmp_path，读前 200 字符辅助定位
+        err = ''
+        try:
+            with open(tmp_path, 'rb') as f:
+                err = f.read(200).decode('utf-8', 'replace')
+        except Exception:
+            pass
+        raise RuntimeError(f'CosyVoice API {code}: {err}')
     # 校验响应是合法 wav（网络异常时可能返回 HTML 错误页/空内容但状态码 200）
-    if len(r.content) < 100 or r.content[:4] != b'RIFF':
+    try:
+        with open(tmp_path, 'rb') as f:
+            head = f.read(4)
+            size = os.path.getsize(tmp_path)
+    except Exception as e:
+        raise RuntimeError(f'CosyVoice 响应写入失败: {e}')
+    if size < 100 or head != b'RIFF':
         raise RuntimeError('CosyVoice 返回内容异常（非有效 wav），已拒绝写入缓存')
-    with open(tmp_path, 'wb') as f:
-        f.write(r.content)
     _check_text_duration(text, tmp_path, 'CosyVoice 源音频')
 
 
