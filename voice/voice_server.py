@@ -96,11 +96,16 @@ def _ensure_rvc():
 
 
 def _wav_duration(path):
-    """读取 wav 时长（秒）；非 wav/损坏返回 None"""
+    """读取 wav 时长（秒）；非 wav/损坏/头异常返回 None。
+    wave 模块对损坏头可能解析出 int32 溢出的帧数（如 2^31-1），
+    超过 30 分钟视为头损坏，返回 None。"""
     try:
         import wave as _wave
         with _wave.open(path, "rb") as w:
-            return w.getnframes() / w.getframerate()
+            dur = w.getnframes() / w.getframerate()
+            if dur > 1800:  # >30min 不可能是正常合成结果
+                return None
+            return dur
     except Exception:
         return None
 
@@ -112,7 +117,9 @@ def _check_text_duration(text, path, tag):
     抛错拒绝写入缓存（防止坏内容被缓存复用，下次命中仍然错乱）。"""
     dur = _wav_duration(path)
     if dur is None:
-        raise RuntimeError(tag + " 音频文件无效或损坏")
+        raise RuntimeError(
+            f"{tag} 音频文件无效或损坏（可能为 API 返回异常数据），已拒绝写入缓存"
+        )
     n = len(text)
     min_dur = max(0.3, n * 0.1)
     max_dur = n * 0.45 + 0.5
