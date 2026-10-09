@@ -146,8 +146,9 @@ def _doh_resolve(host):
                 ips = [a["data"] for a in rr.json().get("Answer", []) if a.get("type") == 1 and a.get("data")]
                 if ips:
                     return ips
-        except Exception:
-            continue
+        except Exception as _e:
+            sys.stderr.write(f"[doh] {url} 失败: {type(_e).__name__} {_e}\n")
+            sys.stderr.flush()
     return None
 
 
