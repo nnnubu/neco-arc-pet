@@ -95,12 +95,52 @@ def _ensure_rvc():
     return _rvc
 
 
+def _repair_wav(path):
+    """修复 wav 头的 RIFF/data size 字段（服务端可能把 size 写成 int32 溢出值，
+    如 0xFFFFFF00，导致 wave 模块解析出 >1800s 假时长被判损坏）。
+    仅当字段与实际不符时改写，正常文件不动。返回是否修复。"""
+    import struct
+    try:
+        with open(path, 'rb') as f:
+            data = f.read()
+        if len(data) < 12 or data[:4] != b'RIFF' or data[8:12] != b'WAVE':
+            return False
+        changed = False
+        buf = bytearray(data)
+        correct_riff = len(data) - 8
+        if struct.unpack('<I', data[4:8])[0] != correct_riff:
+            struct.pack_into('<I', buf, 4, correct_riff)
+            changed = True
+        off = 12
+        while off + 8 <= len(data):
+            cid = data[off:off + 4]
+            csz = struct.unpack('<I', data[off + 4:off + 8])[0]
+            if cid == b'data':
+                correct_data = len(data) - off - 8
+                if csz != correct_data:
+                    struct.pack_into('<I', buf, off + 4, correct_data)
+                    changed = True
+                break
+            off += 8 + csz + (csz & 1)
+        if changed:
+            with open(path, 'wb') as f:
+                f.write(buf)
+        return changed
+    except Exception:
+        return False
+
+
 def _wav_duration(path):
-    """读取 wav 时长（秒）；非 wav/损坏返回 None"""
+    """读取 wav 时长（秒）；非 wav/损坏/头异常返回 None。
+    wave 模块对损坏头可能解析出 int32 溢出的帧数（如 2^31-1），
+    超过 30 分钟视为头损坏，返回 None。"""
     try:
         import wave as _wave
         with _wave.open(path, "rb") as w:
-            return w.getnframes() / w.getframerate()
+            dur = w.getnframes() / w.getframerate()
+            if dur > 1800:  # >30min 不可能是正常合成结果
+                return None
+            return dur
     except Exception:
         return None
 
@@ -153,6 +193,9 @@ def _cosy_synth(text, voice, desc, gain, tmp_path):
         raise RuntimeError('CosyVoice 返回内容异常（非有效 wav），已拒绝写入缓存')
     with open(tmp_path, 'wb') as f:
         f.write(r.content)
+    # 服务端间歇性把 wav 头 size 字段写成 int32 溢出值（0xFFFFFFxx），
+    # 会导致 wave 解析出 48695s 假时长；先按实际长度修复头，再校验时长
+    _repair_wav(tmp_path)
     _check_text_duration(text, tmp_path, 'CosyVoice 源音频')
 
 
