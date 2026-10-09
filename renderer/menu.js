@@ -1,8 +1,9 @@
-// 猫姬桌宠 - 自绘右键菜单逻辑：接收主进程菜单数据并渲染，点击动作回传选择
+// 猫姬桌宠 - 自绘右键菜单逻辑：动作模块（常用+分组统合）+ 设置模块（随机播放参数），点击动作回传选择
 (function () {
   const $ = (s) => document.querySelector(s);
   const secFixed = $('#sec-fixed');
   const groupsBox = $('#groups');
+  let cfg = { randomAction: { enabled: true, intervalSec: 15 } };
 
   // 渲染一个动作项
   function itemEl(it, isFunc) {
@@ -49,11 +50,39 @@
     return det;
   }
 
-  // 点击选择：固定项 / 分组项 / 功能项统一走 pick
+  // 设置模块 UI 更新
+  function renderCfg() {
+    $('#cfg-enable-val').textContent = cfg.randomAction.enabled ? '开' : '关';
+    $('#cfg-interval').textContent = cfg.randomAction.intervalSec;
+    $('#cfg-badge').textContent = '';
+  }
+
+  // 设置交互：随机表演开关 / 间隔增减（步进 5，范围 5-120）
+  function bindCfg() {
+    $('#cfg-enable').addEventListener('click', () => {
+      cfg.randomAction.enabled = !cfg.randomAction.enabled;
+      window.menuApi.setConfig('randomAction.enabled', cfg.randomAction.enabled);
+      renderCfg();
+    });
+    $('#cfg-dec').addEventListener('click', (e) => {
+      e.stopPropagation();
+      cfg.randomAction.intervalSec = Math.max(5, cfg.randomAction.intervalSec - 5);
+      window.menuApi.setConfig('randomAction.intervalSec', cfg.randomAction.intervalSec);
+      renderCfg();
+    });
+    $('#cfg-inc').addEventListener('click', (e) => {
+      e.stopPropagation();
+      cfg.randomAction.intervalSec = Math.min(120, cfg.randomAction.intervalSec + 5);
+      window.menuApi.setConfig('randomAction.intervalSec', cfg.randomAction.intervalSec);
+      renderCfg();
+    });
+  }
+
+  // 点击选择：动作项 / 功能项统一走 pick
   function bindClick() {
     document.addEventListener('click', (e) => {
       const item = e.target.closest('.item');
-      if (!item) return;
+      if (!item || item.classList.contains('cfg') || item.classList.contains('cfg-row')) return;
       const act = item.dataset.act;
       if (!act) return;
       window.menuApi.pick(act);
@@ -62,10 +91,13 @@
 
   // 接收主进程菜单数据并渲染
   window.menuApi.onData((data) => {
+    if (data.config) cfg = Object.assign({}, cfg, data.config);
     for (const it of data.fixed) secFixed.appendChild(itemEl(it, false));
     for (const g of data.groups) groupsBox.appendChild(groupEl(g));
+    const total = data.fixed.length + data.groups.reduce((s, g) => s + g.items.length, 0);
+    $('#act-count').textContent = total;
+    renderCfg();
+    bindCfg();
     bindClick();
   });
-
-  // 菜单窗口内点击空白区域不关闭（避免误触），由主进程失焦关闭
 })();

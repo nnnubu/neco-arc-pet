@@ -24,6 +24,9 @@ contextBridge.exposeInMainWorld('pet', {
   getMaxScale: () => ipcRenderer.invoke('pet-get-max-scale'),
   showMenu: () => ipcRenderer.send('show-context-menu'),
   getActions: () => ipcRenderer.invoke('get-actions'),
+  // 用户配置（随机表演开关/间隔等，菜单「设置」中调整，持久化到 assets/user-config.json）
+  getConfig: () => ipcRenderer.invoke('get-config'),
+  onConfigChanged: (cb) => ipcRenderer.on('config-changed', (_e, c) => cb(c)),
   debugShot: (name) => ipcRenderer.send('debug-shot', name),
   debugLog: (msg) => ipcRenderer.send('debug-log', msg),
   quit: () => ipcRenderer.send('quit'),

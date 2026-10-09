@@ -123,6 +123,17 @@ window.SpriteCore = (() => {
   // 排除下落类（19/25/30/60，随机触发会掉出屏幕且无掉回兜底）与常驻趴（act_23，播完不自动回待机）
   let ONESHOT_NAMES = [...FIXED_ONESHOOT];
   const RANDOM_EXCLUDE = ['act_19', 'act_25', 'act_30', 'act_60', 'act_23'];
+  // 用户配置（菜单「设置」调整）：随机表演开关与间隔（秒），持久化到 assets/user-config.json
+  let cfg = { randomAction: { enabled: true, intervalSec: 15 } };
+  function applyConfig(c) {
+    if (c && c.randomAction) cfg.randomAction = Object.assign({}, cfg.randomAction, c.randomAction);
+  }
+  if (window.pet && window.pet.getConfig) {
+    window.pet.getConfig().then(applyConfig).catch(() => {});
+  }
+  if (window.pet && window.pet.onConfigChanged) {
+    window.pet.onConfigChanged(applyConfig);
+  }
 
   // oneshot 动作附带位移（沿当前朝向水平移动桌宠）：
   // - wine：前段走动（帧 1~14：行走/弯腰/抬手），播放到拿起酒杯（帧 15）后停下
@@ -592,7 +603,7 @@ window.SpriteCore = (() => {
       console.error('[sprite] 动态动作加载失败:', e);
     }
     SPRITE.state = 'idle';
-    SPRITE.nextActionAt = Date.now() + rand(8000, 15000);
+    SPRITE.nextActionAt = Date.now() + cfg.randomAction.intervalSec * 1000; // 按用户配置的随机表演间隔（秒）
     SPRITE.nextRoamAt = Date.now() + rand(15000, 30000); // 首次随机乱跑计时
     showStanding();
     window.pet.resizeWindow(220, 265); // 初始窗口 = 最小尺寸
@@ -770,9 +781,9 @@ window.SpriteCore = (() => {
         const ax = dirX !== 0 ? dirX : (SPRITE.facing >= 0 ? 1 : -1);
         spriteShow(roam.run ? 'running' : (ax > 0 ? 'walking_right' : 'walking_left'), true,
           roam.run && ax < 0);
-      } else if (now >= SPRITE.nextActionAt) {
+      } else if (cfg.randomAction.enabled && now >= SPRITE.nextActionAt) {
         spritePlayOneshot(ONESHOT_NAMES[Math.floor(Math.random() * ONESHOT_NAMES.length)]);
-        SPRITE.nextActionAt = now + rand(12000, 20000);
+        SPRITE.nextActionAt = now + cfg.randomAction.intervalSec * 1000;
       }
     }
   }

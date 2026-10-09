@@ -1,10 +1,32 @@
-// 主进程 - 右键菜单模块：自绘 HTML 菜单窗口（美化样式 + 按类型分组），点击后向桌宠渲染层发送 menu-action
+// 主进程 - 右键菜单模块：自绘 HTML 菜单窗口（动作统合一个模块 + 设置模块可配置随机播放），点击后向桌宠渲染层发送 menu-action
 const { ipcMain, BrowserWindow, screen } = require('electron');
 const fs = require('fs');
 const path = require('path');
 const { getWin } = require('./window');
 
 let menuWin = null;
+
+// 用户配置文件（随机播放等参数，用户可在菜单「设置」中调整，持久化）
+const CONFIG_PATH = path.join(__dirname, '..', 'assets', 'user-config.json');
+const DEFAULT_CONFIG = { randomAction: { enabled: true, intervalSec: 15 } };
+
+function loadConfig() {
+  try {
+    const raw = fs.readFileSync(CONFIG_PATH, 'utf8');
+    const c = JSON.parse(raw);
+    return { randomAction: Object.assign({}, DEFAULT_CONFIG.randomAction, (c && c.randomAction) || {}) };
+  } catch (e) {
+    // 文件缺失/损坏：生成默认配置
+    saveConfig(DEFAULT_CONFIG);
+    return JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+  }
+}
+
+function saveConfig(c) {
+  try {
+    fs.writeFileSync(CONFIG_PATH, JSON.stringify(c, null, 2), 'utf8');
+  } catch (e) {}
+}
 
 // 读取迁移动作注册表（assets/sprite/actions.json，含 cn 中文名 / cat 类别）
 function loadActions() {
@@ -43,7 +65,7 @@ const CATS = [
   { cat: 'fall', title: '下落' },
 ];
 
-// 构建菜单数据：固定项 + 按类别分组的迁移动作（组内按编号排序）
+// 构建菜单数据：动作统合一个模块（常用 + 按类别分组）+ 设置模块（随机播放配置）
 function buildMenuData() {
   const acts = loadActions();
   const groups = CATS.map((c) => {
@@ -53,7 +75,7 @@ function buildMenuData() {
       .map((a) => ({ id: a.name, num: a.name.slice(4), label: a.cn || '动作' }));
     return { cat: c.cat, title: c.title, items };
   });
-  return { fixed: FIXED_ITEMS, groups };
+  return { fixed: FIXED_ITEMS, groups, config: loadConfig() };
 }
 
 function closeMenu() {
@@ -126,6 +148,19 @@ function registerMenuIpc() {
 
   // 菜单窗口关闭（点击空白/取消）
   ipcMain.on('menu-close', () => closeMenu());
+
+  // 渲染层（桌宠）读取用户配置（随机播放参数等）
+  ipcMain.handle('get-config', () => loadConfig());
+
+  // 菜单「设置」模块修改配置：写文件 + 广播给桌宠渲染层即时生效（无需重启）
+  ipcMain.on('menu-config-set', (_e, key, value) => {
+    const c = loadConfig();
+    if (key === 'randomAction.enabled') c.randomAction.enabled = !!value;
+    else if (key === 'randomAction.intervalSec') c.randomAction.intervalSec = Math.max(5, Math.min(120, Math.round(value)));
+    saveConfig(c);
+    const win = getWin();
+    if (win && !win.isDestroyed()) win.webContents.send('config-changed', c);
+  });
 }
 
 module.exports = { registerMenuIpc };

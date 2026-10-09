@@ -68,6 +68,16 @@ body {
 /* 分组折叠块 */
 .fgroup { border-top: 1px solid rgba(255, 255, 255, 0.06); }
 .fgroup:first-of-type { border-top: none; }
+.fgroup.big summary {
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #dfe6f2;
+}
+.fgroup.big .gtitle::before {
+  width: 4px; height: 12px;
+  background: linear-gradient(180deg, #6ea8fe, #8f6efd);
+}
 .fgroup summary {
   list-style: none;
   padding: 8px 14px;
@@ -98,6 +108,33 @@ body {
   transition: transform 0.18s ease;
 }
 .fgroup[open] summary .arrow { transform: rotate(90deg); }
+
+/* 设置模块 */
+#cfg-box { padding: 2px 0 6px; }
+.item.cfg { justify-content: space-between; }
+.item.cfg .cfg-val { color: #6ea8fe; font-weight: 600; }
+.item.cfg-row { justify-content: flex-start; gap: 10px; }
+.item.cfg-row .cfg-val {
+  min-width: 30px;
+  text-align: center;
+  color: #dfe6f2;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.item.cfg-row .cfg-unit { font-size: 11px; color: #5d677c; }
+.cfg-op {
+  width: 22px; height: 22px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #aeb8cc;
+  cursor: pointer;
+  font-size: 13px;
+  user-select: none;
+  transition: background 0.12s ease;
+}
+.cfg-op:hover { background: rgba(110, 168, 254, 0.25); color: #dfe6f2; }
+.cfg-op:active { background: rgba(110, 168, 254, 0.4); }
 
 /* 底部功能 */
 .footer { border-top: 1px solid rgba(255, 255, 255, 0.08); margin-top: 6px; padding-top: 4px; }

@@ -7,12 +7,39 @@
 </head>
 <body>
   <div id="panel">
-    <!-- 固定动作（常用） -->
-    <div class="sec-title" id="sec-fixed-title">常用动作</div>
-    <div class="sec-items" id="sec-fixed"></div>
+    <!-- 动作模块：常用动作 + 全部迁移分组 统合为一个模块 -->
+    <details class="fgroup big" open>
+      <summary>
+        <span class="gtitle">动作</span>
+        <span class="gcount" id="act-count">95</span>
+        <span class="arrow">▶</span>
+      </summary>
+      <div class="sec-title">常用动作</div>
+      <div class="sec-items" id="sec-fixed"></div>
+      <div id="groups"></div>
+    </details>
 
-    <!-- 分组动作（默认折叠，点击展开） -->
-    <div id="groups"></div>
+    <!-- 设置模块：随机播放参数（用户可手动调整，持久化） -->
+    <details class="fgroup big" open>
+      <summary>
+        <span class="gtitle">设置</span>
+        <span class="gcount" id="cfg-badge"></span>
+        <span class="arrow">▶</span>
+      </summary>
+      <div id="cfg-box">
+        <div class="item cfg" id="cfg-enable">
+          <span class="fname">随机表演</span>
+          <span class="cfg-val" id="cfg-enable-val">开</span>
+        </div>
+        <div class="item cfg-row">
+          <span class="fname">表演间隔</span>
+          <span class="cfg-op" id="cfg-dec">−</span>
+          <span class="cfg-val" id="cfg-interval">15</span>
+          <span class="cfg-unit">秒</span>
+          <span class="cfg-op" id="cfg-inc">＋</span>
+        </div>
+      </div>
+    </details>
 
     <!-- 底部功能 -->
     <div class="footer">
