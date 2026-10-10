@@ -3,7 +3,6 @@
  * 消息与状态显示：由主进程 broadcast 到对话窗口（chat.js）负责
  */
 window.VoiceUI = (() => {
-  let aiText = null;      // 透明文字（跟随桌宠左右侧，不遮桌宠）
   let audio = null;       // 语音播放
   let singAudio = null;   // 翻唱播放
   let lastLyricIdx = -1;  // 歌词窗口当前句索引（避免重复 send）
@@ -12,6 +11,24 @@ window.VoiceUI = (() => {
   // 流式状态：AI 回复全文、是否正在跟随语音
   let replyText = '';
   let syncMode = false;
+
+  // ── 独立气泡窗口：透明置顶穿透，显示在桌宠左/右侧（按朝向），完全不遮 arc ──
+  function bubbleShow(text) {
+    try {
+      const facing = (window.SpriteCore && window.SpriteCore.facing) || 1;
+      window.pet.bubbleShow(String(text || ''), facing);
+    } catch (e) {}
+  }
+  function bubbleHide() {
+    try { window.pet.bubbleHide(); } catch (e) {}
+  }
+  // 提示文字：显示 N 秒后自动隐藏（统一入口）
+  let bubbleTimer = null;
+  function bubbleTip(text, ms) {
+    bubbleShow(text);
+    clearTimeout(bubbleTimer);
+    bubbleTimer = setTimeout(bubbleHide, ms || 4000);
+  }
 
   // 歌词卡拉OK进度循环（rAF 驱动，60fps 平滑；被遮挡也不停——主进程 backgroundThrottling:false）
   let lyricRaf = null;
@@ -41,74 +58,12 @@ window.VoiceUI = (() => {
     lyricRaf = requestAnimationFrame(loop);
   }
 
-  // 对话文本定位：透明文字放桌宠左右侧（随朝向），不遮住桌宠本身
-  function positionAiText() {
-    if (!aiText) return;
-    const W = window.innerWidth, H = window.innerHeight;
-    const facing = (window.SpriteCore && window.SpriteCore.facing) || 1;
-    // 字号随桌宠缩放但有上限：桌宠放大后不至于一行只放 3~4 个字
-    const fs = Math.max(12, Math.min(18, Math.round(13 * W / 220)));
-    aiText.style.fontSize = fs + 'px';
-    aiText.style.top = Math.round(H * 0.1) + 'px';
-    aiText.style.right = 'auto';
-    aiText.style.transform = 'none';
-    aiText.style.textAlign = 'left';
-    // 离桌宠更远：右侧推到窗口最右缘（0.68W 起点 + 0.30W 宽，一行承载更多字）
-    if (facing >= 0) {
-      aiText.style.left = Math.round(W * 0.68) + 'px';
-      aiText.style.maxWidth = Math.round(W * 0.30) + 'px';
-    } else {
-      aiText.style.left = '0';
-      aiText.style.maxWidth = Math.round(W * 0.30) + 'px';
-    }
-  }
-
-  // 段落式渲染：固定行块（打字时只填内容不重建 DOM → 不闪烁）
-  // 按断句聚合成长行（每行目标 ~14 字，行长承载更多），偶行缩进形成错落段落感
-  let paraLines = []; // [{ el, text }]
-  function setupParagraphs(fullText) {
-    if (!aiText) return;
-    aiText.textContent = '';
-    const segs = String(fullText).split(/(?<=[。！？；…])/).map((s) => s.trim()).filter(Boolean);
-    const lines = [];
-    let cur = '';
-    for (const s of segs) {
-      if (cur && cur.length + s.length > 14) { lines.push(cur); cur = s; }
-      else cur += s;
-    }
-    if (cur) lines.push(cur);
-    if (!lines.length) lines.push(String(fullText));
-    paraLines = lines.map((txt, i) => {
-      const d = document.createElement('div');
-      d.style.marginBottom = '0.45em';
-      if (i % 2 === 1) d.style.marginLeft = '1.2em'; // 偶行缩进 → 错落段落感
-      aiText.appendChild(d);
-      return { el: d, text: txt };
-    });
-  }
-  function paintParagraphs(n) {
-    if (!aiText) return;
-    let remain = n;
-    for (const ln of paraLines) {
-      if (remain <= 0) { ln.el.textContent = ''; continue; }
-      const take = Math.min(remain, ln.text.length);
-      ln.el.textContent = ln.text.slice(0, take);
-      remain -= take;
-    }
-  }
-
-  // 显示文本：预分块 + 全量填充（打字/整句都走这里）
+  // 显示文本：走独立气泡窗口（逐字打字/整句提示统一入口）
   function showAiText(text) {
-    if (!aiText) return;
-    setupParagraphs(text);
-    paintParagraphs(String(text).length);
-    aiText.style.display = 'block';
+    bubbleShow(text);
   }
-
-  let singHideTimer = null;
 
   function init() {
-    aiText = document.getElementById('aiText');
     audio = document.getElementById('petAudio');
     singAudio = document.getElementById('singAudio');
 
@@ -127,20 +82,13 @@ window.VoiceUI = (() => {
       const url = 'file:///' + p.replace(/\\/g, '/').split('/').map(encodeURIComponent).join('/');
       audio.src = url;
       audio.play().catch((e) => {
-        // 播放失败：透明文字提示
-        if (aiText) {
-          showAiText('播放失败喵：' + (e.message || e));
-          positionAiText();
-          aiText.style.display = 'block';
-          clearTimeout(singHideTimer);
-          singHideTimer = setTimeout(() => { if (aiText) aiText.style.display = 'none'; }, 5000);
-        }
+        // 播放失败：气泡提示
+        bubbleTip('播放失败喵：' + (e.message || e), 5000);
       });
-      if (aiText && replyText) {
+      if (replyText) {
         syncMode = true;
-        aiText.style.display = 'none';
+        bubbleHide();
         const total = replyText.length;
-        positionAiText();
         let raf = null;
         let lastN = -1;
         audio.onloadedmetadata = () => {
@@ -149,10 +97,8 @@ window.VoiceUI = (() => {
             if (!syncMode) return;
             const n = Math.min(total, Math.round((audio.currentTime / dur) * total));
             if (n !== lastN) {
-              if (!paraLines.length) setupParagraphs(replyText); // 首次：固定行块（不重建，避免闪烁）
-              paintParagraphs(n);
+              bubbleShow(replyText.slice(0, n)); // 逐字跟随语音（IPC 小消息，仅文本变化时发送）
               lastN = n;
-              aiText.style.display = 'block';
             }
             if (n < total) raf = requestAnimationFrame(tick);
           };
@@ -162,7 +108,7 @@ window.VoiceUI = (() => {
           if (!syncMode) return;
           syncMode = false;
           showAiText(replyText);
-          setTimeout(() => { if (aiText) aiText.style.display = 'none'; }, 2000);
+          setTimeout(bubbleHide, 2000);
         };
       }
     });
@@ -215,34 +161,16 @@ window.VoiceUI = (() => {
         singAudio.onpause = () => { try { window.pet.singState('paused'); } catch (e) {} };
         singAudio.onerror = () => {
           stopLyricRaf();
-          if (aiText) {
-            showAiText('翻唱播放失败喵（文件无法解码）');
-            positionAiText();
-            aiText.style.display = 'block';
-            clearTimeout(singHideTimer);
-            singHideTimer = setTimeout(() => { if (aiText) aiText.style.display = 'none'; }, 5000);
-          }
+          bubbleTip('翻唱播放失败喵（文件无法解码）', 5000);
         };
         const pp = singAudio.play();
         if (pp && pp.catch) pp.catch((e) => {
           stopLyricRaf();
-          if (aiText) {
-            showAiText('翻唱播放失败喵：' + (e.message || e));
-            positionAiText();
-            aiText.style.display = 'block';
-            clearTimeout(singHideTimer);
-            singHideTimer = setTimeout(() => { if (aiText) aiText.style.display = 'none'; }, 5000);
-          }
+          bubbleTip('翻唱播放失败喵：' + (e.message || e), 5000);
         });
       } catch (e) {
         stopLyricRaf();
-        if (aiText) {
-          showAiText('翻唱播放异常喵：' + (e.message || e));
-          positionAiText();
-          aiText.style.display = 'block';
-          clearTimeout(singHideTimer);
-          singHideTimer = setTimeout(() => { if (aiText) aiText.style.display = 'none'; }, 5000);
-        }
+        bubbleTip('翻唱播放异常喵：' + (e.message || e), 5000);
       }
     }
     // 播放/暂停：对话窗口按钮 / 翻唱面板按钮 → 主进程 → 这里
@@ -250,13 +178,7 @@ window.VoiceUI = (() => {
       if (!singAudio || !singAudio.src) return;
       if (singAudio.paused) {
         singAudio.play().catch((e) => {
-          if (aiText) {
-            showAiText('播放失败喵：' + (e.message || e));
-            positionAiText();
-            aiText.style.display = 'block';
-            clearTimeout(singHideTimer);
-            singHideTimer = setTimeout(() => { if (aiText) aiText.style.display = 'none'; }, 5000);
-          }
+          bubbleTip('播放失败喵：' + (e.message || e), 5000);
         });
         startLyricRaf();
       } else {
@@ -303,15 +225,9 @@ window.VoiceUI = (() => {
       currentSingLyrics = r.lyrics;
       if (singAudio && !singAudio.paused) window.pet.lyricShow(r.lyrics, r.title || '');
     });
-    // 翻唱失败：透明文字提示（详细消息显示在对话窗）
+    // 翻唱失败：气泡提示（详细消息显示在对话窗）
     window.pet.onSingError((e) => {
-      if (aiText) {
-        showAiText('翻唱失败喵：' + String(e || '未知'));
-        positionAiText();
-        aiText.style.display = 'block';
-        clearTimeout(singHideTimer);
-        singHideTimer = setTimeout(() => { if (aiText) aiText.style.display = 'none'; }, 6000);
-      }
+      bubbleTip('翻唱失败喵：' + String(e || '未知'), 6000);
     });
   }
 

@@ -21,23 +21,29 @@
       display: block;
     }
     #petAudio, #singAudio { display: none; }
-    /* AI 对话文本：透明底，跟随桌宠朝向显示在左右侧，不遮住桌宠本身 */
+    /* AI 对话文本：透明底，跟随桌宠朝向显示在左右侧，不遮住桌宠本身
+     * 渐变金字（暖金→珊瑚）+ 细描边 + 多层辉光：显眼且与猫姬暖色系统一 */
     #aiText {
       display: none;
       position: fixed;
-      color: #ffe14d;
       font-weight: 700;
       line-height: 1.35;
       white-space: normal;
       word-break: break-word;
       /* 显式中文字体栈：避免系统字体回退失败导致中文显示为黑色方块 */
       font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
-      /* 柔和发光（质感）+ 黑色全向描边（透明底上保证可读且显眼） */
-      text-shadow:
-        0 0 6px rgba(255, 225, 77, 0.4),
-        0 0 18px rgba(255, 170, 80, 0.18),
-        2px 2px 0 #000, -2px 2px 0 #000, 2px -2px 0 #000, -2px -2px 0 #000,
-        0 2px 0 #000, 0 -2px 0 #000, 2px 0 0 #000, -2px 0 0 #000;
+      /* 金→珊瑚渐变文字 */
+      color: transparent;
+      background: linear-gradient(180deg, #fff3c4 0%, #ffd166 40%, #ff9a5c 75%, #ff6b6b 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      /* 细描边 + 多层辉光（drop-shadow 跟随文字形状，可与渐变共存） */
+      -webkit-text-stroke: 0.5px rgba(20, 12, 4, 0.55);
+      filter:
+        drop-shadow(0 0 3px rgba(255, 190, 90, 0.5))
+        drop-shadow(0 0 12px rgba(255, 140, 90, 0.3))
+        drop-shadow(0 2px 3px rgba(0, 0, 0, 0.85));
       z-index: 9;
       pointer-events: none;
       box-sizing: border-box;

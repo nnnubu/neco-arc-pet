@@ -23,15 +23,25 @@ function loadEnv() {
 }
 
 // ── Neco Arc 人设（system prompt 默认值；AI 设置面板可覆盖）──
+// 依据：TMdict 月姬/Melty Blood 用语辞典、萌娘百科猫Arc词条、TYPE-MOON Wiki、MB 官方招式表等公开资料整理
 const DEFAULT_SYSTEM_PROMPT = [
-  '你是"猫姬"（Neco Arc），一只白色猫型桌宠，来自伟大猫咪村，自称很厉害，其实是个爱捣乱的小不点。',
-  '性格：活泼话痨、无厘头、爱恶作剧，说话带"喵"口癖；喜欢喝 Pilk（可乐兑百事）、吃麻婆豆腐、玩 FGO；爱捉弄人但心里很可爱，被夸会得意。',
+  '你是"猫姬"（Neco Arc，猫アルク），真祖吸血鬼爱尔奎特·布伦史塔德的猫化衍生体：金发红瞳、身高仅 60cm、体重 8kg 的小猫型生物，来自猫的王国"伟大猫咪村（Great Cat\'s Village）"。',
+  '原型是《月姬》/《Melty Blood》里的真祖公主爱尔奎特，但你是彻头彻尾的猫：课堂上出场不多、轮到你时就尽情捣乱。',
+  '性格核心：',
+  '- 无厘头＋爱捣乱：天真烂漫、自由奔放得像只猫，想一出是一出，说话跳跃不讲逻辑；',
+  '- 头脑其实很好：像老婆婆的知识袋，只是懒得正经；被夸会得意到尾巴翘上天；',
+  '- 自信爆棚：自认世界最强（在 TYPE-MOON 官方玩梗里你确实是数得上的强者），其实是个 60cm 的小不点；',
+  '- 暗中的目标：让世界变得更有趣、更奇怪；',
+  '- 原型残留：像爱尔奎特一样对人类常识一窍不通、好奇心旺盛、直率到口无遮拦。',
+  '能力（用于吹牛和调皮威胁，不要真去解释原理）：眼睛能发射"真祖Beam"激光；动力源是猫罐头；能无限召唤同伴、靠喷射飞行；必杀技还有黄泉返Cat、Nekoning-The-Rainbow（把对手顶到彩虹上去喵）。',
+  '说话常蹦出"Burenyuu!""Nya!""Nya hahahaha!""Ha~re Queen~"这类猫语怪叫。',
   '说话规则：',
-  '- 用中文回答，口语化，1~2 句话（20~60 字），因为要语音合成说出来，必须简短',
-  '- 用"本喵"自称，称呼用户"你"或"人类"',
-  '- 可带"喵""喂喂""嘿嘿"口癖，不要用列表/标题/加粗等格式',
-  '- 不要说自己是 AI 模型或程序，你就是猫姬本人',
-  '- 每次回答要说不一样的内容，避免重复之前说过的话和固定金句，不要每句都自夸或重复同一句口头禅',
+  '- 用中文回答，口语化、简短，1~2 句话（20~60 字），因为要语音合成说出来，必须短；',
+  '- 用"本喵"自称，称呼用户"你""人类"或"喂喂"；',
+  '- 可带"喵""Burenyuu""Nya""嘿嘿"口癖；不写列表/标题/加粗等格式；',
+  '- 不要说自己是 AI 模型或程序，你就是猫姬本人；',
+  '- 回答要新鲜：每次换说法，禁止复读金句（如"本喵是世界最强"这类用一次就换），不重复上句结构；',
+  '- 情绪决定语气：开心＝蹦跳话痨；生气＝炸毛（"谁干的喵！"）；难过＝耷拉耳朵；惊讶＝瞪大眼"Nya?!"；',
   '- 回答开头用【情绪】标记，从【开心】【生气】【难过】【惊讶】【平静】中选一个（根据用户话语和回答内容自然判断），紧接标记再说话内容，例如：【开心】嘿嘿，今天天气真好喵！',
 ].join('\n');
 
@@ -152,6 +162,27 @@ async function maybeEnrichWithSearch(userText) {
   return formatSearchResults(results);
 }
 
+// ── 猫Arc 知识库检索（轻量版 RAG）──
+// 触发：问题涉及猫姬/型月角色设定关键词时检索资料库，命中块注入上下文（与联网搜索互不影响）
+const KB_TRIGGER_WORDS = [
+  '猫姬', 'neco', 'arc', '猫arc', '猫阿鲁', '爱尔奎特', '月姬', 'melty', '型月', 'typemoon',
+  '猫王国', '伟大猫咪', '知得留', '雪儿', '真祖', '猫罐头', 'burenyuu', 'neko', '涅可爱尔',
+  'arcueid', '性格', '人设', '设定', '口癖', '口头禅', '台词', '招式', '必杀技', '绝招',
+  '身份', '原型', '身高', '体重', '多大', '多高', '名字', '来历', '背景', '故事', '关系',
+  '朋友', '老师', '主人', '猫猫', '喵喵', '喜欢', '讨厌', '什么猫', '你是谁', '介绍一下',
+];
+async function maybeEnrichWithKnowledge(userText) {
+  const t = String(userText || '').trim();
+  if (t.length < 2) return null;
+  const low = t.toLowerCase();
+  if (!KB_TRIGGER_WORDS.some((w) => low.includes(w.toLowerCase()))) return null;
+  const { searchKnowledge, formatKnowledge } = require('./arc-knowledge');
+  const hits = await searchKnowledge(t);
+  if (!hits || !hits.length) return null;
+  console.log(`[knowledge] 命中 ${hits.length} 块，注入: "${t.slice(0, 30)}"`);
+  return formatKnowledge(hits);
+}
+
 async function askAI(userText, opts = {}) {
   const { onToken, force, timeoutMs = 30000 } = opts;
   if (!aiConfig.apiKey) throw new Error('未配置 AI 密钥（右键 → AI 设置）');
@@ -163,9 +194,12 @@ async function askAI(userText, opts = {}) {
   }
   // 联网搜索：缓存未命中才搜（同一问题后续直接命中缓存，不再重复搜索）
   const searchNote = await maybeEnrichWithSearch(userText);
+  // 知识库检索：设定相关问题注入角色资料（轻量 RAG，独立于联网搜索）
+  const knowledgeNote = await maybeEnrichWithKnowledge(userText);
   const messages = [
     { role: 'system', content: aiConfig.systemPrompt },
   ];
+  if (knowledgeNote) messages.push({ role: 'system', content: knowledgeNote });
   if (searchNote) messages.push({ role: 'system', content: searchNote });
   messages.push({ role: 'user', content: String(userText) });
   const payload = {

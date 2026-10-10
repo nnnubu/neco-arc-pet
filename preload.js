@@ -65,4 +65,7 @@ contextBridge.exposeInMainWorld('pet', {
   openSingDir: (dir) => ipcRenderer.send('open-sing-dir', dir),
   // 打开对话窗口（右键菜单「说句话…」→ 主进程）
   openChat: () => ipcRenderer.send('chat-open'),
+  // 独立气泡窗口：透明置顶穿透，跟随桌宠左/右侧显示对话文字（不遮 arc）
+  bubbleShow: (text, facing) => ipcRenderer.send('bubble-show', String(text || ''), facing >= 0 ? 1 : -1),
+  bubbleHide: () => ipcRenderer.send('bubble-hide'),
 });

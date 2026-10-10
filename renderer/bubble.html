@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>气泡</title>
+  <style>
+    /* 独立气泡窗口：透明底 + 金→珊瑚渐变文字 + 多层辉光（与桌宠主窗 aiText 同款视觉） */
+    html, body {
+      margin: 0; padding: 0;
+      background: transparent;
+      overflow: hidden;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    #bt {
+      position: fixed;
+      inset: 0;
+      box-sizing: border-box;
+      padding: 8px 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: flex-start;
+      overflow: hidden;
+      font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
+      font-weight: 700;
+      font-size: 16px;
+      line-height: 1.45;
+      word-break: break-word;
+      white-space: pre-wrap;
+      color: transparent;
+      background: linear-gradient(180deg, #fff3c4 0%, #ffd166 40%, #ff9a5c 75%, #ff6b6b 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      -webkit-text-stroke: 0.5px rgba(20, 12, 4, 0.55);
+      filter:
+        drop-shadow(0 0 3px rgba(255, 190, 90, 0.5))
+        drop-shadow(0 0 12px rgba(255, 140, 90, 0.3))
+        drop-shadow(0 2px 3px rgba(0, 0, 0, 0.85));
+    }
+  </style>
+</head>
+<body>
+  <div id="bt"></div>
+  <script>
+    const bt = document.getElementById('bt');
+    window.bubbleApi.onText((t) => { bt.textContent = t || ''; });
+  </script>
+</body>
+</html>
