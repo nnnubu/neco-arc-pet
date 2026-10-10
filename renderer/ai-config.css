@@ -16,6 +16,7 @@
 }
 * { margin: 0; padding: 0; box-sizing: border-box; }
 html, body {
+  position: relative;
   background:
     radial-gradient(120% 70% at 90% 0%, rgba(255, 120, 110, 0.08) 0%, transparent 55%),
     radial-gradient(110% 60% at 0% 100%, rgba(120, 130, 255, 0.06) 0%, transparent 50%),
@@ -62,13 +63,20 @@ html, body {
 #btnClose:active, #btnMin:active { transform: scale(0.9); }
 
 #body {
-  padding: 16px;
+  padding: 14px 16px 6px;
   overflow-y: auto;
-  height: calc(100% - 40px);
+  height: calc(100% - 40px - 128px);
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
 }
-.field { display: block; margin-bottom: 14px; }
+#footer {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  padding: 8px 16px 12px;
+  background: linear-gradient(180deg, rgba(18, 19, 31, 0) 0%, rgba(11, 12, 21, 0.96) 45%);
+  border-top: 1px solid var(--line);
+}
+.field { display: block; margin-bottom: 10px; }
 .field span {
   display: block;
   margin-bottom: 6px;
@@ -122,11 +130,11 @@ html, body {
 
 .divider {
   height: 1px;
-  margin: 18px 0 14px;
+  margin: 12px 0 10px;
   background: linear-gradient(90deg, transparent, var(--line-strong), transparent);
 }
 .section-title {
-  margin-bottom: 12px;
+  margin-bottom: 8px;
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 2px;
@@ -136,11 +144,11 @@ html, body {
   background-clip: text;
   -webkit-text-fill-color: transparent;
 }
-#lblProactive { margin-bottom: 10px; }
+#lblProactive { margin-bottom: 8px; }
 
 #msg {
-  min-height: 22px;
-  margin: 4px 0 10px;
+  min-height: 18px;
+  margin: 0 0 8px;
   font-size: 12px;
   color: var(--ok);
   word-break: break-all;
@@ -152,15 +160,17 @@ html, body {
   to { opacity: 1; transform: translateY(0); }
 }
 
-#btns { display: flex; gap: 9px; }
+#btns { display: flex; gap: 7px; }
 #btns button {
   flex: 1;
-  padding: 9px 0;
+  min-width: 0;
+  padding: 8px 2px;
   border: 1px solid transparent;
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.08);
   color: var(--txt);
-  font-size: 13px;
+  font-size: 12px;
+  white-space: nowrap;
   cursor: pointer;
   transition: background 0.16s var(--ease), color 0.16s var(--ease), transform 0.12s var(--ease), box-shadow 0.16s var(--ease);
 }
@@ -176,10 +186,10 @@ html, body {
 #btns button.primary:hover { filter: brightness(1.12); background: linear-gradient(180deg, var(--brand1), #d93a42); }
 #btns button:disabled { opacity: 0.5; cursor: default; transform: none; }
 #hint {
-  margin-top: 14px;
-  padding-top: 12px;
+  margin-top: 8px;
+  padding-top: 8px;
   border-top: 1px solid var(--line);
   font-size: 11px;
   color: var(--txt3);
-  line-height: 1.7;
+  line-height: 1.6;
 }
