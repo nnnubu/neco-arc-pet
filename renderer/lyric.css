@@ -91,14 +91,19 @@ body:hover #controls { opacity: 1; }
 #lcPrev, #lcToggle, #lcNext {
   flex: 0 0 auto;
   width: 24px; height: 24px;
-  border: none; border-radius: 6px;
-  background: rgba(0, 0, 0, 0.35);
-  color: rgba(255, 255, 255, 0.85);
+  border: none; border-radius: 7px;
+  background: rgba(15, 16, 26, 0.55);
+  color: rgba(255, 255, 255, 0.9);
   font-size: 13px; line-height: 1;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition: background 0.16s, color 0.16s, box-shadow 0.16s;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
 }
-#lcPrev:hover, #lcToggle:hover, #lcNext:hover { background: rgba(217, 58, 66, 0.85); color: #fff; }
+#lcPrev:hover, #lcToggle:hover, #lcNext:hover {
+  background: linear-gradient(180deg, #ff5f6d, #d93a42);
+  color: #fff;
+  box-shadow: 0 0 12px rgba(255, 95, 109, 0.45);
+}
 #progressTime {
   flex: 0 0 auto;
   font-size: 10px;
@@ -121,8 +126,14 @@ body:hover #controls { opacity: 1; }
   height: 100%;
   width: 0%;
   border-radius: 3px;
-  background: linear-gradient(90deg, #ffd04d, #ff8a5c);
-  box-shadow: 0 0 6px rgba(255, 208, 77, 0.5);
+  background: linear-gradient(90deg, #ff5f6d, #ff8a5c, #ffd166);
+  background-size: 200% 100%;
+  animation: barShine 2.4s linear infinite;
+  box-shadow: 0 0 8px rgba(255, 138, 92, 0.55);
+}
+@keyframes barShine {
+  0% { background-position: 0% 0; }
+  100% { background-position: 200% 0; }
 }
 #progressKnob {
   position: absolute;
@@ -131,7 +142,7 @@ body:hover #controls { opacity: 1; }
   width: 12px; height: 12px;
   border-radius: 50%;
   background: #fff;
-  box-shadow: 0 0 5px rgba(0, 0, 0, 0.5), 0 0 8px rgba(255, 208, 77, 0.6);
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.5), 0 0 10px rgba(255, 138, 92, 0.8);
   transform: translate(-50%, -50%);
   pointer-events: none;
 }

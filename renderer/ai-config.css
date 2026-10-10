@@ -1,8 +1,26 @@
-/* AI 设置面板样式：与翻唱面板同风格的深色工具窗 */
+/* AI 设置面板 — 与对话窗/翻唱面板统一的设计系统（深空渐变 + 玻璃 + 珊瑚聚焦） */
+:root {
+  --bg0: #0b0c15;
+  --bg1: #12131f;
+  --bg2: #191b2b;
+  --line: rgba(255, 255, 255, 0.08);
+  --line-strong: rgba(255, 255, 255, 0.14);
+  --txt: #f2f4fb;
+  --txt2: #a7afc5;
+  --txt3: #626c86;
+  --brand1: #ff5f6d;
+  --brand2: #ff8a5c;
+  --ok: #7ce4a8;
+  --danger: #ff7d85;
+  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+}
 * { margin: 0; padding: 0; box-sizing: border-box; }
 html, body {
-  background: #1c1c26;
-  color: #eee;
+  background:
+    radial-gradient(120% 70% at 90% 0%, rgba(255, 120, 110, 0.08) 0%, transparent 55%),
+    radial-gradient(110% 60% at 0% 100%, rgba(120, 130, 255, 0.06) 0%, transparent 50%),
+    linear-gradient(165deg, var(--bg1) 0%, var(--bg0) 60%, var(--bg0) 100%);
+  color: var(--txt);
   font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
   font-size: 13px;
   overflow: hidden;
@@ -14,43 +32,70 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 34px;
-  padding: 0 8px 0 14px;
-  background: #262634;
+  height: 40px;
+  padding: 0 10px 0 16px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.015));
+  border-bottom: 1px solid var(--line);
   -webkit-app-region: drag;
 }
-#titlebar .t { font-weight: 700; letter-spacing: 1px; color: #ff9aa0; }
+#titlebar .t {
+  font-weight: 700;
+  letter-spacing: 2px;
+  font-size: 13px;
+  background: linear-gradient(90deg, #ffb0b6, #ff9a7a);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
 #tbBtns { display: flex; gap: 6px; -webkit-app-region: no-drag; }
 #btnClose, #btnMin {
-  width: 26px; height: 26px;
-  border: none; border-radius: 6px;
-  background: rgba(255, 255, 255, 0.08);
-  color: #ccc; font-size: 15px; line-height: 1;
+  width: 28px; height: 28px;
+  border: none; border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 15px; line-height: 1;
   cursor: pointer;
+  transition: background 0.16s var(--ease), color 0.16s var(--ease), transform 0.12s var(--ease);
 }
-#btnMin:hover { background: rgba(255, 255, 255, 0.2); }
-#btnClose:hover { background: #d93a42; color: #fff; }
+#btnMin:hover { background: rgba(255, 255, 255, 0.14); color: #fff; }
+#btnClose:hover { background: var(--danger); color: #fff; }
+#btnClose:active, #btnMin:active { transform: scale(0.9); }
 
-#body { padding: 14px; overflow-y: auto; height: calc(100% - 34px); }
-.field { display: block; margin-bottom: 12px; }
+#body {
+  padding: 16px;
+  overflow-y: auto;
+  height: calc(100% - 40px);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
+}
+.field { display: block; margin-bottom: 14px; }
 .field span {
   display: block;
-  margin-bottom: 5px;
-  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 6px;
+  color: var(--txt2);
   font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
 }
 .field input, .field textarea {
   width: 100%;
-  padding: 8px 10px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 8px;
-  background: #14141c;
-  color: #eee;
+  padding: 9px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: rgba(10, 11, 20, 0.55);
+  color: var(--txt);
   font-family: inherit;
   font-size: 13px;
   outline: none;
+  transition: border-color 0.2s var(--ease), box-shadow 0.2s var(--ease), background 0.2s var(--ease);
 }
-#keyRow { display: flex; gap: 6px; }
+.field input:hover, .field textarea:hover { border-color: rgba(255, 255, 255, 0.22); }
+.field input:focus, .field textarea:focus {
+  border-color: rgba(255, 95, 109, 0.85);
+  background: rgba(10, 11, 20, 0.8);
+  box-shadow: 0 0 0 3px rgba(255, 95, 109, 0.14);
+}
+#keyRow { display: flex; gap: 7px; }
 #keyRow input { flex: 1; }
 .field.check {
   display: flex;
@@ -58,45 +103,65 @@ html, body {
   gap: 8px;
   cursor: pointer;
 }
-.field.check input { width: 16px; height: 16px; accent-color: #d93a42; cursor: pointer; }
-.field.check span { margin: 0; color: rgba(255, 255, 255, 0.8); font-size: 12px; }
+.field.check input { width: 16px; height: 16px; accent-color: var(--brand1); cursor: pointer; }
+.field.check span { margin: 0; color: var(--txt2); font-size: 12px; }
 #btnKeyEye {
-  width: 34px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 8px;
-  background: #14141c;
+  width: 38px;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: rgba(10, 11, 20, 0.55);
   color: #ccc;
   font-size: 14px;
   cursor: pointer;
+  transition: background 0.16s var(--ease), color 0.16s var(--ease);
 }
-#btnKeyEye:hover { background: #262634; color: #fff; }
-.field input:focus, .field textarea:focus { border-color: #ff9aa0; }
-.field textarea { resize: none; line-height: 1.5; }
+#btnKeyEye:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
+.field textarea { resize: none; line-height: 1.55; }
 #row2 { display: flex; gap: 10px; }
 .field.half { flex: 1; }
 
 #msg {
-  min-height: 20px;
+  min-height: 22px;
   margin: 4px 0 10px;
   font-size: 12px;
-  color: #9be29b;
+  color: var(--ok);
   word-break: break-all;
+  animation: msgIn 0.25s var(--ease) both;
 }
-#msg.error { color: #ff8a8a; }
+#msg.error { color: #ff9a9a; }
+@keyframes msgIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 
-#btns { display: flex; gap: 8px; }
+#btns { display: flex; gap: 9px; }
 #btns button {
   flex: 1;
-  padding: 8px 0;
-  border: none;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.1);
-  color: #eee;
+  padding: 9px 0;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--txt);
   font-size: 13px;
   cursor: pointer;
+  transition: background 0.16s var(--ease), color 0.16s var(--ease), transform 0.12s var(--ease), box-shadow 0.16s var(--ease);
 }
-#btns button:hover { background: rgba(255, 255, 255, 0.18); }
-#btns button.primary { background: #d93a42; font-weight: 700; }
-#btns button.primary:hover { background: #f04a52; }
-#btns button:disabled { opacity: 0.5; cursor: default; }
-#hint { margin-top: 12px; font-size: 11px; color: rgba(255, 255, 255, 0.4); line-height: 1.6; }
+#btns button:hover { background: rgba(255, 255, 255, 0.14); color: #fff; }
+#btns button:active:not(:disabled) { transform: scale(0.96); }
+#btns button.primary {
+  background: linear-gradient(180deg, var(--brand1), #d93a42);
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #fff;
+  box-shadow: 0 3px 12px rgba(217, 58, 66, 0.3);
+}
+#btns button.primary:hover { filter: brightness(1.12); background: linear-gradient(180deg, var(--brand1), #d93a42); }
+#btns button:disabled { opacity: 0.5; cursor: default; transform: none; }
+#hint {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  font-size: 11px;
+  color: var(--txt3);
+  line-height: 1.7;
+}

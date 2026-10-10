@@ -1,8 +1,28 @@
-/* 翻唱面板样式：深色工具窗，拖拽区醒目，进度步骤条，历史列表滚动 */
+/* 翻唱面板 — Awwwards 级设计系统（与对话窗口统一：深空渐变 + 玻璃 + 珊瑚品牌） */
+:root {
+  --bg0: #0b0c15;
+  --bg1: #12131f;
+  --bg2: #191b2b;
+  --panel: rgba(24, 26, 42, 0.72);
+  --line: rgba(255, 255, 255, 0.08);
+  --line-strong: rgba(255, 255, 255, 0.14);
+  --txt: #f2f4fb;
+  --txt2: #a7afc5;
+  --txt3: #626c86;
+  --brand1: #ff5f6d;
+  --brand2: #ff8a5c;
+  --brand3: #ffd166;
+  --ok: #7ce4a8;
+  --danger: #ff7d85;
+  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+}
 * { margin: 0; padding: 0; box-sizing: border-box; }
 html, body {
-  background: #1c1c26;
-  color: #eee;
+  background:
+    radial-gradient(120% 70% at 90% 0%, rgba(255, 120, 110, 0.08) 0%, transparent 55%),
+    radial-gradient(110% 60% at 0% 100%, rgba(120, 130, 255, 0.06) 0%, transparent 50%),
+    linear-gradient(165deg, var(--bg1) 0%, var(--bg0) 60%, var(--bg0) 100%);
+  color: var(--txt);
   font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
   font-size: 13px;
   overflow: hidden;
@@ -10,42 +30,73 @@ html, body {
   user-select: none;
 }
 
-/* 标题栏 */
+/* 标题栏（玻璃条） */
 #titlebar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 34px;
-  padding: 0 8px 0 14px;
-  background: #262634;
+  height: 40px;
+  padding: 0 10px 0 16px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.015));
+  border-bottom: 1px solid var(--line);
   -webkit-app-region: drag;
 }
-#titlebar .t { font-weight: 700; letter-spacing: 1px; color: #ff9aa0; }
+#titlebar .t {
+  font-weight: 700;
+  letter-spacing: 2px;
+  font-size: 13px;
+  background: linear-gradient(90deg, #ffb0b6, #ff9a7a);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
 #tbBtns { display: flex; gap: 6px; -webkit-app-region: no-drag; }
 #btnClose, #btnMin {
-  width: 26px; height: 26px;
-  border: none; border-radius: 6px;
-  background: rgba(255, 255, 255, 0.08);
-  color: #ccc; font-size: 15px; line-height: 1;
+  width: 28px; height: 28px;
+  border: none; border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 15px; line-height: 1;
   cursor: pointer;
+  transition: background 0.16s var(--ease), color 0.16s var(--ease), transform 0.12s var(--ease);
 }
-#btnMin:hover { background: rgba(255, 255, 255, 0.2); }
-#btnClose:hover { background: #d93a42; color: #fff; }
+#btnMin:hover { background: rgba(255, 255, 255, 0.14); color: #fff; }
+#btnClose:hover { background: var(--danger); color: #fff; }
+#btnClose:active, #btnMin:active { transform: scale(0.9); }
 
-/* 拖拽区 */
+/* 拖拽区（玻璃卡片 + 内部光晕） */
 .drop {
-  margin: 12px;
-  padding: 18px 12px;
-  border: 2px dashed rgba(255, 154, 160, 0.45);
-  border-radius: 12px;
+  margin: 14px 14px 6px;
+  padding: 20px 14px;
+  border: 1.5px dashed rgba(255, 154, 160, 0.5);
+  border-radius: 14px;
   text-align: center;
-  color: rgba(255, 255, 255, 0.55);
-  background: rgba(255, 154, 160, 0.05);
+  color: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 154, 160, 0.045);
   cursor: pointer;
-  transition: border-color 0.2s, background 0.2s;
+  transition: border-color 0.22s var(--ease), background 0.22s var(--ease), box-shadow 0.22s var(--ease), transform 0.12s var(--ease);
+  position: relative;
 }
-.drop.over { border-color: #ff5a60; background: rgba(255, 92, 98, 0.14); }
-#dropHint { line-height: 1.6; }
+.drop::before { /* 顶部高光 */
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent 40%);
+  pointer-events: none;
+}
+.drop:hover {
+  border-color: rgba(255, 95, 109, 0.85);
+  background: rgba(255, 95, 109, 0.06);
+  box-shadow: 0 0 24px rgba(255, 95, 109, 0.12), inset 0 0 24px rgba(255, 95, 109, 0.05);
+}
+.drop:active { transform: scale(0.99); }
+.drop.over {
+  border-color: var(--brand1);
+  background: rgba(255, 95, 109, 0.12);
+  box-shadow: 0 0 32px rgba(255, 95, 109, 0.22);
+}
+#dropHint { line-height: 1.7; }
 #picked {
   margin-top: 8px;
   color: #ffe9a8;
@@ -54,110 +105,26 @@ html, body {
   display: none;
 }
 
-/* 开始按钮 */
-#startRow { padding: 0 12px; text-align: center; }
-#btnStart {
-  width: 100%;
-  padding: 9px 0;
-  border: none; border-radius: 10px;
-  background: linear-gradient(180deg, #ff5a60, #d93a42);
-  color: #fff; font-size: 14px; font-weight: 700; letter-spacing: 2px;
-  cursor: pointer;
-  transition: filter 0.15s, opacity 0.15s;
-}
-#btnStart:hover { filter: brightness(1.15); }
-#btnStart:disabled { opacity: 0.35; cursor: not-allowed; filter: none; }
-
-/* 进度 */
-#progress {
-  display: flex;
-  gap: 6px;
-  margin: 14px 12px 6px;
-}
-.step {
-  flex: 1;
-  text-align: center;
-  padding: 4px 0;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.35);
-  font-size: 12px;
-  transition: background 0.2s, color 0.2s;
-}
-.step.on { background: rgba(255, 154, 160, 0.25); color: #ff9aa0; font-weight: 700; }
-.step.done { background: rgba(120, 220, 160, 0.22); color: #7ce4a8; font-weight: 700; }
-#progressBar {
-  margin: 0 12px;
-  height: 5px;
-  border-radius: 3px;
-  background: rgba(255, 255, 255, 0.08);
-  overflow: hidden;
-}
-#barFill {
-  width: 0%;
-  height: 100%;
-  background: linear-gradient(90deg, #ff5a60, #ffd166);
-  border-radius: 3px;
-  transition: width 0.25s;
-}
-#statusText {
-  margin: 6px 12px;
-  color: #ffd9a0;
-  font-size: 12px;
-  min-height: 16px;
-}
-
-/* 播放控制 */
-#playRow {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 4px 12px 10px;
-}
-#playRow.hidden { display: none; }
-#btnToggle {
-  width: 30px; height: 30px;
-  border: none; border-radius: 50%;
-  background: rgba(255, 154, 160, 0.28);
-  color: #fff; font-size: 14px;
-  cursor: pointer;
-}
-#btnToggle:hover { background: rgba(255, 92, 98, 0.55); }
-#playingName {
-  flex: 1;
-  color: #ffe9a8;
-  font-size: 12px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-#btnLyric {
-  width: 28px; height: 28px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.06);
-  color: #ffd9a0; font-size: 13px;
-  cursor: pointer;
-}
-#btnLyric:hover { background: rgba(255, 92, 98, 0.4); border-color: rgba(255, 92, 98, 0.6); }
-
 /* 歌词文件选项 */
 #lrcRow {
-  margin: 8px 12px 2px;
+  margin: 10px 14px 2px;
 }
 .chk {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  color: rgba(255, 255, 255, 0.75);
+  gap: 7px;
+  color: rgba(255, 255, 255, 0.8);
   font-size: 12px;
   cursor: pointer;
   user-select: none;
+  transition: color 0.16s var(--ease);
 }
-.chk input { accent-color: #ff5a60; cursor: pointer; }
+.chk:hover { color: #fff; }
+.chk input { accent-color: var(--brand1); cursor: pointer; }
 #lrcZone.drop {
-  margin-top: 6px;
-  height: 56px;
+  margin-top: 8px;
+  height: 58px;
+  padding: 10px 12px;
 }
 #lrcZone.drop.hidden { display: none; }
 #lrcHint {
@@ -173,51 +140,163 @@ html, body {
   white-space: nowrap;
 }
 
-/* 历史 */
+/* 开始按钮（渐变胶囊 + 光晕） */
+#startRow { padding: 8px 14px 2px; text-align: center; }
+#btnStart {
+  width: 100%;
+  padding: 10px 0;
+  border: none; border-radius: 11px;
+  background: linear-gradient(180deg, var(--brand1), #d93a42);
+  color: #fff; font-size: 14px; font-weight: 700; letter-spacing: 3px;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(217, 58, 66, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  transition: filter 0.18s var(--ease), box-shadow 0.18s var(--ease), transform 0.12s var(--ease), opacity 0.18s var(--ease);
+}
+#btnStart:hover { filter: brightness(1.12); box-shadow: 0 6px 24px rgba(217, 58, 66, 0.45); }
+#btnStart:active:not(:disabled) { transform: scale(0.97); }
+#btnStart:disabled { opacity: 0.35; cursor: not-allowed; filter: none; box-shadow: none; }
+
+/* 进度（步骤胶囊 + 流光进度条） */
+#progress {
+  display: flex;
+  gap: 6px;
+  margin: 14px 14px 7px;
+}
+.step {
+  flex: 1;
+  text-align: center;
+  padding: 5px 0;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--txt3);
+  font-size: 12px;
+  transition: background 0.2s var(--ease), color 0.2s var(--ease), box-shadow 0.2s var(--ease);
+}
+.step.on { background: rgba(255, 95, 109, 0.18); color: #ffb0b6; font-weight: 700; box-shadow: 0 0 14px rgba(255, 95, 109, 0.12); }
+.step.done { background: rgba(124, 228, 168, 0.14); color: var(--ok); font-weight: 700; }
+#progressBar {
+  margin: 0 14px;
+  height: 5px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.07);
+  overflow: hidden;
+}
+#barFill {
+  width: 0%;
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--brand1), var(--brand2), var(--brand3));
+  background-size: 200% 100%;
+  transition: width 0.3s var(--ease);
+  animation: barShine 2.2s linear infinite;
+}
+@keyframes barShine {
+  0% { background-position: 0% 0; }
+  100% { background-position: 200% 0; }
+}
+#statusText {
+  margin: 7px 14px;
+  color: #ffd9a0;
+  font-size: 12px;
+  min-height: 16px;
+}
+
+/* 播放控制 */
+#playRow {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 4px 14px 10px;
+}
+#playRow.hidden { display: none; }
+#btnToggle {
+  width: 32px; height: 32px;
+  border: none; border-radius: 50%;
+  background: linear-gradient(180deg, rgba(255, 95, 109, 0.4), rgba(217, 58, 66, 0.55));
+  color: #fff; font-size: 14px;
+  cursor: pointer;
+  box-shadow: 0 3px 12px rgba(217, 58, 66, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transition: filter 0.18s var(--ease), transform 0.12s var(--ease);
+}
+#btnToggle:hover { filter: brightness(1.2); }
+#btnToggle:active { transform: scale(0.9); }
+#playingName {
+  flex: 1;
+  color: #ffe9a8;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#btnLyric {
+  width: 30px; height: 30px;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  color: #ffd9a0; font-size: 13px;
+  cursor: pointer;
+  transition: background 0.18s var(--ease), color 0.18s var(--ease), border-color 0.18s var(--ease), box-shadow 0.18s var(--ease), transform 0.12s var(--ease);
+}
+#btnLyric:hover { background: rgba(255, 95, 109, 0.3); color: #fff; border-color: rgba(255, 95, 109, 0.6); box-shadow: 0 0 14px rgba(255, 95, 109, 0.25); }
+#btnLyric:active { transform: scale(0.9); }
+
+/* 历史列表 */
 #historyHead {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 12px 6px;
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 12px;
+  padding: 6px 16px 7px;
+  color: var(--txt3);
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  font-weight: 600;
 }
 #btnDir {
-  width: 26px; height: 26px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.06);
+  width: 28px; height: 28px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
   color: #ccc; font-size: 13px;
   cursor: pointer;
+  transition: background 0.16s var(--ease), color 0.16s var(--ease), transform 0.12s var(--ease);
 }
-#btnDir:hover { background: rgba(255, 255, 255, 0.15); }
+#btnDir:hover { background: rgba(255, 255, 255, 0.12); color: #fff; }
+#btnDir:active { transform: scale(0.92); }
 #historyList {
-  margin: 0 12px;
-  max-height: 148px;
+  margin: 0 14px;
+  max-height: 150px;
   overflow-y: auto;
   scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
 }
 .hitem {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 8px;
-  border-radius: 8px;
+  gap: 9px;
+  padding: 7px 9px;
+  border-radius: 10px;
   cursor: pointer;
+  transition: background 0.16s var(--ease), transform 0.16s var(--ease);
 }
-.hitem:hover { background: rgba(255, 255, 255, 0.07); }
+.hitem:hover {
+  background: rgba(255, 255, 255, 0.06);
+  transform: translateX(3px);
+}
 .hitem .nm {
   flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: rgba(255, 255, 255, 0.85);
 }
 .hitem .play {
-  width: 24px; height: 24px;
+  width: 26px; height: 26px;
   border: none; border-radius: 50%;
-  background: rgba(255, 154, 160, 0.25);
+  background: rgba(255, 95, 109, 0.28);
   color: #fff; font-size: 11px;
   cursor: pointer;
+  transition: background 0.16s var(--ease), box-shadow 0.16s var(--ease), transform 0.12s var(--ease);
 }
-.hitem .play:hover { background: rgba(255, 92, 98, 0.5); }
-.hempty { color: rgba(255, 255, 255, 0.35); text-align: center; padding: 10px 0; }
+.hitem .play:hover { background: rgba(255, 95, 109, 0.65); box-shadow: 0 0 12px rgba(255, 95, 109, 0.4); }
+.hitem .play:active { transform: scale(0.88); }
+.hempty { color: var(--txt3); text-align: center; padding: 12px 0; }

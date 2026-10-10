@@ -1,43 +1,71 @@
-/* 猫姬对话窗口：深色毛玻璃 + 圆角 + 清晰气泡，独立窗口不遮桌宠 */
+/* 猫姬对话窗口 — Awwwards 级设计系统重构
+ * 深空渐变基底 + 玻璃拟态面板 + 珊瑚红品牌渐变 + 精细动效与微交互
+ * 排版层级：窗口标题(14/700) > 消息正文(13/400) > 辅助(11) ；行高 1.55
+ */
+:root {
+  --bg0: #0b0c15;
+  --bg1: #12131f;
+  --bg2: #191b2b;
+  --panel: rgba(24, 26, 42, 0.72);
+  --line: rgba(255, 255, 255, 0.08);
+  --line-strong: rgba(255, 255, 255, 0.14);
+  --txt: #f2f4fb;
+  --txt2: #a7afc5;
+  --txt3: #626c86;
+  --brand1: #ff5f6d;
+  --brand2: #ff8a5c;
+  --brand3: #ffd166;
+  --ok: #7ce4a8;
+  --danger: #ff7d85;
+  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+}
 * { margin: 0; padding: 0; box-sizing: border-box; }
 html, body {
   height: 100%;
   overflow: hidden;
   font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
-  color: #eee;
+  color: var(--txt);
   user-select: none;
   -webkit-user-select: none;
-  background: linear-gradient(160deg, #1c1c28 0%, #14141e 55%, #101018 100%);
+  /* 深空渐变 + 星尘噪点 */
+  background:
+    radial-gradient(120% 80% at 15% 0%, rgba(120, 130, 255, 0.07) 0%, transparent 55%),
+    radial-gradient(100% 70% at 100% 100%, rgba(255, 120, 110, 0.06) 0%, transparent 50%),
+    linear-gradient(165deg, var(--bg1) 0%, var(--bg0) 60%, var(--bg0) 100%);
 }
 
 #win { display: flex; flex-direction: column; height: 100vh; }
 
-/* ── 自绘标题栏（可拖动窗口；按钮区 no-drag）── */
+/* ── 自绘标题栏（玻璃条）── */
 #titlebar {
   -webkit-app-region: drag;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   height: 40px;
-  padding: 0 10px;
-  background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
-  border-bottom: 1px solid rgba(255,255,255,0.08);
+  padding: 0 12px;
   flex: 0 0 auto;
+  position: relative;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.015));
+  border-bottom: 1px solid var(--line);
 }
 #titlebar .dot {
-  width: 10px; height: 10px;
+  width: 11px; height: 11px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #ff8a5c, #ff5a60);
-  box-shadow: 0 0 8px rgba(255, 90, 96, 0.55);
+  background: linear-gradient(135deg, var(--brand2), var(--brand1));
+  box-shadow: 0 0 10px rgba(255, 95, 109, 0.65), inset 0 1px 1px rgba(255, 255, 255, 0.4);
   flex: 0 0 auto;
 }
 #titleText {
   font-size: 14px;
   font-weight: 700;
-  letter-spacing: 1px;
-  color: #ffe9a8;
+  letter-spacing: 2px;
   flex: 1 1 auto;
-  text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+  background: linear-gradient(90deg, #ffe9b0, #ff9a7a);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
 }
 #tbBtns {
   -webkit-app-region: no-drag;
@@ -46,60 +74,78 @@ html, body {
   flex: 0 0 auto;
 }
 #tbBtns button, #npToggle {
-  width: 28px; height: 28px;
+  width: 30px; height: 30px;
   line-height: 1;
   font-size: 14px;
-  color: rgba(255,255,255,0.85);
-  background: rgba(255,255,255,0.08);
-  border: 1px solid rgba(255,255,255,0.12);
-  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.75);
+  background: rgba(255, 255, 255, 0.055);
+  border: 1px solid var(--line);
+  border-radius: 9px;
   cursor: pointer;
-  transition: background 0.15s, transform 0.1s;
+  transition: background 0.18s var(--ease), color 0.18s var(--ease), transform 0.12s var(--ease), box-shadow 0.18s var(--ease);
 }
-#tbBtns button:hover, #npToggle:hover { background: rgba(255,255,255,0.2); }
-#tbBtns button:active, #npToggle:active { transform: scale(0.92); }
+#tbBtns button:hover, #npToggle:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+#tbBtns button:active, #npToggle:active { transform: scale(0.9); }
+#tbBtns button[title="关闭"]:hover { background: var(--danger); border-color: transparent; }
+#tbBtns button[title="打开翻唱面板"]:hover { background: rgba(255, 170, 60, 0.28); color: var(--brand3); }
 #tbToggle.playing { background: rgba(255, 170, 60, 0.22); color: #ffd04d; }
 
 /* ── 消息记录 ── */
 #chatMsgs {
   flex: 1 1 auto;
   overflow-y: auto;
-  padding: 12px;
+  padding: 16px 14px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
   scrollbar-width: thin;
-  scrollbar-color: rgba(255,255,255,0.2) transparent;
+  scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
 }
+/* 消息进入动画：淡入 + 上移 */
 .msg {
   max-width: 82%;
-  padding: 8px 12px;
-  border-radius: 14px;
+  padding: 9px 13px;
+  border-radius: 15px;
   font-size: 13px;
-  line-height: 1.5;
+  line-height: 1.55;
   word-break: break-word;
   white-space: pre-wrap;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+  animation: msgIn 0.28s var(--ease) both;
+  transition: transform 0.2s var(--ease);
+}
+.msg:hover { transform: translateY(-1px); }
+@keyframes msgIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 .msg.me {
   align-self: flex-end;
-  background: linear-gradient(180deg, #ff6b72, #e03a44);
+  background: linear-gradient(180deg, var(--brand1), #d93a42);
   color: #fff;
-  border-bottom-right-radius: 4px;
+  border-bottom-right-radius: 5px;
+  box-shadow: 0 4px 16px rgba(217, 58, 66, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.22);
 }
 .msg.pet {
   align-self: flex-start;
-  background: rgba(255,255,255,0.09);
-  border: 1px solid rgba(255,255,255,0.08);
-  color: #ffe9a8;
-  border-bottom-left-radius: 4px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  color: #ffe9b0;
+  border-bottom-left-radius: 5px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 .msg .role {
   display: block;
   font-size: 10px;
-  opacity: 0.65;
-  margin-bottom: 3px;
-  letter-spacing: 1px;
+  opacity: 0.6;
+  margin-bottom: 4px;
+  letter-spacing: 1.5px;
+  font-weight: 600;
 }
 
 /* ── 当前翻唱播放 ── */
@@ -107,15 +153,25 @@ html, body {
   flex: 0 0 auto;
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin: 0 12px 6px;
-  padding: 8px 10px;
-  background: rgba(255, 170, 60, 0.1);
-  border: 1px solid rgba(255, 170, 60, 0.22);
-  border-radius: 10px;
+  gap: 9px;
+  margin: 0 14px 8px;
+  padding: 8px 12px;
+  background: rgba(255, 170, 60, 0.08);
+  border: 1px solid rgba(255, 170, 60, 0.25);
+  border-radius: 11px;
+  animation: msgIn 0.25s var(--ease) both;
 }
 #nowPlaying.hidden { display: none; }
-#npIcon { color: #ffd04d; font-size: 14px; flex: 0 0 auto; }
+#npIcon {
+  color: var(--brand3);
+  font-size: 14px;
+  flex: 0 0 auto;
+  animation: npPulse 2.4s ease-in-out infinite;
+}
+@keyframes npPulse {
+  0%, 100% { transform: scale(1); opacity: 0.85; }
+  50% { transform: scale(1.18); opacity: 1; }
+}
 #npName {
   flex: 1 1 auto;
   font-size: 12px;
@@ -129,17 +185,22 @@ html, body {
 #chatStatus {
   flex: 0 0 auto;
   display: none;
-  margin: 0 12px 6px;
-  padding: 6px 10px;
-  border-radius: 8px;
+  margin: 0 14px 8px;
+  padding: 7px 12px;
+  border-radius: 9px;
   font-size: 12px;
   color: #ffd9a0;
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.07);
-  line-height: 1.4;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--line);
+  line-height: 1.5;
   word-break: break-word;
+  animation: msgIn 0.25s var(--ease) both;
 }
-#chatStatus.error { color: #ff9a9a; border-color: rgba(255,120,120,0.3); }
+#chatStatus.error {
+  color: #ffb0b0;
+  border-color: rgba(255, 125, 133, 0.35);
+  background: rgba(255, 125, 133, 0.07);
+}
 
 /* ── 输入行 ── */
 #inputRow {
@@ -147,72 +208,81 @@ html, body {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 12px 12px;
-  border-top: 1px solid rgba(255,255,255,0.07);
+  padding: 10px 12px 13px;
+  border-top: 1px solid var(--line);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent);
 }
 #chatInput {
   flex: 1 1 auto;
   min-width: 0;
-  height: 38px;
-  padding: 0 14px;
+  height: 40px;
+  padding: 0 15px;
   font-size: 13px;
   color: #fff;
-  background: rgba(255,255,255,0.07);
-  border: 1px solid rgba(255,255,255,0.14);
-  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--line-strong);
+  border-radius: 11px;
   outline: none;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition: border-color 0.2s var(--ease), box-shadow 0.2s var(--ease), background 0.2s var(--ease);
 }
-#chatInput::placeholder { color: rgba(255,255,255,0.4); }
+#chatInput::placeholder { color: rgba(255, 255, 255, 0.35); }
+#chatInput:hover { border-color: rgba(255, 255, 255, 0.22); }
 #chatInput:focus {
-  border-color: rgba(255, 92, 98, 0.85);
-  box-shadow: 0 0 0 3px rgba(255, 92, 98, 0.18);
+  border-color: rgba(255, 95, 109, 0.9);
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 0 3px rgba(255, 95, 109, 0.16), 0 0 20px rgba(255, 95, 109, 0.08);
 }
 #btnSend {
   flex: 0 0 auto;
-  height: 38px;
-  padding: 0 18px;
+  height: 40px;
+  padding: 0 20px;
   font-size: 13px;
   font-weight: 700;
-  letter-spacing: 2px;
+  letter-spacing: 3px;
   color: #fff;
-  background: linear-gradient(180deg, #ff5a60, #d93a42);
+  background: linear-gradient(180deg, var(--brand1), #d93a42);
   border: none;
-  border-radius: 10px;
+  border-radius: 11px;
   cursor: pointer;
-  box-shadow: 0 3px 12px rgba(217, 58, 66, 0.4);
-  transition: filter 0.15s, transform 0.1s;
+  box-shadow: 0 4px 16px rgba(217, 58, 66, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  transition: filter 0.18s var(--ease), transform 0.12s var(--ease), box-shadow 0.18s var(--ease);
 }
-#btnSend:hover { filter: brightness(1.15); }
-#btnSend:active { transform: scale(0.95); }
+#btnSend:hover {
+  filter: brightness(1.12);
+  box-shadow: 0 6px 22px rgba(217, 58, 66, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+#btnSend:active { transform: scale(0.94); }
 #btnRetry {
   flex: 0 0 auto;
-  width: 38px; height: 38px;
+  width: 40px; height: 40px;
   font-size: 15px;
-  color: rgba(255,255,255,0.85);
-  background: rgba(255,255,255,0.08);
-  border: 1px solid rgba(255,255,255,0.12);
-  border-radius: 10px;
+  color: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--line);
+  border-radius: 11px;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background 0.18s var(--ease), color 0.18s var(--ease), transform 0.12s var(--ease);
 }
-#btnRetry:hover { background: rgba(255,255,255,0.2); }
+#btnRetry:hover { background: rgba(255, 255, 255, 0.14); color: #fff; }
+#btnRetry:active { transform: rotate(180deg) scale(0.92); }
 /* 联网搜索开关：关=🌐灰阶 / 开=🌐正常蓝色+蓝光（不改背景色） */
 #btnSearch {
   flex: 0 0 auto;
-  width: 38px; height: 38px;
+  width: 40px; height: 40px;
   font-size: 18px;
   background: transparent;
-  border: none;
-  border-radius: 10px;
+  border: 1px solid transparent;
+  border-radius: 11px;
   cursor: pointer;
   filter: grayscale(1);
-  opacity: 0.55;
-  transition: filter 0.15s, opacity 0.15s, text-shadow 0.15s;
+  opacity: 0.5;
+  transition: filter 0.2s var(--ease), opacity 0.2s var(--ease), text-shadow 0.2s var(--ease), background 0.2s var(--ease);
 }
-#btnSearch:hover { filter: grayscale(0.5); opacity: 0.9; }
+#btnSearch:hover { filter: grayscale(0.4); opacity: 0.85; background: rgba(255, 255, 255, 0.05); }
 #btnSearch.on {
   filter: none;
   opacity: 1;
-  text-shadow: 0 0 10px rgba(106, 179, 255, 0.9), 0 0 20px rgba(106, 179, 255, 0.5);
+  background: transparent;
+  border-color: transparent;
+  text-shadow: 0 0 12px rgba(106, 179, 255, 0.95), 0 0 24px rgba(106, 179, 255, 0.5);
 }

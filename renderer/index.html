@@ -32,8 +32,10 @@
       word-break: break-word;
       /* 显式中文字体栈：避免系统字体回退失败导致中文显示为黑色方块 */
       font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
-      /* 黑色全向描边：透明底上保证可读且显眼 */
+      /* 柔和发光（质感）+ 黑色全向描边（透明底上保证可读且显眼） */
       text-shadow:
+        0 0 6px rgba(255, 225, 77, 0.4),
+        0 0 18px rgba(255, 170, 80, 0.18),
         2px 2px 0 #000, -2px 2px 0 #000, 2px -2px 0 #000, -2px -2px 0 #000,
         0 2px 0 #000, 0 -2px 0 #000, 2px 0 0 #000, -2px 0 0 #000;
       z-index: 9;
