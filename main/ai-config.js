@@ -12,7 +12,7 @@ function showAiConfig() {
     cfgWin.focus();
     return;
   }
-  const W = 720, H = 510;
+  const W = 720, H = 520;
   cfgWin = new BrowserWindow({
     width: W, height: H,
     frame: false,
@@ -34,6 +34,17 @@ function showAiConfig() {
   cfgWin.on('closed', () => { cfgWin = null; });
   cfgWin.webContents.once('did-finish-load', () => {
     if (cfgWin && !cfgWin.isDestroyed()) { cfgWin.show(); cfgWin.focus(); }
+    // 窗口高度自适应内容：固定高度容易"底部空白"或"按钮被裁剪"（提示词长短会变）。
+    // 加载完成后按页面实际内容高度重设窗口高度，恰好贴合内容，不多不少。
+    setTimeout(() => {
+      if (!cfgWin || cfgWin.isDestroyed()) return;
+      cfgWin.webContents.executeJavaScript('document.documentElement.scrollHeight').then((h) => {
+        const n = Math.max(360, Math.min(900, Math.round(h)));
+        if (cfgWin && !cfgWin.isDestroyed() && Math.abs(cfgWin.getBounds().height - n) > 8) {
+          cfgWin.setBounds({ width: W, height: n });
+        }
+      }).catch(() => {});
+    }, 120);
   });
 }
 
