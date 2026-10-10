@@ -251,7 +251,7 @@ def synth(text, emotion, out_path):
         rvc = _ensure_rvc()
         rvc.convert(
             model_path=_rvc_model,
-            f0_up_key=1,  # 音色微调：整体升1半音更贴原版Neco Arc细高音（2026-10-10 试听取舍V1）
+            f0_up_key=0,
             input_path=src,
             file_index=_rvc_index,
             index_rate=0.75,
