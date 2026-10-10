@@ -126,7 +126,13 @@ html, body {
 #btnKeyEye:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
 .field textarea { resize: none; line-height: 1.55; }
 #row2 { display: flex; gap: 10px; }
-.field.half { flex: 1; }
+.row { display: flex; gap: 10px; }
+.row .field { flex: 1; min-width: 0; }
+#proRow { align-items: flex-end; }
+#proRow .field { margin-bottom: 0; }
+#proRow .field.check { flex: 1.4; }
+#lblInterval .field.half { flex: 1; }
+.field.half { flex: 1; min-width: 0; }
 
 .divider {
   height: 1px;
