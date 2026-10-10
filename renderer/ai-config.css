@@ -120,6 +120,24 @@ html, body {
 #row2 { display: flex; gap: 10px; }
 .field.half { flex: 1; }
 
+.divider {
+  height: 1px;
+  margin: 18px 0 14px;
+  background: linear-gradient(90deg, transparent, var(--line-strong), transparent);
+}
+.section-title {
+  margin-bottom: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--txt);
+  background: linear-gradient(90deg, #ffb0b6, #ff9a7a);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+#lblProactive { margin-bottom: 10px; }
+
 #msg {
   min-height: 22px;
   margin: 4px 0 10px;

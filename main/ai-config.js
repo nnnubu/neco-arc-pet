@@ -12,7 +12,7 @@ function showAiConfig() {
     cfgWin.focus();
     return;
   }
-  const W = 380, H = 680;
+  const W = 380, H = 820;
   cfgWin = new BrowserWindow({
     width: W, height: H,
     frame: false,
@@ -45,13 +45,20 @@ function registerAiConfigIpc() {
   // 读取当前配置（面板打开时回填表单）
   ipcMain.handle('ai-config-load', () => {
     const c = getAiConfig();
-    return { apiKey: c.apiKey, baseUrl: c.baseUrl, model: c.model, temperature: c.temperature, maxTokens: c.maxTokens, systemPrompt: c.systemPrompt };
+    return {
+      apiKey: c.apiKey, baseUrl: c.baseUrl, model: c.model,
+      temperature: c.temperature, maxTokens: c.maxTokens, systemPrompt: c.systemPrompt,
+      webSearchEnabled: c.webSearchEnabled,
+      proactiveEnabled: c.proactiveEnabled, proactiveIntervalMin: c.proactiveIntervalMin, proactivePrompt: c.proactivePrompt,
+    };
   });
 
   // 保存配置：写 assets/ai-config.json + 更新内存（下次问答立即生效）
   ipcMain.handle('ai-config-save', (_e, cfg) => {
     try {
       const saved = updateAiConfig(cfg);
+      // 主动说话配置可能变了：重启定时器（开关/间隔生效）
+      try { require('./voice').restartProactiveTimer(); } catch (e) { console.error('[ai-config] 重启主动说话定时器失败:', e.message); }
       return { ok: true, config: saved };
     } catch (err) {
       return { ok: false, error: err.message };

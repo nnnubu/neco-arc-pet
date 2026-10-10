@@ -15,6 +15,9 @@
       temperature: parseFloat($('#inTemp').value) || 0.7,
       maxTokens: parseInt($('#inMax').value, 10) || 256,
       systemPrompt: $('#inPrompt').value,
+      proactiveEnabled: !!$('#inProactive').checked,
+      proactiveIntervalMin: parseInt($('#inInterval').value, 10) || 30,
+      proactivePrompt: $('#inProactivePrompt').value.trim(),
     };
   }
 
@@ -27,6 +30,9 @@
     $('#inTemp').value = c.temperature != null ? c.temperature : 0.7;
     $('#inMax').value = c.maxTokens != null ? c.maxTokens : 256;
     $('#inPrompt').value = c.systemPrompt || '';
+    $('#inProactive').checked = !!c.proactiveEnabled;
+    $('#inInterval').value = c.proactiveIntervalMin != null ? c.proactiveIntervalMin : 30;
+    $('#inProactivePrompt').value = c.proactivePrompt || '';
   });
 
   // 密钥明文/密文切换

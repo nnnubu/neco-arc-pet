@@ -6,7 +6,7 @@ const fs = require('fs');
 const { spawn } = require('child_process');
 const { getWin } = require('./window');
 const { getChatWin } = require('./chat');
-const { askAI } = require('./ai');
+const { askAI, getAiConfig } = require('./ai');
 
 // 对话事件广播：桌宠窗（播放音频/透明文字逐字）+ 对话窗（消息气泡/状态显示）
 function broadcast(channel, payload) {
@@ -42,6 +42,63 @@ let voiceProc = null;
 let voiceReady = false;
 let voiceQueue = [];
 
+// ── 主动说话（桌宠定时找用户搭话）──
+// activeReqs：跟踪"用户输入/主动搭话"发出去的合成请求，收到对应响应才算说完，
+// 避免 preset 预生成的完成事件把播放状态误判为空闲
+const activeReqs = new Set();
+let proactiveTimer = null;
+
+function isSpeaking() { return activeReqs.size > 0; }
+
+// 重启主动说话定时器（配置保存 / 模块加载时调用；间隔取配置，开关关闭则停）
+function restartProactiveTimer() {
+  if (proactiveTimer) { clearInterval(proactiveTimer); proactiveTimer = null; }
+  const cfg = getAiConfig();
+  if (!cfg.proactiveEnabled) return;
+  const min = Math.max(1, Number(cfg.proactiveIntervalMin) || 30);
+  proactiveTimer = setInterval(() => {
+    if (isSpeaking()) return; // 用户正在听/正在合成中，不打扰
+    handleProactiveSpeak();
+  }, min * 60 * 1000);
+}
+
+// 主动搭话：以"主动指令"问 AI（force 绕过问答缓存，每次都生成新台词）→ 走标准合成播放
+async function handleProactiveSpeak() {
+  const win = getWin();
+  if (!win || win.isDestroyed()) return;
+  const cfg = getAiConfig();
+  if (!cfg.proactiveEnabled) return;
+  broadcast('speak-state', { state: 'ai' }); // 思考中…
+  let reply;
+  try {
+    reply = await askAI(cfg.proactivePrompt || '主动找人类搭一句话：简短一句，用猫姬人设，直接输出台词不要解释。', {
+      force: true,
+      onToken: (tok) => broadcast('ai-token', { text: tok }),
+    });
+  } catch (e) {
+    console.error('[proactive] 主动搭话 AI 失败:', e.message);
+    broadcast('speak-state', { state: 'error', error: '主动说话失败: ' + e.message });
+    return;
+  }
+  if (!reply) {
+    broadcast('speak-state', { state: 'error', error: '主动说话没有回复' });
+    return;
+  }
+  const { emotion, text: speakText } = parseEmotion(reply);
+  console.log(`[proactive] 情绪=${emotion} 文本=${speakText}`);
+  if (!win.isDestroyed()) broadcast('ai-reply', { text: speakText });
+  broadcast('speak-state', { state: 'generating' });
+  ensureVoiceServer();
+  const id = Date.now();
+  activeReqs.add(id);
+  const req = { id, text: speakText, emotion, force: true };
+  if (voiceReady && voiceProc) {
+    voiceProc.stdin.write(JSON.stringify(req) + '\n');
+  } else {
+    voiceQueue.push(req); // 模型仍在加载，排队等 READY
+  }
+}
+
 function ensureVoiceServer() {
   if (voiceProc) return;
   const py = path.join(__dirname, '..', 'voice-env310', 'Scripts', 'python.exe');
@@ -72,17 +129,19 @@ function ensureVoiceServer() {
         // 预生成完成：只记录，不触发播放/状态（避免误报"出错了"）
         console.log('[voice] 预生成完成:', msg.count);
       } else if (msg.ok && msg.wav) {
+        if (activeReqs.has(msg.id)) activeReqs.delete(msg.id);
         broadcast('play-audio', msg.wav);
         broadcast('speak-state', { state: 'done' });
       } else if (msg.ok) {
         // 其他 ok（如 preset started）：无需处理
       } else {
         console.error('[voice] 生成失败:', msg.error);
+        if (activeReqs.has(msg.id)) activeReqs.delete(msg.id);
         broadcast('speak-state', { state: 'error', error: msg.error });
       }
     }
   });
-  voiceProc.on('exit', () => { voiceReady = false; voiceProc = null; });
+  voiceProc.on('exit', () => { voiceReady = false; voiceProc = null; activeReqs.clear(); });
 }
 
 function flushVoiceQueue() {
@@ -123,7 +182,9 @@ async function handleSpeakText(text, force) {
   // 合成回复语音（CosyVoice 情绪源 → RVC 变声 → 缓存；情绪进缓存 key）
   broadcast('speak-state', { state: 'generating' });
   ensureVoiceServer();
-  const req = { id: Date.now(), text: speakText, emotion };
+  const id = Date.now();
+  activeReqs.add(id);
+  const req = { id, text: speakText, emotion };
   if (force) req.force = true; // 重试：绕过缓存强制重新合成（覆盖旧缓存）
   if (voiceReady && voiceProc) {
     voiceProc.stdin.write(JSON.stringify(req) + '\n');
@@ -134,6 +195,8 @@ async function handleSpeakText(text, force) {
 
 function registerVoiceIpc() {
   ipcMain.on('speak-text', (_e, text, force) => handleSpeakText(text, force));
+  // 模块加载即按当前配置启动主动说话定时器（面板保存后由 ai-config.js 调 restart 刷新）
+  restartProactiveTimer();
 }
 
-module.exports = { registerVoiceIpc, handleSpeakText };
+module.exports = { registerVoiceIpc, handleSpeakText, restartProactiveTimer };

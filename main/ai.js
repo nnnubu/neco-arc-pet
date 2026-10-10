@@ -45,6 +45,9 @@ const DEFAULT_SYSTEM_PROMPT = [
   '- 回答开头用【情绪】标记，从【开心】【生气】【难过】【惊讶】【平静】中选一个（根据用户话语和回答内容自然判断），紧接标记再说话内容，例如：【开心】嘿嘿，今天天气真好喵！',
 ].join('\n');
 
+// ── 主动搭话指令（喂给 AI 的角色指令；面板可覆盖）──
+const PROACTIVE_DEFAULT_PROMPT = '主动找人类搭一句话：用猫姬人设，简短一句（15~40字），挑一个自然的话题（天气/日常/刚想到的趣事），直接输出台词不要解释、不要提问刚才聊过的事。';
+
 // ── 运行期 AI 配置（内存动态，面板保存即更新）──
 const AI_CONFIG_PATH = path.join(__dirname, '..', 'assets', 'ai-config.json');
 
@@ -63,6 +66,10 @@ let aiConfig = (() => {
     maxTokens: file.maxTokens != null ? Number(file.maxTokens) : (ENV.LLM_MAX_TOKENS != null ? Number(ENV.LLM_MAX_TOKENS) : 256),
     systemPrompt: String(file.systemPrompt || DEFAULT_SYSTEM_PROMPT),
     webSearchEnabled: file.webSearchEnabled != null ? !!file.webSearchEnabled : false,
+    // 主动说话：桌宠定时找用户搭话（AI 设置面板可配置；默认关闭）
+    proactiveEnabled: file.proactiveEnabled != null ? !!file.proactiveEnabled : false,
+    proactiveIntervalMin: file.proactiveIntervalMin != null ? Number(file.proactiveIntervalMin) : 30,
+    proactivePrompt: String(file.proactivePrompt || PROACTIVE_DEFAULT_PROMPT),
   };
 })();
 
@@ -81,6 +88,9 @@ function updateAiConfig(cfg) {
     maxTokens: Number(merged.maxTokens != null ? merged.maxTokens : 256),
     systemPrompt: String(merged.systemPrompt || DEFAULT_SYSTEM_PROMPT),
     webSearchEnabled: merged.webSearchEnabled != null ? !!merged.webSearchEnabled : false,
+    proactiveEnabled: merged.proactiveEnabled != null ? !!merged.proactiveEnabled : false,
+    proactiveIntervalMin: merged.proactiveIntervalMin != null ? Number(merged.proactiveIntervalMin) : 30,
+    proactivePrompt: String(merged.proactivePrompt || PROACTIVE_DEFAULT_PROMPT),
   };
   aiConfig = next;
   try {
