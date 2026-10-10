@@ -12,7 +12,7 @@ function showAiConfig() {
     cfgWin.focus();
     return;
   }
-  const W = 720, H = 760;
+  const W = 720, H = 580;
   cfgWin = new BrowserWindow({
     width: W, height: H,
     frame: false,
