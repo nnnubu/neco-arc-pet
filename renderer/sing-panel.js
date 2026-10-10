@@ -78,6 +78,15 @@
 
   // ── 播放/暂停控制（桌宠渲染层执行播放；这里只发指令 + 回显状态）──
   $('#btnToggle').addEventListener('click', () => window.singPanelApi.toggle());
+
+  // 翻唱音量滑块：实时发送到桌宠窗（singAudio.volume），本地记忆显示
+  const volSlider = $('#volSlider');
+  const volVal = $('#volVal');
+  volSlider.addEventListener('input', () => {
+    const v = Math.round(volSlider.value);
+    volVal.textContent = v + '%';
+    window.singPanelApi.setVolume(v / 100);
+  });
   window.singPanelApi.onState((s) => {
     $('#btnToggle').textContent = s === 'playing' ? '⏸' : '▶';
     if (s === 'ended') statusText.textContent = '播放结束';

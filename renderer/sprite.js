@@ -123,10 +123,22 @@ window.SpriteCore = (() => {
   // 排除下落类（19/25/30/60，随机触发会掉出屏幕且无掉回兜底）与常驻趴（act_23，播完不自动回待机）
   let ONESHOT_NAMES = [...FIXED_ONESHOOT];
   const RANDOM_EXCLUDE = ['act_19', 'act_25', 'act_30', 'act_60', 'act_23'];
-  // 用户配置（菜单「设置」调整）：随机表演开关与间隔（秒），持久化到 assets/user-config.json
-  let cfg = { randomAction: { enabled: true, intervalSec: 15 } };
+  // 用户配置（菜单「设置」调整）：随机表演开关与间隔区间（秒，区间内随机），持久化到 assets/user-config.json
+  let cfg = { randomAction: { enabled: true, intervalMin: 10, intervalMax: 30, intervalSec: 15 } };
   function applyConfig(c) {
     if (c && c.randomAction) cfg.randomAction = Object.assign({}, cfg.randomAction, c.randomAction);
+    // 兼容旧配置（只有 intervalSec）：展开为 ±5 秒区间
+    if (cfg.randomAction.intervalMin == null && cfg.randomAction.intervalMax == null && cfg.randomAction.intervalSec != null) {
+      cfg.randomAction.intervalMin = Math.max(5, cfg.randomAction.intervalSec - 5);
+      cfg.randomAction.intervalMax = cfg.randomAction.intervalSec + 5;
+    }
+  }
+  // 随机表演间隔：区间 [min, max] 秒内随机取一次
+  function randomActionDelay() {
+    const ra = cfg.randomAction || {};
+    const min = Math.max(5, Number(ra.intervalMin) || 10);
+    const max = Math.max(min, Number(ra.intervalMax) || 30);
+    return (min + Math.random() * (max - min)) * 1000;
   }
   if (window.pet && window.pet.getConfig) {
     window.pet.getConfig().then(applyConfig).catch(() => {});
@@ -603,7 +615,7 @@ window.SpriteCore = (() => {
       console.error('[sprite] 动态动作加载失败:', e);
     }
     SPRITE.state = 'idle';
-    SPRITE.nextActionAt = Date.now() + cfg.randomAction.intervalSec * 1000; // 按用户配置的随机表演间隔（秒）
+    SPRITE.nextActionAt = Date.now() + randomActionDelay(); // 按用户配置的随机表演间隔（区间内随机秒）
     SPRITE.nextRoamAt = Date.now() + rand(15000, 30000); // 首次随机乱跑计时
     showStanding();
     window.pet.resizeWindow(220, 265); // 初始窗口 = 最小尺寸
@@ -783,7 +795,7 @@ window.SpriteCore = (() => {
           roam.run && ax < 0);
       } else if (cfg.randomAction.enabled && now >= SPRITE.nextActionAt) {
         spritePlayOneshot(ONESHOT_NAMES[Math.floor(Math.random() * ONESHOT_NAMES.length)]);
-        SPRITE.nextActionAt = now + cfg.randomAction.intervalSec * 1000;
+        SPRITE.nextActionAt = now + randomActionDelay();
       }
     }
   }

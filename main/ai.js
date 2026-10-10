@@ -70,6 +70,12 @@ let aiConfig = (() => {
     proactiveEnabled: file.proactiveEnabled != null ? !!file.proactiveEnabled : false,
     proactiveIntervalMin: file.proactiveIntervalMin != null ? Number(file.proactiveIntervalMin) : 30,
     proactivePrompt: String(file.proactivePrompt || PROACTIVE_DEFAULT_PROMPT),
+    // 随机发声：偶尔用语音素材主动叫一声（与随机动作类似，区间随机间隔）
+    randomVoiceEnabled: file.randomVoiceEnabled != null ? !!file.randomVoiceEnabled : false,
+    randomVoiceMin: file.randomVoiceMin != null ? Number(file.randomVoiceMin) : 3,
+    randomVoiceMax: file.randomVoiceMax != null ? Number(file.randomVoiceMax) : 8,
+    // 静音模式：arc 的 AI 语音/随机发声全部静音，翻唱音乐不受影响
+    muteVoice: file.muteVoice != null ? !!file.muteVoice : false,
   };
 })();
 
@@ -91,6 +97,10 @@ function updateAiConfig(cfg) {
     proactiveEnabled: merged.proactiveEnabled != null ? !!merged.proactiveEnabled : false,
     proactiveIntervalMin: merged.proactiveIntervalMin != null ? Number(merged.proactiveIntervalMin) : 30,
     proactivePrompt: String(merged.proactivePrompt || PROACTIVE_DEFAULT_PROMPT),
+    randomVoiceEnabled: merged.randomVoiceEnabled != null ? !!merged.randomVoiceEnabled : false,
+    randomVoiceMin: merged.randomVoiceMin != null ? Number(merged.randomVoiceMin) : 3,
+    randomVoiceMax: merged.randomVoiceMax != null ? Number(merged.randomVoiceMax) : 8,
+    muteVoice: merged.muteVoice != null ? !!merged.muteVoice : false,
   };
   aiConfig = next;
   try {

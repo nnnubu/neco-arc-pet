@@ -65,8 +65,51 @@ function restartProactiveTimer() {
 
 // 主动搭话最近台词（上限 12 条）：拼进搭话指令，明确要求换新话题/新句式，避免重复
 const proactiveHistory = [];
-// 翻唱是否播放中：渲染层 sing-state('playing') 事件维护；播放中不主动搭话，避免打断听歌
+// 翻唱是否播放中：渲染层 sing-state('playing') 事件维护；播放中不主动搭话/随机发声，避免打断听歌
 let singPlaying = false;
+
+// ── 随机发声：偶尔用本地语音素材（assets/voice-clips/*.wav）主动叫一声 ──
+const CLIP_DIR = path.join(__dirname, '..', 'assets', 'voice-clips');
+let voiceClips = [];
+let voiceTimer = null;
+
+function loadVoiceClips() {
+  try {
+    voiceClips = fs.readdirSync(CLIP_DIR).filter((f) => /\.(wav|mp3|ogg|m4a)$/i.test(f));
+  } catch (e) {
+    voiceClips = [];
+    console.error('[voice-clips] 素材目录读取失败:', e.message);
+  }
+  return voiceClips.length;
+}
+
+// 单次触发：随机选一个素材播放（严格避开：静音模式/说话中/翻唱播放中）
+function fireRandomVoice() {
+  const cfg = getAiConfig();
+  if (!cfg.randomVoiceEnabled || cfg.muteVoice) return false;
+  if (singPlaying || isSpeaking()) return false;
+  if (!voiceClips.length) return false;
+  const name = voiceClips[Math.floor(Math.random() * voiceClips.length)];
+  const win = getWin();
+  if (!win || win.isDestroyed()) return false;
+  win.webContents.send('pet-play-clip', { path: path.join(CLIP_DIR, name) });
+  console.log('[voice-clips] 随机发声:', name);
+  return true;
+}
+
+// 重启随机发声定时器：间隔在 [min, max] 分钟内随机取值，触发后重新调度
+function restartVoiceTimer() {
+  if (voiceTimer) { clearTimeout(voiceTimer); voiceTimer = null; }
+  const cfg = getAiConfig();
+  if (!cfg.randomVoiceEnabled) return;
+  const min = Math.max(0.5, Number(cfg.randomVoiceMin) || 3);
+  const max = Math.max(min, Number(cfg.randomVoiceMax) || 8);
+  const delay = (min + Math.random() * (max - min)) * 60 * 1000;
+  voiceTimer = setTimeout(() => {
+    fireRandomVoice();
+    restartVoiceTimer();
+  }, delay);
+}
 function buildProactivePrompt(cfg) {
   const base = cfg.proactivePrompt || '主动找人类搭一句话：简短一句，用猫姬人设，直接输出台词不要解释。';
   if (!proactiveHistory.length) return base;
@@ -106,6 +149,8 @@ async function handleProactiveSpeak() {
   proactiveHistory.push(speakText);
   if (proactiveHistory.length > 12) proactiveHistory.shift();
   if (!win.isDestroyed()) broadcast('ai-reply', { text: speakText });
+  // 翻唱播放中/静音模式：只出文字不播语音（手动点"立即说一句"也走这里；静音不影响翻唱音乐）
+  if (singPlaying || getAiConfig().muteVoice) { broadcast('speak-state', { state: 'done' }); return; }
   broadcast('speak-state', { state: 'generating' });
   ensureVoiceServer();
   const id = Date.now();
@@ -149,6 +194,11 @@ function ensureVoiceServer() {
         console.log('[voice] 预生成完成:', msg.count);
       } else if (msg.ok && msg.wav) {
         if (activeReqs.has(msg.id)) activeReqs.delete(msg.id);
+        // 合成期间用户切到翻唱 / 开了静音：丢弃这条语音，只结束状态，不打断听歌
+        if (singPlaying || getAiConfig().muteVoice) {
+          broadcast('speak-state', { state: 'done' });
+          continue;
+        }
         broadcast('play-audio', msg.wav);
         broadcast('speak-state', { state: 'done' });
       } else if (msg.ok) {
@@ -200,6 +250,8 @@ async function handleSpeakText(text, force) {
   recordMsg('pet', speakText); // 猫姬回复进对话窗历史（对话窗未开也不丢，重开回放）
   // 回复文本（去标签）给渲染层显示
   if (!win.isDestroyed()) broadcast('ai-reply', { text: speakText });
+  // 翻唱播放中/静音模式：只出文字不播语音，避免打断用户听歌（静音不影响翻唱音乐）
+  if (singPlaying || getAiConfig().muteVoice) { broadcast('speak-state', { state: 'done' }); return; }
   // 合成回复语音（CosyVoice 情绪源 → RVC 变声 → 缓存；情绪进缓存 key）
   broadcast('speak-state', { state: 'generating' });
   ensureVoiceServer();
@@ -216,10 +268,13 @@ async function handleSpeakText(text, force) {
 
 function registerVoiceIpc() {
   ipcMain.on('speak-text', (_e, text, force) => handleSpeakText(text, force));
-  // 翻唱播放状态：渲染层播放翻唱时发 sing-state('playing'/'paused'/'ended')，主动搭话据此避开
+  // 翻唱播放状态：渲染层播放翻唱时发 sing-state('playing'/'paused'/'ended')，主动搭话/随机发声据此避开
   ipcMain.on('sing-state', (_e, s) => { singPlaying = s === 'playing'; });
-  // 模块加载即按当前配置启动主动说话定时器（面板保存后由 ai-config.js 调 restart 刷新）
+  // 加载随机发声素材并启动定时器（配置保存后由 ai-config.js 调 restart 刷新）
+  loadVoiceClips();
+  // 模块加载即按当前配置启动主动说话/随机发声定时器
   restartProactiveTimer();
+  restartVoiceTimer();
 }
 
-module.exports = { registerVoiceIpc, handleSpeakText, handleProactiveSpeak, restartProactiveTimer };
+module.exports = { registerVoiceIpc, handleSpeakText, handleProactiveSpeak, restartProactiveTimer, restartVoiceTimer };

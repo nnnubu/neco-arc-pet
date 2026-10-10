@@ -75,6 +75,19 @@
     setSearchUI(next);
   });
 
+  // ── 静音模式（arc 不说话；翻唱音乐不受影响）──
+  const btnMute = $('#tbMute');
+  function setMuteUI(m) {
+    btnMute.textContent = m ? '🔇' : '🔊';
+    btnMute.classList.toggle('on', !!m);
+    btnMute.title = m ? '静音中：arc 不说话（翻唱不受影响）' : '静音：点击让 arc 不说话（翻唱不受影响）';
+  }
+  window.chatApi.muteState().then(setMuteUI);
+  btnMute.addEventListener('click', async () => {
+    const next = await window.chatApi.muteToggle();
+    setMuteUI(next);
+  });
+
   // ── 语音问答状态 ──
   window.chatApi.onSpeakState((s) => {
     if (!s) return;

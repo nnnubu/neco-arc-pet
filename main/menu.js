@@ -12,13 +12,20 @@ let menuWin = null;
 
 // 用户配置文件（随机播放等参数，用户可在菜单「设置」中调整，持久化）
 const CONFIG_PATH = path.join(__dirname, '..', 'assets', 'user-config.json');
-const DEFAULT_CONFIG = { randomAction: { enabled: true, intervalSec: 15 } };
+// 随机动作间隔：区间 [minSec, maxSec] 秒内随机取值（原 intervalSec 固定值迁移兼容）
+const DEFAULT_CONFIG = { randomAction: { enabled: true, intervalMin: 10, intervalMax: 30, intervalSec: 15 } };
 
 function loadConfig() {
   try {
     const raw = fs.readFileSync(CONFIG_PATH, 'utf8');
     const c = JSON.parse(raw);
-    return { randomAction: Object.assign({}, DEFAULT_CONFIG.randomAction, (c && c.randomAction) || {}) };
+    const ra = Object.assign({}, DEFAULT_CONFIG.randomAction, (c && c.randomAction) || {});
+    // 兼容旧配置：只有 intervalSec 时展开为 ±5 秒区间
+    if (ra.intervalMin == null && ra.intervalMax == null && ra.intervalSec != null) {
+      ra.intervalMin = Math.max(5, ra.intervalSec - 5);
+      ra.intervalMax = ra.intervalSec + 5;
+    }
+    return { randomAction: ra };
   } catch (e) {
     // 文件缺失/损坏：生成默认配置
     saveConfig(DEFAULT_CONFIG);
@@ -192,7 +199,8 @@ function registerMenuIpc() {
   ipcMain.on('menu-config-set', (_e, key, value) => {
     const c = loadConfig();
     if (key === 'randomAction.enabled') c.randomAction.enabled = !!value;
-    else if (key === 'randomAction.intervalSec') c.randomAction.intervalSec = Math.max(5, Math.min(120, Math.round(value)));
+    else if (key === 'randomAction.intervalMin') c.randomAction.intervalMin = Math.max(5, Math.min(300, Math.round(value)));
+    else if (key === 'randomAction.intervalMax') c.randomAction.intervalMax = Math.max(5, Math.min(300, Math.round(value)));
     saveConfig(c);
     const win = getWin();
     if (win && !win.isDestroyed()) win.webContents.send('config-changed', c);

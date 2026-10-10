@@ -54,29 +54,30 @@
   // 设置模块 UI 更新
   function renderCfg() {
     $('#cfg-enable-val').textContent = cfg.randomAction.enabled ? '开' : '关';
-    $('#cfg-interval').textContent = cfg.randomAction.intervalSec;
+    $('#cfg-min').textContent = cfg.randomAction.intervalMin;
+    $('#cfg-max').textContent = cfg.randomAction.intervalMax;
     $('#cfg-badge').textContent = '';
   }
 
-  // 设置交互：随机表演开关 / 间隔增减（步进 5，范围 5-120）
+  // 设置交互：随机表演开关 / 间隔区间增减（步进 5，范围 5-300；min≤max 自动校正）
   function bindCfg() {
     $('#cfg-enable').addEventListener('click', () => {
       cfg.randomAction.enabled = !cfg.randomAction.enabled;
       window.menuApi.setConfig('randomAction.enabled', cfg.randomAction.enabled);
       renderCfg();
     });
-    $('#cfg-dec').addEventListener('click', (e) => {
-      e.stopPropagation();
-      cfg.randomAction.intervalSec = Math.max(5, cfg.randomAction.intervalSec - 5);
-      window.menuApi.setConfig('randomAction.intervalSec', cfg.randomAction.intervalSec);
+    const step = (key, delta) => {
+      const v = Math.max(5, Math.min(300, (cfg.randomAction[key] || 10) + delta));
+      cfg.randomAction[key] = v;
+      if (cfg.randomAction.intervalMin > cfg.randomAction.intervalMax) cfg.randomAction.intervalMin = cfg.randomAction.intervalMax;
+      window.menuApi.setConfig('randomAction.intervalMin', cfg.randomAction.intervalMin);
+      window.menuApi.setConfig('randomAction.intervalMax', cfg.randomAction.intervalMax);
       renderCfg();
-    });
-    $('#cfg-inc').addEventListener('click', (e) => {
-      e.stopPropagation();
-      cfg.randomAction.intervalSec = Math.min(120, cfg.randomAction.intervalSec + 5);
-      window.menuApi.setConfig('randomAction.intervalSec', cfg.randomAction.intervalSec);
-      renderCfg();
-    });
+    };
+    $('#cfg-dec-min').addEventListener('click', (e) => { e.stopPropagation(); step('intervalMin', -5); });
+    $('#cfg-inc-min').addEventListener('click', (e) => { e.stopPropagation(); step('intervalMin', 5); });
+    $('#cfg-dec-max').addEventListener('click', (e) => { e.stopPropagation(); step('intervalMax', -5); });
+    $('#cfg-inc-max').addEventListener('click', (e) => { e.stopPropagation(); step('intervalMax', 5); });
   }
 
   // 点击选择：动作项 / 功能项统一走 pick

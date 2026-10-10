@@ -126,6 +126,14 @@ function registerChatIpc() {
     updateAiConfig({ webSearchEnabled: next });
     return next;
   });
+
+  // 静音模式（对话窗按钮）：arc 的 AI 语音/随机发声静音，翻唱音乐不受影响
+  ipcMain.handle('chat-mute-state', () => !!getAiConfig().muteVoice);
+  ipcMain.handle('chat-mute-toggle', () => {
+    const next = !getAiConfig().muteVoice;
+    updateAiConfig({ muteVoice: next });
+    return next;
+  });
 }
 
 module.exports = { registerChatIpc, getChatWin, showChat, broadcast, recordMsg, getHistory };

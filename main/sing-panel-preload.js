@@ -4,6 +4,7 @@ contextBridge.exposeInMainWorld('singPanelApi', {
   pickFile: () => ipcRenderer.invoke('sing-panel-pick'),
   startSing: (p) => ipcRenderer.send('sing-panel-start', p),
   toggle: () => ipcRenderer.send('sing-panel-toggle'),
+  setVolume: (v) => ipcRenderer.send('sing-panel-volume', v),
   play: (name) => ipcRenderer.send('sing-panel-play', name),
   openDir: () => ipcRenderer.send('sing-panel-dir'),
   minimize: () => ipcRenderer.send('sing-panel-minimize'),

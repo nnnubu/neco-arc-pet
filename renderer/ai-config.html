@@ -62,7 +62,31 @@
       </label>
       <label class="field">
         <span>主动搭话指令（喂给 AI，可自定义）</span>
-        <textarea id="inProactivePrompt" rows="8" spellcheck="false" placeholder="主动找人类搭一句话：简短一句，用猫姬人设，直接输出台词不要解释"></textarea>
+        <textarea id="inProactivePrompt" rows="6" spellcheck="false" placeholder="主动找人类搭一句话：简短一句，用猫姬人设，直接输出台词不要解释"></textarea>
+      </label>
+
+      <div class="divider"></div>
+      <div class="section-title">随机发声</div>
+      <label class="field check" id="lblRandVoice">
+        <input id="inRandVoice" type="checkbox">
+        <span>偶尔用语音素材主动叫一声</span>
+      </label>
+      <div id="rvRow">
+        <label class="field half">
+          <span>最短间隔（分钟）</span>
+          <input id="inRvMin" type="number" min="1" max="120" step="1" value="3">
+        </label>
+        <label class="field half">
+          <span>最长间隔（分钟）</span>
+          <input id="inRvMax" type="number" min="1" max="120" step="1" value="8">
+        </label>
+      </div>
+
+      <div class="divider"></div>
+      <div class="section-title">静音模式</div>
+      <label class="field check" id="lblMute">
+        <input id="inMute" type="checkbox">
+        <span>让 arc 闭嘴（AI 语音/随机发声静音，翻唱音乐不受影响）</span>
       </label>
     </div>
   </div>

@@ -35,6 +35,8 @@ contextBridge.exposeInMainWorld('pet', {
   // 语音（说句话…）
   speakText: (text, force) => ipcRenderer.send('speak-text', text, !!force),
   onSpeakAudio: (cb) => ipcRenderer.on('play-audio', (_e, p) => cb(p)),
+  // 随机发声素材（assets/voice-clips/*.wav）：偶尔主动叫一声
+  onPlayClip: (cb) => ipcRenderer.on('pet-play-clip', (_e, r) => cb(r)),
   onSpeakState: (cb) => ipcRenderer.on('speak-state', (_e, s) => cb(s)),
   onAiReply: (cb) => ipcRenderer.on('ai-reply', (_e, r) => cb(r)),
   onAiToken: (cb) => ipcRenderer.on('ai-token', (_e, r) => cb(r)),
@@ -49,6 +51,7 @@ contextBridge.exposeInMainWorld('pet', {
   onSingLyric: (cb) => ipcRenderer.on('sing-lyric', (_e, r) => cb(r)),
   // 翻唱播放/暂停：歌词窗口按钮 / 翻唱面板按钮 → 主进程 → 这里
   onSingToggle: (cb) => ipcRenderer.on('sing-toggle', () => cb()),
+  onSingVolume: (cb) => ipcRenderer.on('sing-volume', (_e, v) => cb(v)),
   // 对话窗口打开后请求当前播放状态：回发 sing-state 让按钮显示与面板一致
   onSingAskState: (cb) => ipcRenderer.on('sing-ask-state', () => cb()),
   // 翻唱播放状态广播（playing/paused/ended）→ 主进程 → 歌词窗口按钮/翻唱面板回显

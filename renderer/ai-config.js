@@ -18,6 +18,10 @@
       proactiveEnabled: !!$('#inProactive').checked,
       proactiveIntervalMin: parseInt($('#inInterval').value, 10) || 30,
       proactivePrompt: $('#inProactivePrompt').value.trim(),
+      randomVoiceEnabled: !!$('#inRandVoice').checked,
+      randomVoiceMin: parseFloat($('#inRvMin').value) || 3,
+      randomVoiceMax: parseFloat($('#inRvMax').value) || 8,
+      muteVoice: !!$('#inMute').checked,
     };
   }
 
@@ -33,6 +37,10 @@
     $('#inProactive').checked = !!c.proactiveEnabled;
     $('#inInterval').value = c.proactiveIntervalMin != null ? c.proactiveIntervalMin : 30;
     $('#inProactivePrompt').value = c.proactivePrompt || '';
+    $('#inRandVoice').checked = !!c.randomVoiceEnabled;
+    $('#inRvMin').value = c.randomVoiceMin != null ? c.randomVoiceMin : 3;
+    $('#inRvMax').value = c.randomVoiceMax != null ? c.randomVoiceMax : 8;
+    $('#inMute').checked = !!c.muteVoice;
   });
 
   // 密钥明文/密文切换

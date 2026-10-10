@@ -9,6 +9,9 @@ contextBridge.exposeInMainWorld('chatApi', {
   // 联网搜索开关（状态持久化在主进程 ai 配置）
   searchState: () => ipcRenderer.invoke('chat-search-state'),
   toggleSearch: () => ipcRenderer.invoke('chat-search-toggle'),
+  // 静音模式（arc 不说话，翻唱音乐不受影响）
+  muteState: () => ipcRenderer.invoke('chat-mute-state'),
+  muteToggle: () => ipcRenderer.invoke('chat-mute-toggle'),
   // 对话窗历史回放（用户输入/猫姬回复/主动说话；主进程内存记录）
   getHistory: () => ipcRenderer.invoke('chat-get-history'),
   // 打开时向桌宠渲染层同步当前翻唱播放状态（按钮显示 ▶/⏸ 与面板一致）

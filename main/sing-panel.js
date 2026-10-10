@@ -133,6 +133,12 @@ function registerSingPanelIpc() {
     const w = getWin();
     if (w && !w.isDestroyed()) w.webContents.send('sing-toggle');
   });
+  // 翻唱音量：面板滑块 → 桌宠窗 singAudio.volume（0~1）
+  ipcMain.on('sing-panel-volume', (_e, v) => {
+    const vol = Math.max(0, Math.min(1, Number(v) || 0));
+    const w = getWin();
+    if (w && !w.isDestroyed()) w.webContents.send('sing-volume', vol);
+  });
 
   // 面板历史列表播放某首歌 → 立即播放 + 歌词异步补发（广播：桌宠窗播 + 对话窗显示）
   ipcMain.on('sing-panel-play', (_e, name) => {

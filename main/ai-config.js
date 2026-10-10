@@ -61,6 +61,8 @@ function registerAiConfigIpc() {
       temperature: c.temperature, maxTokens: c.maxTokens, systemPrompt: c.systemPrompt,
       webSearchEnabled: c.webSearchEnabled,
       proactiveEnabled: c.proactiveEnabled, proactiveIntervalMin: c.proactiveIntervalMin, proactivePrompt: c.proactivePrompt,
+      randomVoiceEnabled: c.randomVoiceEnabled, randomVoiceMin: c.randomVoiceMin, randomVoiceMax: c.randomVoiceMax,
+      muteVoice: c.muteVoice,
     };
   });
 
@@ -68,8 +70,9 @@ function registerAiConfigIpc() {
   ipcMain.handle('ai-config-save', (_e, cfg) => {
     try {
       const saved = updateAiConfig(cfg);
-      // 主动说话配置可能变了：重启定时器（开关/间隔生效）
+      // 主动说话/随机发声配置可能变了：重启定时器（开关/间隔生效）
       try { require('./voice').restartProactiveTimer(); } catch (e) { console.error('[ai-config] 重启主动说话定时器失败:', e.message); }
+      try { require('./voice').restartVoiceTimer(); } catch (e) { console.error('[ai-config] 重启随机发声定时器失败:', e.message); }
       return { ok: true, config: saved };
     } catch (err) {
       return { ok: false, error: err.message };

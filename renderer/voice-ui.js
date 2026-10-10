@@ -12,6 +12,15 @@ window.VoiceUI = (() => {
   let replyText = '';
   let syncMode = false;
 
+  // ── 随机发声素材播放（独立 audio，短音效；只在空闲时被触发，不打断翻唱/语音）──
+  let clipAudio = null;
+  function playClip(p) {
+    if (!clipAudio) clipAudio = new Audio();
+    clipAudio.src = 'file:///' + String(p || '').replace(/\\/g, '/').split('/').map(encodeURIComponent).join('/');
+    clipAudio.volume = 0.9;
+    clipAudio.play().catch(() => {});
+  }
+
   // ── 独立气泡窗口：透明置顶穿透，显示在桌宠左/右侧（按朝向），完全不遮 arc ──
   function bubbleShow(text) {
     try {
@@ -66,6 +75,17 @@ window.VoiceUI = (() => {
   function init() {
     audio = document.getElementById('petAudio');
     singAudio = document.getElementById('singAudio');
+    window.pet.onPlayClip((r) => { if (r && r.path) playClip(r.path); });
+
+    // 翻唱音量：应用持久化音量 + 面板滑块实时调节（localStorage 记忆）
+    try {
+      const saved = parseFloat(localStorage.getItem('singVolume') || '0.8');
+      singAudio.volume = Math.max(0, Math.min(1, saved || 0.8));
+    } catch (e) { singAudio.volume = 0.8; }
+    window.pet.onSingVolume((v) => {
+      singAudio.volume = Math.max(0, Math.min(1, Number(v) || 0.8));
+      try { localStorage.setItem('singVolume', String(singAudio.volume)); } catch (e) {}
+    });
 
     // 语音播放 + 透明文字逐字跟随语音节奏（播放阶段才开始渲染文本）
     window.pet.onSpeakAudio((p) => {

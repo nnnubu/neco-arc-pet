@@ -240,6 +240,47 @@ html, body {
 #btnLyric:hover { background: rgba(255, 95, 109, 0.3); color: #fff; border-color: rgba(255, 95, 109, 0.6); box-shadow: 0 0 14px rgba(255, 95, 109, 0.25); }
 #btnLyric:active { transform: scale(0.9); }
 
+/* 翻唱音量 */
+#volRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 14px 12px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid var(--line);
+}
+#volIcon { font-size: 13px; color: #a7afc5; }
+#volSlider {
+  flex: 1;
+  appearance: none;
+  -webkit-appearance: none;
+  height: 5px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, rgba(255, 95, 109, 0.75), rgba(255, 138, 92, 0.75));
+  outline: none;
+  cursor: pointer;
+}
+#volSlider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 13px; height: 13px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid #ff5f6d;
+  box-shadow: 0 2px 6px rgba(255, 95, 109, 0.4);
+  cursor: pointer;
+  transition: transform 0.12s var(--ease);
+}
+#volSlider::-webkit-slider-thumb:hover { transform: scale(1.15); }
+#volVal {
+  min-width: 34px;
+  text-align: right;
+  font-size: 11px;
+  color: #a7afc5;
+  font-variant-numeric: tabular-nums;
+}
+
 /* 历史列表 */
 #historyHead {
   display: flex;
