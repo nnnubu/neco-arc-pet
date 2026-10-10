@@ -11,4 +11,13 @@ contextBridge.exposeInMainWorld('lyricApi', {
   dragStart: (p) => ipcRenderer.send('lyric-drag-start', p),
   dragMove: (p) => ipcRenderer.send('lyric-drag-move', p),
   dragEnd: () => ipcRenderer.send('lyric-drag-end'),
+  // 关闭歌词窗口（播放仍在继续，仅隐藏歌词显示；下次播放会自动重新显示）
+  hide: () => ipcRenderer.send('lyric-hide'),
+  // 播放控制：进度条拖动 seek / 播放暂停 / 上一首 / 下一首（转发到桌宠渲染层）
+  seek: (t) => ipcRenderer.send('lyric-seek', t),
+  toggle: () => ipcRenderer.send('lyric-toggle'),
+  prev: () => ipcRenderer.send('lyric-prev'),
+  next: () => ipcRenderer.send('lyric-next'),
+  // 播放状态（sing-state 广播 → 主进程转发 lyric-state → 按钮 ⏸/▶ 切换）
+  onState: (cb) => ipcRenderer.on('lyric-state', (_e, s) => cb(s)),
 });

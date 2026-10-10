@@ -63,6 +63,18 @@
     if (e.key === 'Enter') send(false);
   });
 
+  // ── 联网搜索开关（状态持久化在主进程 ai 配置，打开时高亮）──
+  const btnSearch = $('#btnSearch');
+  function setSearchUI(on) {
+    btnSearch.classList.toggle('on', !!on);
+    btnSearch.title = on ? '联网搜索：开（最新/实时问题自动搜索）' : '联网搜索：关（点击开启）';
+  }
+  window.chatApi.searchState().then(setSearchUI);
+  btnSearch.addEventListener('click', async () => {
+    const next = await window.chatApi.toggleSearch();
+    setSearchUI(next);
+  });
+
   // ── 语音问答状态 ──
   window.chatApi.onSpeakState((s) => {
     if (!s) return;

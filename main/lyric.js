@@ -16,6 +16,8 @@ function getChatWin() {
 
 let lyricWin = null;
 let lyricScale = 1; // 歌词窗口缩放（滚轮调节，持久到下次播放）
+let lastLyrics = null;   // 最近一次显示的歌词（翻唱面板"显示歌词"重开用）
+let lastTitle = '';
 
 // ── lrc 解析：[mm:ss.xx] / [mm:ss:xx] 格式 → [{time, text}]（按时间排序）──
 function parseLrc(text) {
@@ -130,6 +132,9 @@ async function getLyrics(songPath) {
 // ── 桌面歌词窗口 ──
 function showLyricWindow(lyrics, title) {
   if (!lyrics || !lyrics.length) return;
+  // 缓存最近歌词（翻唱面板"显示歌词"重开入口用）
+  lastLyrics = lyrics;
+  lastTitle = title || '';
   if (!lyricWin || lyricWin.isDestroyed()) {
     const wa = screen.getPrimaryDisplay().workArea;
     const W = 680, H = 130;
@@ -190,6 +195,55 @@ function scanSingHistory() {
 }
 
 function registerLyricIpc() {
+  // 当前播放的翻唱歌名（渲染层播放时上报，用于歌词窗"下一首"）
+  let lastSingName = null;
+  ipcMain.on('sing-now', (_e, name) => { lastSingName = name || null; });
+
+  // 歌词窗：进度条拖动 seek → 桌宠渲染层设置 singAudio.currentTime
+  ipcMain.on('lyric-seek', (_e, t) => {
+    const win = getWin();
+    if (win && !win.isDestroyed()) win.webContents.send('sing-seek', t);
+  });
+  // 歌词窗：播放/暂停 → 复用桌宠渲染层 toggleSing
+  ipcMain.on('lyric-toggle', () => {
+    const win = getWin();
+    if (win && !win.isDestroyed()) win.webContents.send('sing-toggle');
+  });
+  // 歌词窗：下一首/上一首（翻唱历史列表顺序；环绕）
+  // 用 sing.js 的 broadcast 发播放指令：桌宠窗播 + 翻唱面板/对话窗同步歌名（仅发桌宠窗会导致面板歌名不更新）
+  function singNeighbor(delta) {
+    const list = scanSingHistory();
+    if (!list.length) return;
+    const idx = lastSingName ? list.findIndex((x) => x.name === lastSingName) : -1;
+    if (idx < 0) return;
+    const n = list.length;
+    const target = list[((idx + delta) % n + n) % n];
+    const win = getWin();
+    if (win && !win.isDestroyed() && target && target.full) {
+      require('./sing').broadcast('sing-play', { full: target.full, vocal: null, name: target.name, dir: target.dir });
+      // 歌词来源：面板自定义 .lrc（消费逻辑：绑定目标歌才用；绑定其他歌自动清空+面板取消勾选）→ 否则原歌名联网兜底
+      const lrc = require('./sing-panel').consumePanelLrc(target.name);
+      if (lrc && lrc.path) {
+        try {
+          const text = fs.readFileSync(lrc.path, 'utf8');
+          const parsed = parseLrc(text);
+          if (parsed.length) {
+            win.webContents.send('sing-lyric', { lyrics: parsed, title: target.name, source: 'custom' });
+            return;
+          }
+        } catch (e) {}
+      }
+      getLyricsByTitle(target.name).then((lyr) => {
+        if (win && !win.isDestroyed() && lyr && lyr.lyrics && lyr.lyrics.length) {
+          win.webContents.send('sing-lyric', lyr);
+        }
+      }).catch(() => {});
+    }
+  }
+  ipcMain.on('lyric-next', () => singNeighbor(1));
+  ipcMain.on('lyric-prev', () => singNeighbor(-1));
+  // 重开桌面歌词窗口（面板「显示歌词」入口用；无缓存返回 false）
+  ipcMain.handle('lyric-reopen', () => reopenLyric());
   // 渲染层：显示歌词窗口（翻唱播放开始）
   ipcMain.on('lyric-show', (_e, data) => {
     showLyricWindow(data && data.lyrics, data && data.title);
@@ -252,4 +306,13 @@ function registerLyricIpc() {
   ipcMain.handle('get-sing-history', () => scanSingHistory());
 }
 
-module.exports = { registerLyricIpc, getLyrics, getLyricsByTitle, scanSingHistory };
+// 重开桌面歌词窗口（面板「显示歌词」入口用；无缓存返回 false）
+function reopenLyric() {
+  if (lastLyrics && lastLyrics.length) {
+    showLyricWindow(lastLyrics, lastTitle);
+    return true;
+  }
+  return false;
+}
+
+module.exports = { registerLyricIpc, getLyrics, getLyricsByTitle, scanSingHistory, parseLrc, reopenLyric };

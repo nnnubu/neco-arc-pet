@@ -6,8 +6,8 @@ const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
 const { getWin } = require('./window');
-const { getLyrics } = require('./lyric');
-const { getSingPanelWin } = require('./sing-panel');
+const { getLyrics, parseLrc } = require('./lyric');
+const { getSingPanelWin, consumePanelLrc } = require('./sing-panel');
 const { getChatWin } = require('./chat');
 
 let singProc = null; // 防重入：一次只翻唱一首
@@ -51,8 +51,25 @@ function startSing(songPath) {
       if (msg.stage) broadcast('sing-progress', { stage: msg.stage });
       if (msg.done) {
         // 翻唱完成：立即发完成消息让渲染层马上自动播放（不等歌词搜索）
-        broadcast('sing-done', Object.assign({}, msg.done));
-        // 歌词异步补发：本地 .lrc 优先 → 网易云兜底，搜到后单独发 lyric-show 数据
+        // sing.py 只输出 full/vocal，补 name（full 父目录名=原曲名，与翻唱历史列表一致）
+        const doneMsg = Object.assign({}, msg.done);
+        if (!doneMsg.name && doneMsg.full) {
+          try { doneMsg.name = path.basename(path.dirname(doneMsg.full)); } catch (e) {}
+        }
+        broadcast('sing-done', doneMsg);
+        // 歌词异步补发：面板自定义 .lrc（消费逻辑：绑定原曲名才用，绑定其他歌自动清空）→ 本地同名 .lrc → 网易云兜底
+        const srcName = path.basename(p, path.extname(p));
+        const lrc = consumePanelLrc(srcName);
+        if (lrc && lrc.path) {
+          try {
+            const text = fs.readFileSync(lrc.path, 'utf8');
+            const parsed = parseLrc(text);
+            if (parsed.length) {
+              win.webContents.send('sing-lyric', { lyrics: parsed, title: srcName, source: 'custom' });
+              return;
+            }
+          } catch (e) {}
+        }
         getLyrics(p).then((lyr) => {
           if (win && !win.isDestroyed() && lyr && lyr.lyrics && lyr.lyrics.length) {
             win.webContents.send('sing-lyric', lyr);

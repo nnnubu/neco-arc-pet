@@ -131,6 +131,47 @@ html, body {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+#btnLyric {
+  width: 28px; height: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  color: #ffd9a0; font-size: 13px;
+  cursor: pointer;
+}
+#btnLyric:hover { background: rgba(255, 92, 98, 0.4); border-color: rgba(255, 92, 98, 0.6); }
+
+/* 歌词文件选项 */
+#lrcRow {
+  margin: 8px 12px 2px;
+}
+.chk {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 12px;
+  cursor: pointer;
+  user-select: none;
+}
+.chk input { accent-color: #ff5a60; cursor: pointer; }
+#lrcZone.drop {
+  margin-top: 6px;
+  height: 56px;
+}
+#lrcZone.drop.hidden { display: none; }
+#lrcHint {
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 11px;
+  line-height: 1.5;
+}
+#lrcPicked {
+  color: #ffe9a8;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 /* 历史 */
 #historyHead {

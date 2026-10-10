@@ -56,8 +56,11 @@ contextBridge.exposeInMainWorld('pet', {
   // 桌面歌词窗口控制（渲染层 → 主进程歌词窗口）
   lyricShow: (lyrics, title) => ipcRenderer.send('lyric-show', { lyrics, title }),
   lyricUpdate: (index) => ipcRenderer.send('lyric-update', index),
-  lyricProgress: (index, t) => ipcRenderer.send('lyric-progress', { index, t }),
+  lyricProgress: (index, t, dur) => ipcRenderer.send('lyric-progress', { index, t, dur }),
   lyricHide: () => ipcRenderer.send('lyric-hide'),
+  // 播放控制：上报当前播放歌名（歌词窗"下一首"定位用）；接收歌词窗 seek → 设置播放位置
+  singNow: (name) => ipcRenderer.send('sing-now', name),
+  onSingSeek: (cb) => ipcRenderer.on('sing-seek', (_e, t) => cb(t)),
   // 打开翻唱输出文件夹（资源管理器）
   openSingDir: (dir) => ipcRenderer.send('open-sing-dir', dir),
   // 打开对话窗口（右键菜单「说句话…」→ 主进程）

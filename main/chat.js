@@ -6,6 +6,7 @@ const { BrowserWindow, ipcMain, screen } = require('electron');
 const path = require('path');
 const { getWin } = require('./window');
 const { showSingPanel } = require('./sing-panel');
+const { getAiConfig, updateAiConfig } = require('./ai');
 
 let chatWin = null;
 
@@ -100,6 +101,14 @@ function registerChatIpc() {
 
   // 对话窗「翻唱」入口 → 打开翻唱面板
   ipcMain.on('chat-open-sing-panel', () => showSingPanel());
+
+  // 联网搜索开关（对话窗控制；持久化到 assets/ai-config.json 的 webSearchEnabled）
+  ipcMain.handle('chat-search-state', () => !!getAiConfig().webSearchEnabled);
+  ipcMain.handle('chat-search-toggle', () => {
+    const next = !getAiConfig().webSearchEnabled;
+    updateAiConfig({ webSearchEnabled: next });
+    return next;
+  });
 }
 
 module.exports = { registerChatIpc, getChatWin, showChat, broadcast };

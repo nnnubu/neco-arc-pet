@@ -9,9 +9,32 @@ const { scanSingHistory, getLyricsByTitle } = require('./lyric');
 // 顶层解构会拿到未完成的空导出；改为回调运行时 require（届时模块已完整加载）
 
 let panelWin = null;
+// 用户勾选"使用歌词文件"后选定的 .lrc；与歌曲绑定（song=null 表示未绑定，首次播放时绑定当前歌）
+let panelLrc = { path: null, song: null };
 
 function getSingPanelWin() {
   return panelWin;
+}
+
+function setPanelLrc(p, song) {
+  if (!p) { panelLrc = { path: null, song: null }; return; }
+  panelLrc = { path: String(p), song: song || null };
+}
+function getPanelLrc() { return panelLrc; }
+
+// 播放某首歌时消费歌词文件：
+//   绑定歌 == 播放歌 → 返回 lrc（使用）
+//   未绑定 → 绑定当前歌并返回 lrc（首次使用生效）
+//   绑定其他歌 → 清空 lrc 并通知面板取消勾选（避免串歌词，返回 null → 走联网）
+function consumePanelLrc(song) {
+  const lrc = panelLrc;
+  if (!lrc || !lrc.path) return null;
+  if (lrc.song === song) return lrc;
+  if (lrc.song == null) { setPanelLrc(lrc.path, song); return panelLrc; }
+  setPanelLrc(null, null);
+  const panel = getSingPanelWin();
+  if (panel && !panel.isDestroyed()) panel.webContents.send('sing-panel-lrc-cleared');
+  return null;
 }
 
 // 打开（或聚焦）翻唱面板
@@ -73,6 +96,38 @@ function registerSingPanelIpc() {
     require('./sing').startSing(String(p || ''));
   });
 
+  // 选歌词文件（勾选"使用歌词文件"后点击歌词选框）；song=当前正在播放/显示的歌（绑定，避免别的歌误用）
+  ipcMain.handle('sing-panel-pick-lrc', async (_e, song) => {
+    const r = await dialog.showOpenDialog(panelWin || undefined, {
+      title: '选择歌词文件（.lrc / .txt）',
+      properties: ['openFile'],
+      filters: [
+        { name: '歌词', extensions: ['lrc', 'txt'] },
+        { name: '所有文件', extensions: ['*'] },
+      ],
+    });
+    if (r.canceled || !r.filePaths.length) return null;
+    const p = r.filePaths[0];
+    try { fs.accessSync(p, fs.constants.R_OK); } catch { return { ok: false, error: '文件不可读' }; }
+    setPanelLrc(p, song);
+    return { ok: true, path: p, name: path.basename(p), song: song || null };
+  });
+
+  // 拖拽歌词文件到选框：上报路径 + 当前播放歌名（空字符串 = 清空）
+  ipcMain.handle('sing-panel-set-lrc', (_e, p, song) => {
+    if (!p) { setPanelLrc(null, null); return { ok: true, cleared: true }; }
+    const s = String(p);
+    try { fs.accessSync(s, fs.constants.R_OK); } catch { return { ok: false, error: '文件不可读' }; }
+    setPanelLrc(s, song);
+    return { ok: true, path: s, name: path.basename(s), song: song || null };
+  });
+
+  // 面板「显示歌词」：重开桌面歌词窗口（关闭后可再次打开）
+  ipcMain.handle('sing-panel-lyric', () => {
+    const reopened = require('./lyric').reopenLyric();
+    return reopened;
+  });
+
   // 面板播放/暂停按钮 → 桌宠渲染层 toggle 翻唱播放
   ipcMain.on('sing-panel-toggle', () => {
     const w = getWin();
@@ -90,6 +145,18 @@ function registerSingPanelIpc() {
       const p = path.join(dir, full);
       if (!fs.existsSync(p)) return; // 文件被删/占位：不播
       require('./sing').broadcast('sing-play', { full: p, vocal: null, name: String(name), dir });
+      // 歌词来源：面板自定义 .lrc（消费逻辑：绑定匹配才用；绑定其他歌自动清空+取消勾选）→ 否则原歌名联网兜底
+      const lrc = consumePanelLrc(String(name));
+      if (lrc && lrc.path) {
+        try {
+          const text = fs.readFileSync(lrc.path, 'utf8');
+          const parsed = require('./lyric').parseLrc(text);
+          if (parsed.length) {
+            w.webContents.send('sing-lyric', { lyrics: parsed, title: String(name), source: 'custom' });
+            return;
+          }
+        } catch (e) {}
+      }
       getLyricsByTitle(String(name)).then((lyr) => {
         if (w && !w.isDestroyed() && lyr && lyr.lyrics && lyr.lyrics.length) {
           w.webContents.send('sing-lyric', lyr);
@@ -108,4 +175,4 @@ function registerSingPanelIpc() {
   ipcMain.handle('sing-panel-history', () => scanSingHistory());
 }
 
-module.exports = { registerSingPanelIpc, getSingPanelWin, showSingPanel };
+module.exports = { showSingPanel, closeSingPanel, getSingPanelWin, registerSingPanelIpc, setPanelLrc, getPanelLrc, consumePanelLrc };

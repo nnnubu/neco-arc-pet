@@ -52,21 +52,26 @@ let aiConfig = (() => {
     temperature: file.temperature != null ? Number(file.temperature) : (ENV.LLM_TEMPERATURE != null ? Number(ENV.LLM_TEMPERATURE) : 0.7),
     maxTokens: file.maxTokens != null ? Number(file.maxTokens) : (ENV.LLM_MAX_TOKENS != null ? Number(ENV.LLM_MAX_TOKENS) : 256),
     systemPrompt: String(file.systemPrompt || DEFAULT_SYSTEM_PROMPT),
+    webSearchEnabled: file.webSearchEnabled != null ? !!file.webSearchEnabled : false,
   };
 })();
 
 function getAiConfig() { return Object.assign({}, aiConfig); }
 
 // 面板保存：写文件 + 更新内存（下次问答立即生效）
+// 注意：字段合并模式——只更新 patch 中出现的字段，未提供的保留原值，
+// 防止单字段调用（如 webSearchEnabled 开关）误清空 apiKey/model 等
 function updateAiConfig(cfg) {
-  const next = Object.assign({}, aiConfig, {
-    apiKey: String(cfg.apiKey || '').trim(),
-    baseUrl: String(cfg.baseUrl || 'https://api.siliconflow.cn/v1').trim().replace(/\/+$/, ''),
-    model: String(cfg.model || '').trim(),
-    temperature: Number(cfg.temperature != null ? cfg.temperature : 0.7),
-    maxTokens: Number(cfg.maxTokens != null ? cfg.maxTokens : 256),
-    systemPrompt: String(cfg.systemPrompt || DEFAULT_SYSTEM_PROMPT),
-  });
+  const merged = Object.assign({}, aiConfig, cfg || {});
+  const next = {
+    apiKey: String(merged.apiKey || '').trim(),
+    baseUrl: String(merged.baseUrl || 'https://api.siliconflow.cn/v1').trim().replace(/\/+$/, ''),
+    model: String(merged.model || '').trim(),
+    temperature: Number(merged.temperature != null ? merged.temperature : 0.7),
+    maxTokens: Number(merged.maxTokens != null ? merged.maxTokens : 256),
+    systemPrompt: String(merged.systemPrompt || DEFAULT_SYSTEM_PROMPT),
+    webSearchEnabled: merged.webSearchEnabled != null ? !!merged.webSearchEnabled : false,
+  };
   aiConfig = next;
   try {
     fs.mkdirSync(path.dirname(AI_CONFIG_PATH), { recursive: true });
@@ -119,6 +124,34 @@ function cleanContent(content) {
     .trim();
 }
 
+// ── 联网搜索启发式判定（方案 B）──
+// 保守规则：必须同时满足 疑问句 + 含具体信息词 + 长度≥6，才触发搜索。
+// 宁可漏判（模型凭常识答），不要误判（注入无关结果会让回答变差）。
+const Q_WORDS = ['吗', '呢', '么', '什么', '怎么', '如何', '为什么', '多少', '哪', '谁', '啥', '几', '是不是', '能不能', '可不可以', '请问', '？'];
+const INFO_WORDS = [
+  '今天', '昨天', '明天', '最新', '最近', '现在', '新闻', '天气', '气温', '温度', '价格', '多少钱', '汇率',
+  '股票', '股价', '比赛', '比分', '排名', '排行', '推荐', '介绍', '解释', '查询', '查找', '搜索', '时间',
+  '日期', '历史', '事件', '人物', '资料', '数据', '统计', '地址', '电话', '几月', '几号', '几点', '多久',
+  '多大', '多少岁', '怎么回事', '情况', '进展', '结果', '名单', '流程', '方法', '步骤', '区别', '对比',
+  '是什么', '哪些', '哪个', '支持', '下载', '安装', '世界杯', '奥运', '总统', '总理', '发布', '上市', '政策',
+];
+function needsSearch(text) {
+  const t = String(text || '').trim();
+  if (t.length < 6) return false;
+  if (!Q_WORDS.some((w) => t.includes(w))) return false;
+  return INFO_WORDS.some((w) => t.includes(w));
+}
+
+// 搜索并注入：命中返回增强后的 user 上下文（搜索结果拼进 system 之后），未命中返回 null
+async function maybeEnrichWithSearch(userText) {
+  if (!aiConfig.webSearchEnabled || !needsSearch(userText)) return null;
+  const { searchWeb, formatSearchResults } = require('./web-search');
+  const results = await searchWeb(userText);
+  if (!results || !results.length) return null;
+  console.log(`[web-search] 命中 ${results.length} 条，注入: "${String(userText).slice(0, 30)}"`);
+  return formatSearchResults(results);
+}
+
 async function askAI(userText, opts = {}) {
   const { onToken, force, timeoutMs = 30000 } = opts;
   if (!aiConfig.apiKey) throw new Error('未配置 AI 密钥（右键 → AI 设置）');
@@ -128,12 +161,16 @@ async function askAI(userText, opts = {}) {
     const hit = aiCache[cacheKey];
     if (hit) return hit;
   }
+  // 联网搜索：缓存未命中才搜（同一问题后续直接命中缓存，不再重复搜索）
+  const searchNote = await maybeEnrichWithSearch(userText);
+  const messages = [
+    { role: 'system', content: aiConfig.systemPrompt },
+  ];
+  if (searchNote) messages.push({ role: 'system', content: searchNote });
+  messages.push({ role: 'user', content: String(userText) });
   const payload = {
     model: aiConfig.model,
-    messages: [
-      { role: 'system', content: aiConfig.systemPrompt },
-      { role: 'user', content: String(userText) },
-    ],
+    messages,
     temperature: aiConfig.temperature,
     max_tokens: aiConfig.maxTokens,
     repetition_penalty: 1.15, // 抑制重复：避免每句都重复固定金句/口头禅

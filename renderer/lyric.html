@@ -11,7 +11,19 @@
     <div id="prev"></div>
     <div id="cur"></div>
     <div id="next"></div>
+    <!-- 播放控制行（hover 显示）：上一首/暂停 + 时间 + 可拖动进度条 + 下一首 -->
+    <div id="controls">
+      <button id="lcPrev" title="上一首">⏮</button>
+      <button id="lcToggle" title="播放/暂停">⏸</button>
+      <span id="progressTime">00:00 / 00:00</span>
+      <div id="progress">
+        <div id="progressFill"></div>
+        <div id="progressKnob"></div>
+      </div>
+      <button id="lcNext" title="下一首">⏭</button>
+    </div>
   </div>
+  <button id="lyricClose" title="关闭歌词">×</button>
   <script src="lyric-render.js"></script>
 </body>
 </html>

@@ -83,6 +83,71 @@
     if (s === 'ended') statusText.textContent = '播放结束';
   });
 
+  // ── 桌面歌词重开入口（歌词窗口被关闭后可再次打开）──
+  $('#btnLyric').addEventListener('click', () => {
+    window.singPanelApi.showLyric().then((ok) => {
+      if (!ok) statusText.textContent = '暂无歌词可显示';
+    });
+  });
+
+  // ── 歌词文件：勾选后显示选框；点击选择 / 拖拽上传（播放时优先使用该歌词）──
+  const chkLrc = $('#chkLrc');
+  const lrcZone = $('#lrcZone');
+  const lrcPicked = $('#lrcPicked');
+  const lrcHint = $('#lrcHint');
+  chkLrc.addEventListener('change', () => {
+    lrcZone.classList.toggle('hidden', !chkLrc.checked);
+    if (!chkLrc.checked) {
+      // 取消勾选：清空已选歌词文件
+      window.singPanelApi.setLrcFile('').then(() => {
+        lrcPicked.textContent = '';
+        lrcHint.style.display = '';
+      });
+    }
+  });
+  function showLrc(picked) {
+    lrcPicked.textContent = picked.name || '';
+    lrcHint.style.display = picked.name ? 'none' : '';
+  }
+  // 当前正在播放/显示的歌（选歌词文件时绑定，只对这首歌生效）
+  function currentSong() {
+    const nm = document.getElementById('playingName');
+    return (nm && nm.textContent.trim()) ? nm.textContent.trim() : '';
+  }
+  lrcZone.addEventListener('click', () => {
+    window.singPanelApi.pickLrc(currentSong()).then((r) => {
+      if (r && r.ok) showLrc(r);
+      else if (r && r.error) statusText.textContent = '歌词文件读取失败：' + r.error;
+    });
+  });
+  lrcZone.addEventListener('dragover', (e) => { e.preventDefault(); });
+  lrcZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if (!f) return;
+    const p = window.singPanelApi.getPathForFile(f);
+    window.singPanelApi.setLrcFile(p, currentSong()).then((r) => {
+      if (r && r.ok) showLrc(r);
+      else if (r && r.error) statusText.textContent = '歌词文件读取失败：' + r.error;
+    });
+  });
+
+  // 广播 sing-play（菜单历史 / 歌词窗"下一首" / 面板播放）→ 同步"正在播放"歌名
+  window.singPanelApi.onSingPlay((r) => {
+    if (!r || !r.name) return;
+    $('#playingName').textContent = r.name;
+    $('#playRow').classList.remove('hidden');
+    statusText.textContent = '正在播放…';
+  });
+
+  // 歌词文件被自动清空（切歌到未绑定歌曲时）：同步取消勾选 + 隐藏选框
+  window.singPanelApi.onLrcCleared(() => {
+    chkLrc.checked = false;
+    lrcZone.classList.add('hidden');
+    lrcPicked.textContent = '';
+    lrcHint.style.display = '';
+  });
+
   // ── 历史列表 ──
   function refreshHistory() {
     window.singPanelApi.getHistory().then((hist) => {

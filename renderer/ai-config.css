@@ -52,6 +52,14 @@ html, body {
 }
 #keyRow { display: flex; gap: 6px; }
 #keyRow input { flex: 1; }
+.field.check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+.field.check input { width: 16px; height: 16px; accent-color: #d93a42; cursor: pointer; }
+.field.check span { margin: 0; color: rgba(255, 255, 255, 0.8); font-size: 12px; }
 #btnKeyEye {
   width: 34px;
   border: 1px solid rgba(255, 255, 255, 0.15);

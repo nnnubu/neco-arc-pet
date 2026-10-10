@@ -34,8 +34,8 @@ window.VoiceUI = (() => {
           lastLyricIdx = idx;
           window.pet.lyricUpdate(idx);
         }
-        // 每帧句内进度 → 歌词窗口卡拉OK颜色渐变（已唱/未唱分界跟随进度）
-        window.pet.lyricProgress(idx, t);
+        // 每帧句内进度 → 歌词窗口卡拉OK颜色渐变（已唱/未唱分界跟随进度）+ 整首进度条
+        window.pet.lyricProgress(idx, t, singAudio.duration || 0);
       } catch (e) {}
     };
     lyricRaf = requestAnimationFrame(loop);
@@ -46,28 +46,62 @@ window.VoiceUI = (() => {
     if (!aiText) return;
     const W = window.innerWidth, H = window.innerHeight;
     const facing = (window.SpriteCore && window.SpriteCore.facing) || 1;
-    const fs = Math.max(12, Math.round(13 * W / 220));
+    // 字号随桌宠缩放但有上限：桌宠放大后不至于一行只放 3~4 个字
+    const fs = Math.max(12, Math.min(18, Math.round(13 * W / 220)));
     aiText.style.fontSize = fs + 'px';
-    aiText.style.maxWidth = Math.round(W * 0.36) + 'px';
-    aiText.style.top = Math.round(H * 0.16) + 'px';
+    aiText.style.top = Math.round(H * 0.1) + 'px';
     aiText.style.right = 'auto';
     aiText.style.transform = 'none';
     aiText.style.textAlign = 'left';
+    // 离桌宠更远：右侧推到窗口最右缘（0.68W 起点 + 0.30W 宽，一行承载更多字）
     if (facing >= 0) {
       aiText.style.left = Math.round(W * 0.68) + 'px';
-      aiText.style.maxWidth = Math.round(W * 0.28) + 'px';
+      aiText.style.maxWidth = Math.round(W * 0.30) + 'px';
     } else {
-      aiText.style.left = '2%';
-      aiText.style.maxWidth = Math.round(W * 0.28) + 'px';
+      aiText.style.left = '0';
+      aiText.style.maxWidth = Math.round(W * 0.30) + 'px';
     }
   }
 
-  // 显示文本：复用持久 span（只改 textContent），避免每帧重建 DOM 导致卡顿
-  let textSpan = null;
+  // 段落式渲染：固定行块（打字时只填内容不重建 DOM → 不闪烁）
+  // 按断句聚合成长行（每行目标 ~14 字，行长承载更多），偶行缩进形成错落段落感
+  let paraLines = []; // [{ el, text }]
+  function setupParagraphs(fullText) {
+    if (!aiText) return;
+    aiText.textContent = '';
+    const segs = String(fullText).split(/(?<=[。！？；…])/).map((s) => s.trim()).filter(Boolean);
+    const lines = [];
+    let cur = '';
+    for (const s of segs) {
+      if (cur && cur.length + s.length > 14) { lines.push(cur); cur = s; }
+      else cur += s;
+    }
+    if (cur) lines.push(cur);
+    if (!lines.length) lines.push(String(fullText));
+    paraLines = lines.map((txt, i) => {
+      const d = document.createElement('div');
+      d.style.marginBottom = '0.45em';
+      if (i % 2 === 1) d.style.marginLeft = '1.2em'; // 偶行缩进 → 错落段落感
+      aiText.appendChild(d);
+      return { el: d, text: txt };
+    });
+  }
+  function paintParagraphs(n) {
+    if (!aiText) return;
+    let remain = n;
+    for (const ln of paraLines) {
+      if (remain <= 0) { ln.el.textContent = ''; continue; }
+      const take = Math.min(remain, ln.text.length);
+      ln.el.textContent = ln.text.slice(0, take);
+      remain -= take;
+    }
+  }
+
+  // 显示文本：预分块 + 全量填充（打字/整句都走这里）
   function showAiText(text) {
     if (!aiText) return;
-    if (!textSpan) { textSpan = document.createElement('span'); aiText.appendChild(textSpan); }
-    textSpan.textContent = text;
+    setupParagraphs(text);
+    paintParagraphs(String(text).length);
     aiText.style.display = 'block';
   }
 
@@ -115,8 +149,8 @@ window.VoiceUI = (() => {
             if (!syncMode) return;
             const n = Math.min(total, Math.round((audio.currentTime / dur) * total));
             if (n !== lastN) {
-              if (!textSpan) { textSpan = document.createElement('span'); aiText.appendChild(textSpan); }
-              textSpan.textContent = replyText.slice(0, n);
+              if (!paraLines.length) setupParagraphs(replyText); // 首次：固定行块（不重建，避免闪烁）
+              paintParagraphs(n);
               lastN = n;
               aiText.style.display = 'block';
             }
@@ -147,6 +181,8 @@ window.VoiceUI = (() => {
     function playSing(full, name) {
       try {
         if (!full) return;
+        // 上报当前播放歌名（歌词窗"下一首"定位用）
+        try { window.pet.singNow(name || ''); } catch (e) {}
         // 暂停语音（互斥：翻唱播放时不让语音插话）
         if (audio && !audio.paused) { audio.pause(); audio.currentTime = 0; }
         // 重置播放器状态：清掉旧事件处理器（防上一首的 onended/onerror 干扰本次）
@@ -229,6 +265,15 @@ window.VoiceUI = (() => {
       }
     }
     window.pet.onSingToggle(() => toggleSing());
+
+    // 歌词窗进度条拖动 seek：直接设置播放位置（暂停中只改位置，恢复播放从新位置开始）
+    window.pet.onSingSeek((t) => {
+      if (!singAudio || !singAudio.src) return;
+      try {
+        const dur = singAudio.duration || 0;
+        singAudio.currentTime = Math.max(0, Math.min(t, dur || t));
+      } catch (e) {}
+    });
 
     // 对话窗口打开时同步当前播放状态（按钮 ▶/⏸ 与翻唱面板一致）
     window.pet.onSingAskState(() => {
