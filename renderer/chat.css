@@ -105,6 +105,10 @@ html, body {
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
 }
+#chatMsgs::-webkit-scrollbar { width: 6px; }
+#chatMsgs::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.16); border-radius: 3px; }
+#chatMsgs::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.28); }
+#chatMsgs::-webkit-scrollbar-track { background: transparent; }
 /* 消息进入动画：淡入 + 上移 */
 .msg {
   max-width: 82%;

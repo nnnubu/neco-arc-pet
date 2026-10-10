@@ -267,8 +267,12 @@ html, body {
   max-height: 150px;
   overflow-y: auto;
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
+  scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
 }
+#historyList::-webkit-scrollbar { width: 6px; }
+#historyList::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.16); border-radius: 3px; }
+#historyList::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.28); }
+#historyList::-webkit-scrollbar-track { background: transparent; }
 .hitem {
   display: flex;
   align-items: center;

@@ -1,4 +1,9 @@
 /* AI 设置面板 — 与对话窗/翻唱面板统一的设计系统（深空渐变 + 玻璃 + 珊瑚聚焦） */
+/* 统一滚动条：与菜单/对话/翻唱窗口同款细条 */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.16); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.28); }
+::-webkit-scrollbar-track { background: transparent; }
 :root {
   --bg0: #0b0c15;
   --bg1: #12131f;
