@@ -65,6 +65,17 @@ function registerAiConfigIpc() {
     }
   });
 
+  // 立即主动说一句（面板"立即说一句"测试按钮；配置未开也触发，便于验收）
+  ipcMain.handle('ai-config-proactive-now', () => {
+    try {
+      const { handleProactiveSpeak } = require('./voice');
+      handleProactiveSpeak();
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: err.message };
+    }
+  });
+
   // 恢复默认提示词（面板"恢复默认"用，只返回文本不写文件）
   ipcMain.handle('ai-config-default-prompt', () => defaultSystemPrompt());
 

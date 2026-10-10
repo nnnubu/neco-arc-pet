@@ -199,4 +199,4 @@ function registerVoiceIpc() {
   restartProactiveTimer();
 }
 
-module.exports = { registerVoiceIpc, handleSpeakText, restartProactiveTimer };
+module.exports = { registerVoiceIpc, handleSpeakText, handleProactiveSpeak, restartProactiveTimer };

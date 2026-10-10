@@ -69,6 +69,16 @@
     else setMsg('连接失败：' + (r && r.error), true);
   });
 
+  // 立即主动说一句：无需等定时，直接触发（配置未开启也可用于验收）
+  $('#btnProactiveNow').addEventListener('click', async () => {
+    $('#btnProactiveNow').disabled = true;
+    setMsg('');
+    const r = await window.aiConfigApi.proactiveNow();
+    $('#btnProactiveNow').disabled = false;
+    if (r && r.ok) setMsg('已让猫姬开口喵（看桌宠气泡/听声音）');
+    else setMsg('触发失败：' + (r && r.error), true);
+  });
+
   // 恢复默认提示词
   $('#btnDefault').addEventListener('click', async () => {
     const d = await window.aiConfigApi.defaultPrompt();

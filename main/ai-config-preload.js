@@ -5,6 +5,7 @@ contextBridge.exposeInMainWorld('aiConfigApi', {
   save: (cfg) => ipcRenderer.invoke('ai-config-save', cfg),
   defaultPrompt: () => ipcRenderer.invoke('ai-config-default-prompt'),
   test: (cfg) => ipcRenderer.invoke('ai-config-test', cfg),
+  proactiveNow: () => ipcRenderer.invoke('ai-config-proactive-now'),
   minimize: () => ipcRenderer.send('ai-config-minimize'),
   close: () => ipcRenderer.send('ai-config-close'),
 });
