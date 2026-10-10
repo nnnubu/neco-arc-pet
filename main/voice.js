@@ -5,7 +5,7 @@ const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
 const { getWin } = require('./window');
-const { getChatWin } = require('./chat');
+const { getChatWin, recordMsg } = require('./chat');
 const { askAI, getAiConfig } = require('./ai');
 
 // 对话事件广播：桌宠窗（播放音频/透明文字逐字）+ 对话窗（消息气泡/状态显示）
@@ -86,6 +86,7 @@ async function handleProactiveSpeak() {
   }
   const { emotion, text: speakText } = parseEmotion(reply);
   console.log(`[proactive] 情绪=${emotion} 文本=${speakText}`);
+  recordMsg('pet', speakText); // 进对话窗历史（即使对话窗未打开，重开可见）
   if (!win.isDestroyed()) broadcast('ai-reply', { text: speakText });
   broadcast('speak-state', { state: 'generating' });
   ensureVoiceServer();
@@ -158,6 +159,7 @@ async function handleSpeakText(text, force) {
   // 清除孤立代理项（输入法/粘贴可能产生），防止传给 Python 时编码崩溃
   const t = String(text || '').replace(/[\uD800-\uDFFF]/g, '').trim();
   if (!t) return;
+  recordMsg('me', t); // 用户输入进对话窗历史
   broadcast('speak-state', { state: 'ai' }); // 思考中…
   let reply;
   try {
@@ -177,6 +179,7 @@ async function handleSpeakText(text, force) {
   // 解析情绪标签：标签决定语音合成情绪（voice_server 内部映射到 CosyVoice 参数）
   const { emotion, text: speakText } = parseEmotion(reply);
   console.log(`[ai] 情绪=${emotion} 文本=${speakText}`);
+  recordMsg('pet', speakText); // 猫姬回复进对话窗历史（对话窗未开也不丢，重开回放）
   // 回复文本（去标签）给渲染层显示
   if (!win.isDestroyed()) broadcast('ai-reply', { text: speakText });
   // 合成回复语音（CosyVoice 情绪源 → RVC 变声 → 缓存；情绪进缓存 key）

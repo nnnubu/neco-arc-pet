@@ -10,6 +10,19 @@ const { getAiConfig, updateAiConfig } = require('./ai');
 
 let chatWin = null;
 
+// ── 消息记录（内存，上限 200 条）：用户输入/猫姬回复/主动说话都进记录，
+// 对话窗关闭再打开时回放，避免"主动说话没加到对话面板"（窗口未开时消息丢失）
+const MAX_HISTORY = 200;
+let chatHistory = [];
+
+function recordMsg(role, text) {
+  if (!text) return;
+  chatHistory.push({ role: role === 'me' ? 'me' : 'pet', text: String(text), ts: Date.now() });
+  if (chatHistory.length > MAX_HISTORY) chatHistory = chatHistory.slice(-MAX_HISTORY);
+}
+
+function getHistory() { return chatHistory.slice(); }
+
 function getChatWin() {
   return chatWin;
 }
@@ -89,9 +102,13 @@ function registerChatIpc() {
   });
 
   // 对话窗输入发送 → 复用语音问答链路（voice.js handleSpeakText；运行时 require 防循环依赖）
+  // 消息记录统一在 voice.js（handleSpeakText 内记录 me/pet，覆盖对话窗/主窗口两种入口，避免重复）
   ipcMain.on('chat-send', (_e, text, force) => {
     require('./voice').handleSpeakText(String(text || ''), !!force);
   });
+
+  // 对话窗打开时拉取历史消息（invoke 时机可靠，避免 push 时渲染端未就绪丢消息）
+  ipcMain.handle('chat-get-history', () => getHistory());
 
   // 对话窗「播放/暂停」→ 桌宠渲染层 toggle 翻唱播放
   ipcMain.on('chat-toggle-sing', () => {
@@ -111,4 +128,4 @@ function registerChatIpc() {
   });
 }
 
-module.exports = { registerChatIpc, getChatWin, showChat, broadcast };
+module.exports = { registerChatIpc, getChatWin, showChat, broadcast, recordMsg, getHistory };

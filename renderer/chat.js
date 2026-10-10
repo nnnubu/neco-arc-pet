@@ -148,4 +148,11 @@
 
   // 打开时向桌宠渲染层同步当前翻唱播放状态（避免按钮状态与翻唱面板不一致：播放中应显示 ⏸）
   window.chatApi.askState();
+
+  // ── 历史回放：打开对话窗时拉取主进程记录（用户输入/猫姬回复/主动说话），
+  // 主动说话时窗口未开也不丢失，重开可见完整对话
+  window.chatApi.getHistory().then((list) => {
+    if (!Array.isArray(list)) return;
+    for (const m of list) addMsg(m.role === 'me' ? 'me' : 'pet', m.text);
+  });
 })();
