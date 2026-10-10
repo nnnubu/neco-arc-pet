@@ -46,7 +46,7 @@ const DEFAULT_SYSTEM_PROMPT = [
 ].join('\n');
 
 // ── 主动搭话指令（喂给 AI 的角色指令；面板可覆盖）──
-const PROACTIVE_DEFAULT_PROMPT = '主动找人类搭一句话：用猫姬人设，简短一句（15~40字），挑一个自然的话题（天气/日常/刚想到的趣事），直接输出台词不要解释、不要提问刚才聊过的事。';
+const PROACTIVE_DEFAULT_PROMPT = '以猫姬（Neco Arc）身份主动找人类搭一句话：从猫姬自己的世界观里挑话题开口——例如猫王国“伟大猫咪村”的日常、真祖爱尔奎特/月姬世界里的趣事、猫咪村伙伴（知得留老师、其他猫变种）的小故事、炫耀自己的招式/必杀技、或对人类世界的喵式吐槽；简短一句（15~40字），直接输出台词不要解释、不要提问刚才聊过的事。';
 
 // ── 运行期 AI 配置（内存动态，面板保存即更新）──
 const AI_CONFIG_PATH = path.join(__dirname, '..', 'assets', 'ai-config.json');
@@ -207,7 +207,7 @@ async function getStyleNote() {
         const hits = await searchKnowledge('猫姬怎么说话 口癖 口头禅 语气 台词风格 说话方式');
         if (!hits || !hits.length) { styleNoteCache = null; return null; }
         const lines = hits.slice(0, 3).map((h) => `【${h.title}】${String(h.content || '').slice(0, 400)}`);
-        styleNoteCache = '[猫姬说话风格（来自知识库）] 用以下口癖/语气/台词风格说话，但每次都要自然变化、避免生硬复读：\n' + lines.join('\n');
+        styleNoteCache = '[猫姬说话风格（来自知识库）] 参考以下口癖/语气/台词风格自然地融入说话，但必须严格遵守：1) 每句话开头禁止固定用同一个词，尤其不要每句都以“嘿咻/喵”开头；2) 拟声词/口头禅（嘿咻、喵、Burenyuu、Nya 等）整句话最多出现一次；3) 内容每次都要自然变化，禁止复读同一句式。\n' + lines.join('\n');
         console.log(`[kb-style] 说话风格注入 ${hits.slice(0, 3).length} 块: ${hits.slice(0, 3).map((h) => h.title).join(' / ')}`);
         return styleNoteCache;
       } catch (e) {
@@ -247,7 +247,7 @@ async function askAI(userText, opts = {}) {
     messages,
     temperature: aiConfig.temperature,
     max_tokens: aiConfig.maxTokens,
-    repetition_penalty: 1.15, // 抑制重复：避免每句都重复固定金句/口头禅
+    repetition_penalty: 1.2, // 抑制重复：口头禅/金句复读惩罚（1.2 兼顾多样性与稳定性）
     stream: !!onToken,
   };
   let lastErr = null;

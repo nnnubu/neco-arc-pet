@@ -58,12 +58,15 @@ function restartProactiveTimer() {
   const min = Math.max(1, Number(cfg.proactiveIntervalMin) || 30);
   proactiveTimer = setInterval(() => {
     if (isSpeaking()) return; // 用户正在听/正在合成中，不打扰
+    if (singPlaying) return;  // 翻唱播放中：不主动搭话，避免打断用户听歌
     handleProactiveSpeak();
   }, min * 60 * 1000);
 }
 
 // 主动搭话最近台词（上限 12 条）：拼进搭话指令，明确要求换新话题/新句式，避免重复
 const proactiveHistory = [];
+// 翻唱是否播放中：渲染层 sing-state('playing') 事件维护；播放中不主动搭话，避免打断听歌
+let singPlaying = false;
 function buildProactivePrompt(cfg) {
   const base = cfg.proactivePrompt || '主动找人类搭一句话：简短一句，用猫姬人设，直接输出台词不要解释。';
   if (!proactiveHistory.length) return base;
@@ -213,6 +216,8 @@ async function handleSpeakText(text, force) {
 
 function registerVoiceIpc() {
   ipcMain.on('speak-text', (_e, text, force) => handleSpeakText(text, force));
+  // 翻唱播放状态：渲染层播放翻唱时发 sing-state('playing'/'paused'/'ended')，主动搭话据此避开
+  ipcMain.on('sing-state', (_e, s) => { singPlaying = s === 'playing'; });
   // 模块加载即按当前配置启动主动说话定时器（面板保存后由 ai-config.js 调 restart 刷新）
   restartProactiveTimer();
 }
