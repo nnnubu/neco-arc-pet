@@ -193,6 +193,33 @@ async function maybeEnrichWithKnowledge(userText) {
   return formatKnowledge(hits);
 }
 
+// ── 知识库"说话风格"常驻注入（普通对话 + 主动搭话都带上）──
+// 从资料库检索口癖/口头禅/语气/台词风格块，一次性检索并缓存；
+// 让猫姬无论聊什么（包括主动找话题）都按知识库里的说话方式开口，而不是每次念固定台词
+let styleNoteCache = null;
+let styleNoteLoading = null;
+async function getStyleNote() {
+  if (styleNoteCache !== null) return styleNoteCache;
+  if (!styleNoteLoading) {
+    styleNoteLoading = (async () => {
+      try {
+        const { searchKnowledge } = require('./arc-knowledge');
+        const hits = await searchKnowledge('猫姬怎么说话 口癖 口头禅 语气 台词风格 说话方式');
+        if (!hits || !hits.length) { styleNoteCache = null; return null; }
+        const lines = hits.slice(0, 3).map((h) => `【${h.title}】${String(h.content || '').slice(0, 400)}`);
+        styleNoteCache = '[猫姬说话风格（来自知识库）] 用以下口癖/语气/台词风格说话，但每次都要自然变化、避免生硬复读：\n' + lines.join('\n');
+        console.log(`[kb-style] 说话风格注入 ${hits.slice(0, 3).length} 块: ${hits.slice(0, 3).map((h) => h.title).join(' / ')}`);
+        return styleNoteCache;
+      } catch (e) {
+        console.error('[kb-style] 说话风格注入失败:', e.message);
+        styleNoteCache = null;
+        return null;
+      }
+    })();
+  }
+  return styleNoteLoading;
+}
+
 async function askAI(userText, opts = {}) {
   const { onToken, force, timeoutMs = 30000 } = opts;
   if (!aiConfig.apiKey) throw new Error('未配置 AI 密钥（右键 → AI 设置）');
@@ -206,9 +233,12 @@ async function askAI(userText, opts = {}) {
   const searchNote = await maybeEnrichWithSearch(userText);
   // 知识库检索：设定相关问题注入角色资料（轻量 RAG，独立于联网搜索）
   const knowledgeNote = await maybeEnrichWithKnowledge(userText);
+  // 知识库说话风格：常驻注入（普通对话 + 主动搭话），贴合猫姬口癖/语气
+  const styleNote = await getStyleNote();
   const messages = [
     { role: 'system', content: aiConfig.systemPrompt },
   ];
+  if (styleNote) messages.push({ role: 'system', content: styleNote });
   if (knowledgeNote) messages.push({ role: 'system', content: knowledgeNote });
   if (searchNote) messages.push({ role: 'system', content: searchNote });
   messages.push({ role: 'user', content: String(userText) });

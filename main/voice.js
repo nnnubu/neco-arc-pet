@@ -62,6 +62,19 @@ function restartProactiveTimer() {
   }, min * 60 * 1000);
 }
 
+// 主动搭话最近台词（上限 12 条）：拼进搭话指令，明确要求换新话题/新句式，避免重复
+const proactiveHistory = [];
+function buildProactivePrompt(cfg) {
+  const base = cfg.proactivePrompt || '主动找人类搭一句话：简短一句，用猫姬人设，直接输出台词不要解释。';
+  if (!proactiveHistory.length) return base;
+  const recent = proactiveHistory.slice(-6).map((t, i) => `${i + 1}. ${t}`).join('\n');
+  return (
+    base +
+    '\n\n【避免重复】以下是你最近主动说过的台词，请换一个全新的话题和句式，绝对不要重复它们的内容或开头：\n' +
+    recent
+  );
+}
+
 // 主动搭话：以"主动指令"问 AI（force 绕过问答缓存，每次都生成新台词）→ 走标准合成播放
 async function handleProactiveSpeak() {
   const win = getWin();
@@ -71,7 +84,7 @@ async function handleProactiveSpeak() {
   broadcast('speak-state', { state: 'ai' }); // 思考中…
   let reply;
   try {
-    reply = await askAI(cfg.proactivePrompt || '主动找人类搭一句话：简短一句，用猫姬人设，直接输出台词不要解释。', {
+    reply = await askAI(buildProactivePrompt(cfg), {
       force: true,
       onToken: (tok) => broadcast('ai-token', { text: tok }),
     });
@@ -87,6 +100,8 @@ async function handleProactiveSpeak() {
   const { emotion, text: speakText } = parseEmotion(reply);
   console.log(`[proactive] 情绪=${emotion} 文本=${speakText}`);
   recordMsg('pet', speakText); // 进对话窗历史（即使对话窗未打开，重开可见）
+  proactiveHistory.push(speakText);
+  if (proactiveHistory.length > 12) proactiveHistory.shift();
   if (!win.isDestroyed()) broadcast('ai-reply', { text: speakText });
   broadcast('speak-state', { state: 'generating' });
   ensureVoiceServer();
