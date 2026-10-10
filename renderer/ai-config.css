@@ -63,11 +63,20 @@ html, body {
 #btnClose:active, #btnMin:active { transform: scale(0.9); }
 
 #body {
+  display: flex;
+  gap: 18px;
   padding: 14px 16px 6px;
   overflow-y: auto;
   height: calc(100% - 40px - 128px);
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
+}
+#colLeft { flex: 1.25; min-width: 0; }
+#colRight {
+  flex: 1;
+  min-width: 0;
+  padding-left: 18px;
+  border-left: 1px solid var(--line);
 }
 #footer {
   position: absolute;
