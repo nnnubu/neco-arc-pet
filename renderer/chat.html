@@ -13,7 +13,6 @@
       <span id="titleText">猫姬对话</span>
       <div id="tbBtns">
         <button id="tbMin" title="最小化">—</button>
-        <button id="tbToggle" title="播放 / 暂停翻唱">▶</button>
         <button id="tbSing" title="打开翻唱面板">♪</button>
         <button id="tbClose" title="关闭">×</button>
       </div>
@@ -22,11 +21,10 @@
     <!-- 消息记录：用户右红 / 猫姬左浅 -->
     <div id="chatMsgs"></div>
 
-    <!-- 当前翻唱播放提示 + 暂停（不依赖桌面歌词窗口，找不到歌词也能暂停） -->
+    <!-- 当前翻唱播放提示（只读歌名；播放控制统一在翻唱面板，避免双端按钮状态不一致） -->
     <div id="nowPlaying" class="hidden">
       <span id="npIcon">♪</span>
       <span id="npName"></span>
-      <button id="npToggle" title="播放 / 暂停">⏸</button>
     </div>
 
     <!-- 状态行（思考中/生成语音中/翻唱进度/错误） -->

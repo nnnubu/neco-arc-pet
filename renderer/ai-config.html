@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>AI 设置</title>
+  <link rel="stylesheet" href="ai-config.css">
+</head>
+<body>
+  <!-- 自绘标题栏：可拖动 + 最小化/关闭 -->
+  <div id="titlebar">
+    <span class="t">⚙ AI 设置</span>
+    <div id="tbBtns">
+      <button id="btnMin" title="最小化">—</button>
+      <button id="btnClose" title="关闭">×</button>
+    </div>
+  </div>
+
+  <div id="body">
+    <label class="field">
+      <span>API 密钥</span>
+      <div id="keyRow">
+        <input id="inKey" type="password" placeholder="sk-…" autocomplete="off">
+        <button id="btnKeyEye" type="button" title="显示/隐藏密钥">👁</button>
+      </div>
+    </label>
+    <label class="field">
+      <span>接口地址（Base URL）</span>
+      <input id="inBase" type="text" placeholder="https://api.siliconflow.cn/v1">
+    </label>
+    <label class="field">
+      <span>模型</span>
+      <input id="inModel" type="text" placeholder="Qwen/Qwen2.5-7B-Instruct">
+    </label>
+    <div id="row2">
+      <label class="field half">
+        <span>温度（0~2）</span>
+        <input id="inTemp" type="number" min="0" max="2" step="0.1" value="0.7">
+      </label>
+      <label class="field half">
+        <span>最大回复字数</span>
+        <input id="inMax" type="number" min="32" max="2048" step="32" value="256">
+      </label>
+    </div>
+    <label class="field">
+      <span>角色提示词（system prompt）</span>
+      <textarea id="inPrompt" rows="6" spellcheck="false"></textarea>
+    </label>
+
+    <div id="msg"></div>
+
+    <div id="btns">
+      <button id="btnTest" title="用当前表单值发一条测试消息验证">测试连接</button>
+      <button id="btnDefault" title="提示词恢复猫姬默认人设">恢复默认</button>
+      <button id="btnSave" class="primary">保存</button>
+    </div>
+    <p id="hint">保存后立即生效；密钥等敏感信息仅存本项目 assets/ai-config.json（不提交 git）</p>
+  </div>
+
+  <script src="ai-config.js"></script>
+</body>
+</html>

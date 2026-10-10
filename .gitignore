@@ -34,6 +34,9 @@ debug-*.png
 # API Key 等本地敏感配置
 .env
 
+# AI 设置面板配置（含密钥，本地保留不入库）
+assets/ai-config.json
+
 # AI 问答缓存
 voice/ai_cache.json
 

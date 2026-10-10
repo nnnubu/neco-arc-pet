@@ -30,6 +30,38 @@
     if (curEl) curEl.style.setProperty('--p', Math.round(ratio * 100) + '%');
   });
 
+  // 右键阻止系统窗口菜单（JS 拖动替代 app-region:drag 后，页面 contextmenu 可正常拦截）
+  document.addEventListener('contextmenu', (e) => e.preventDefault());
+
+  // 鼠标滚轮缩放歌词（与桌宠滚轮缩放一致）：向上放大 / 向下缩小
+  document.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    window.lyricApi.resize(e.deltaY);
+  }, { passive: false });
+
+  // 主进程缩放通知：整体 zoom 跟随（内容随窗口等比放大缩小）
+  window.lyricApi.onScale((s) => {
+    document.documentElement.style.zoom = String(s);
+  });
+
+  // JS 拖动歌词窗口（替代 -webkit-app-region:drag：drag 区域会吞右键/滚轮）
+  let dragging = false;
+  document.addEventListener('mousedown', (e) => {
+    if (e.button !== 0) return;
+    dragging = true;
+    window.lyricApi.dragStart({ sx: e.screenX, sy: e.screenY });
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove', (e) => {
+    if (!dragging) return;
+    window.lyricApi.dragMove({ sx: e.screenX, sy: e.screenY });
+  });
+  document.addEventListener('mouseup', () => {
+    if (!dragging) return;
+    dragging = false;
+    window.lyricApi.dragEnd();
+  });
+
   // 渐变切换：值相同不重绘；否则淡出 → 下一帧换文本淡入
   function fadeSwap(elm, text) {
     if (elm.dataset.v === text) return;

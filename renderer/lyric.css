@@ -17,7 +17,7 @@ html, body {
   gap: 2px;
   padding: 0 10px 8px 10px;
   text-align: center;
-  -webkit-app-region: drag; /* 整条可拖动 */
+  /* 拖动改由 JS 实现（mousedown/move IPC）：app-region:drag 会吞掉右键系统菜单与滚轮事件 */
 }
 #title {
   font-size: 12px;

@@ -15,11 +15,6 @@ function getChatWin() {
 
 // 打开（或聚焦）对话窗口：默认放桌宠右侧；右侧空间不足放左侧；尽量不遮桌宠
 function showChat() {
-  // 临时诊断：记录每次打开调用
-  try {
-    require('fs').appendFileSync(path.join(__dirname, '..', 'voice', 'actions.log'),
-      `${new Date().toISOString()} [chat] showChat chatWin=${chatWin && !chatWin.isDestroyed() ? 'exists' : 'null'}\n`);
-  } catch (e) {}
   if (chatWin && !chatWin.isDestroyed()) {
     // 已存在：恢复最小化 + 显示 + 聚焦（防止首次创建后窗口未完成加载时用户重复点击）
     if (chatWin.isMinimized()) chatWin.restore();

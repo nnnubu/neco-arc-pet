@@ -1,6 +1,8 @@
-// 主进程 - AI 问答模块：接入 SiliconFlow（OpenAI 兼容）免费 Qwen 模型
-// 配置仿照 C:\Python学习\chatapp_ai 的 .env（LLM_API_KEY / LLM_BASE_URL / LLM_MODEL），
-// 独立存放在本项目根目录 .env（不提交 git，避免 key 泄漏）
+// 主进程 - AI 问答模块：接入 OpenAI 兼容接口（默认 SiliconFlow 免费 Qwen 模型）
+// 配置来源（优先级从高到低）：
+//   1. assets/ai-config.json（AI 设置面板写入，含密钥/模型/接口/提示词，不提交 git）
+//   2. 项目根 .env（LLM_API_KEY / LLM_BASE_URL / LLM_MODEL 等，旧配置兼容）
+//   3. 内置默认值
 const fs = require('fs');
 const path = require('path');
 
@@ -19,17 +21,9 @@ function loadEnv() {
   }
   return env;
 }
-const ENV = loadEnv();
 
-const BASE_URL = (ENV.LLM_BASE_URL || 'https://api.siliconflow.cn/v1').replace(/\/+$/, '');
-const API_KEY = ENV.LLM_API_KEY || '';
-const MODEL = ENV.LLM_MODEL || 'Qwen/Qwen2.5-7B-Instruct';
-const TEMPERATURE = parseFloat(ENV.LLM_TEMPERATURE || '0.7');
-const MAX_TOKENS = parseInt(ENV.LLM_MAX_TOKENS || '256', 10);
-
-// ── Neco Arc 人设（system prompt）──
-// 面向 TTS 场景：回答必须简短（要语音合成说出来），口语化 + 喵口癖
-const NECO_ARC_SYSTEM = [
+// ── Neco Arc 人设（system prompt 默认值；AI 设置面板可覆盖）──
+const DEFAULT_SYSTEM_PROMPT = [
   '你是"猫姬"（Neco Arc），一只白色猫型桌宠，来自伟大猫咪村，自称很厉害，其实是个爱捣乱的小不点。',
   '性格：活泼话痨、无厘头、爱恶作剧，说话带"喵"口癖；喜欢喝 Pilk（可乐兑百事）、吃麻婆豆腐、玩 FGO；爱捉弄人但心里很可爱，被夸会得意。',
   '说话规则：',
@@ -40,6 +34,52 @@ const NECO_ARC_SYSTEM = [
   '- 每次回答要说不一样的内容，避免重复之前说过的话和固定金句，不要每句都自夸或重复同一句口头禅',
   '- 回答开头用【情绪】标记，从【开心】【生气】【难过】【惊讶】【平静】中选一个（根据用户话语和回答内容自然判断），紧接标记再说话内容，例如：【开心】嘿嘿，今天天气真好喵！',
 ].join('\n');
+
+// ── 运行期 AI 配置（内存动态，面板保存即更新）──
+const AI_CONFIG_PATH = path.join(__dirname, '..', 'assets', 'ai-config.json');
+
+function loadAiConfigFile() {
+  try { return JSON.parse(fs.readFileSync(AI_CONFIG_PATH, 'utf8')); } catch { return {}; }
+}
+
+let aiConfig = (() => {
+  const ENV = loadEnv();
+  const file = loadAiConfigFile();
+  return {
+    apiKey: String(file.apiKey || ENV.LLM_API_KEY || ''),
+    baseUrl: String(file.baseUrl || ENV.LLM_BASE_URL || 'https://api.siliconflow.cn/v1').replace(/\/+$/, ''),
+    model: String(file.model || ENV.LLM_MODEL || 'Qwen/Qwen2.5-7B-Instruct'),
+    temperature: file.temperature != null ? Number(file.temperature) : (ENV.LLM_TEMPERATURE != null ? Number(ENV.LLM_TEMPERATURE) : 0.7),
+    maxTokens: file.maxTokens != null ? Number(file.maxTokens) : (ENV.LLM_MAX_TOKENS != null ? Number(ENV.LLM_MAX_TOKENS) : 256),
+    systemPrompt: String(file.systemPrompt || DEFAULT_SYSTEM_PROMPT),
+  };
+})();
+
+function getAiConfig() { return Object.assign({}, aiConfig); }
+
+// 面板保存：写文件 + 更新内存（下次问答立即生效）
+function updateAiConfig(cfg) {
+  const next = Object.assign({}, aiConfig, {
+    apiKey: String(cfg.apiKey || '').trim(),
+    baseUrl: String(cfg.baseUrl || 'https://api.siliconflow.cn/v1').trim().replace(/\/+$/, ''),
+    model: String(cfg.model || '').trim(),
+    temperature: Number(cfg.temperature != null ? cfg.temperature : 0.7),
+    maxTokens: Number(cfg.maxTokens != null ? cfg.maxTokens : 256),
+    systemPrompt: String(cfg.systemPrompt || DEFAULT_SYSTEM_PROMPT),
+  });
+  aiConfig = next;
+  try {
+    fs.mkdirSync(path.dirname(AI_CONFIG_PATH), { recursive: true });
+    fs.writeFileSync(AI_CONFIG_PATH, JSON.stringify(aiConfig, null, 2));
+  } catch (e) {
+    console.log('[ai] 配置写入失败:', e.message);
+    throw e;
+  }
+  return getAiConfig();
+}
+
+// 恢复默认提示词（面板"恢复默认"用）
+function defaultSystemPrompt() { return DEFAULT_SYSTEM_PROMPT; }
 
 // ── AI 问答缓存（同问同答：同一问题返回同一回答，语音缓存也可命中）──
 // 存 voice/ai_cache.json（不提交 git）；key 规范化后与语音缓存口径一致
@@ -81,7 +121,7 @@ function cleanContent(content) {
 
 async function askAI(userText, opts = {}) {
   const { onToken, force, timeoutMs = 30000 } = opts;
-  if (!API_KEY) throw new Error('未配置 LLM_API_KEY（项目根 .env）');
+  if (!aiConfig.apiKey) throw new Error('未配置 AI 密钥（右键 → AI 设置）');
   // 同问同答：未强制重试时先查缓存（流式命中同样直接返回，回复文本走 ai-reply）
   const cacheKey = normalizeKey(userText);
   if (!force) {
@@ -89,13 +129,13 @@ async function askAI(userText, opts = {}) {
     if (hit) return hit;
   }
   const payload = {
-    model: MODEL,
+    model: aiConfig.model,
     messages: [
-      { role: 'system', content: NECO_ARC_SYSTEM },
+      { role: 'system', content: aiConfig.systemPrompt },
       { role: 'user', content: String(userText) },
     ],
-    temperature: TEMPERATURE,
-    max_tokens: MAX_TOKENS,
+    temperature: aiConfig.temperature,
+    max_tokens: aiConfig.maxTokens,
     repetition_penalty: 1.15, // 抑制重复：避免每句都重复固定金句/口头禅
     stream: !!onToken,
   };
@@ -106,10 +146,10 @@ async function askAI(userText, opts = {}) {
       const timer = setTimeout(() => ctrl.abort(), timeoutMs);
       let resp;
       try {
-        resp = await fetch(`${BASE_URL}/chat/completions`, {
+        resp = await fetch(`${aiConfig.baseUrl}/chat/completions`, {
           method: 'POST',
           headers: {
-            Authorization: `Bearer ${API_KEY}`,
+            Authorization: `Bearer ${aiConfig.apiKey}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify(payload),
@@ -176,4 +216,4 @@ async function askAI(userText, opts = {}) {
   throw lastErr || new Error('AI 调用失败');
 }
 
-module.exports = { askAI, NECO_ARC_SYSTEM, MODEL, BASE_URL };
+module.exports = { askAI, getAiConfig, updateAiConfig, defaultSystemPrompt, DEFAULT_SYSTEM_PROMPT };

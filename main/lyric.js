@@ -15,6 +15,7 @@ function getChatWin() {
 }
 
 let lyricWin = null;
+let lyricScale = 1; // 歌词窗口缩放（滚轮调节，持久到下次播放）
 
 // ── lrc 解析：[mm:ss.xx] / [mm:ss:xx] 格式 → [{time, text}]（按时间排序）──
 function parseLrc(text) {
@@ -193,6 +194,30 @@ function registerLyricIpc() {
   ipcMain.on('lyric-show', (_e, data) => {
     showLyricWindow(data && data.lyrics, data && data.title);
   });
+  // 渲染层：滚轮缩放歌词（deltaY<0 放大 / >0 缩小；窗口+字号等比，与桌宠滚轮缩放一致）
+  ipcMain.on('lyric-resize', (_e, deltaY) => {
+    if (!lyricWin || lyricWin.isDestroyed()) return;
+    lyricScale = Math.max(0.7, Math.min(2.5, lyricScale + (deltaY < 0 ? 0.1 : -0.1)));
+    // 缩放保持窗口中心不变（用户拖动过窗口后缩放不跳位）
+    const cur = lyricWin.getBounds();
+    const W = Math.round(680 * lyricScale), H = Math.round(130 * lyricScale);
+    const x = cur.x + Math.round((cur.width - W) / 2);
+    const y = cur.y + Math.round((cur.height - H) / 2);
+    lyricWin.setBounds({ x, y, width: W, height: H });
+    lyricWin.webContents.send('lyric-scale', lyricScale);
+  });
+  // 渲染层 JS 拖动歌词窗口（替代 app-region:drag，右键/滚轮不再被系统层吞掉）
+  let lyricDrag = null;
+  ipcMain.on('lyric-drag-start', (_e, p) => {
+    if (!lyricWin || lyricWin.isDestroyed()) return;
+    const b = lyricWin.getBounds();
+    lyricDrag = { offX: p.sx - b.x, offY: p.sy - b.y };
+  });
+  ipcMain.on('lyric-drag-move', (_e, p) => {
+    if (!lyricDrag || !lyricWin || lyricWin.isDestroyed()) return;
+    lyricWin.setPosition(Math.round(p.sx - lyricDrag.offX), Math.round(p.sy - lyricDrag.offY));
+  });
+  ipcMain.on('lyric-drag-end', () => { lyricDrag = null; });
   // 渲染层：更新当前句索引（audio timeupdate 驱动）
   ipcMain.on('lyric-update', (_e, index) => {
     if (lyricWin && !lyricWin.isDestroyed()) lyricWin.webContents.send('lyric-idx', index);
@@ -213,11 +238,6 @@ function registerLyricIpc() {
     if (panel && !panel.isDestroyed()) panel.webContents.send('sing-panel-state', s);
     const chat = getChatWin();
     if (chat && !chat.isDestroyed()) chat.webContents.send('sing-state', s);
-    // 临时诊断：确认 sing-state 是否转发到对话窗（定位按钮状态不同步）
-    try {
-      fs.appendFileSync(path.join(__dirname, '..', 'voice', 'actions.log'),
-        `${new Date().toISOString()} [sing-state] s=${s} panel=${panel ? 'Y' : 'N'} chat=${chat ? 'Y' : 'N'}\n`);
-    } catch (e) {}
   });
 
   // 主进程取歌词（sing-done 时 / 菜单历史播放时）

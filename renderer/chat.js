@@ -8,11 +8,9 @@
   const input = $('#chatInput');
   const np = $('#nowPlaying');
   const npName = $('#npName');
-  const npToggle = $('#npToggle');
-  const tbToggle = $('#tbToggle');
   let lastPetMsg = null; // 当前猫姬气泡（AI 流式累积用）
   let replyText = '';    // AI 回复全文
-  let playing = false;   // 翻唱是否播放中
+  let playing = false;   // 翻唱是否播放中（仅用于状态文字显示，播放控制统一在翻唱面板）
   let currentSingName = ''; // 当前播放的翻唱歌名
 
   function setStatus(text, isError) {
@@ -28,12 +26,9 @@
     np.classList.remove('hidden');
   }
 
+  // 播放状态仅影响底部提示文字；播放/暂停按钮已从对话窗移除（统一在翻唱面板控制）
   function setPlayingUI(state) {
     playing = state === 'playing';
-    const icon = playing ? '⏸' : '▶';
-    npToggle.textContent = icon;
-    tbToggle.textContent = icon;
-    tbToggle.classList.toggle('playing', playing);
   }
 
   // 消息气泡：me=用户（右红）/ pet=猫姬（左浅）
@@ -134,11 +129,7 @@
     else if (s === 'ended') { setPlayingUI(false); setStatus('播放结束'); np.classList.add('hidden'); }
   });
 
-  // ── 播放/暂停（标题栏 + 播放行按钮）──
-  npToggle.addEventListener('click', () => window.chatApi.toggleSing());
-  tbToggle.addEventListener('click', () => window.chatApi.toggleSing());
-
-  // ── 翻唱面板入口 / 最小化 / 关闭 ──
+  // ── 翻唱面板入口 / 最小化 / 关闭（播放控制统一在翻唱面板）──
   $('#tbSing').addEventListener('click', () => window.chatApi.openSingPanel());
   $('#tbMin').addEventListener('click', () => window.chatApi.minimize());
   $('#tbClose').addEventListener('click', () => window.chatApi.close());

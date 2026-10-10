@@ -1,0 +1,94 @@
+/* AI 设置面板样式：与翻唱面板同风格的深色工具窗 */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+  background: #1c1c26;
+  color: #eee;
+  font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+  font-size: 13px;
+  overflow: hidden;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+#titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 34px;
+  padding: 0 8px 0 14px;
+  background: #262634;
+  -webkit-app-region: drag;
+}
+#titlebar .t { font-weight: 700; letter-spacing: 1px; color: #ff9aa0; }
+#tbBtns { display: flex; gap: 6px; -webkit-app-region: no-drag; }
+#btnClose, #btnMin {
+  width: 26px; height: 26px;
+  border: none; border-radius: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #ccc; font-size: 15px; line-height: 1;
+  cursor: pointer;
+}
+#btnMin:hover { background: rgba(255, 255, 255, 0.2); }
+#btnClose:hover { background: #d93a42; color: #fff; }
+
+#body { padding: 14px; overflow-y: auto; height: calc(100% - 34px); }
+.field { display: block; margin-bottom: 12px; }
+.field span {
+  display: block;
+  margin-bottom: 5px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 12px;
+}
+.field input, .field textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  background: #14141c;
+  color: #eee;
+  font-family: inherit;
+  font-size: 13px;
+  outline: none;
+}
+#keyRow { display: flex; gap: 6px; }
+#keyRow input { flex: 1; }
+#btnKeyEye {
+  width: 34px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  background: #14141c;
+  color: #ccc;
+  font-size: 14px;
+  cursor: pointer;
+}
+#btnKeyEye:hover { background: #262634; color: #fff; }
+.field input:focus, .field textarea:focus { border-color: #ff9aa0; }
+.field textarea { resize: none; line-height: 1.5; }
+#row2 { display: flex; gap: 10px; }
+.field.half { flex: 1; }
+
+#msg {
+  min-height: 20px;
+  margin: 4px 0 10px;
+  font-size: 12px;
+  color: #9be29b;
+  word-break: break-all;
+}
+#msg.error { color: #ff8a8a; }
+
+#btns { display: flex; gap: 8px; }
+#btns button {
+  flex: 1;
+  padding: 8px 0;
+  border: none;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #eee;
+  font-size: 13px;
+  cursor: pointer;
+}
+#btns button:hover { background: rgba(255, 255, 255, 0.18); }
+#btns button.primary { background: #d93a42; font-weight: 700; }
+#btns button.primary:hover { background: #f04a52; }
+#btns button:disabled { opacity: 0.5; cursor: default; }
+#hint { margin-top: 12px; font-size: 11px; color: rgba(255, 255, 255, 0.4); line-height: 1.6; }

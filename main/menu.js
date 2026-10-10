@@ -155,6 +155,9 @@ function registerMenuIpc() {
     } else if (action === 'SPEAK') {
       // 「说句话…」：打开对话窗口（独立窗口，不遮桌宠）
       showChat();
+    } else if (action === 'AI_CONFIG') {
+      // 「AI 设置」：独立面板（密钥/模型/接口/提示词 配置化）
+      require('./ai-config').showAiConfig();
     } else if (typeof action === 'string' && action.startsWith('sing:')) {
       // 菜单「翻唱历史」点击某首歌：立即播放（无歌词也能播），歌词搜到后异步补发
       const name = action.slice(5);
