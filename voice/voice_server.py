@@ -20,6 +20,7 @@
 
 import json
 import os
+import re
 import sys
 import time
 import glob
@@ -354,6 +355,26 @@ def clean_text(s):
     return "".join(ch for ch in s if not (0xD800 <= ord(ch) <= 0xDFFF)).strip()
 
 
+# 句末"喵+感叹号"正则（用户实测仅"喵"需要处理；"呀/哦"等保留原语气）
+_TAIL_MEOW_EXCLAM = re.compile(r'(喵)([！!]+)$')
+
+
+def soften_tail_meow(text, emotion):
+    """句末拟声词后的感叹号降级为句号。
+
+    实测：CosyVoice 对"身影喵！"会把喵单独顿读并生成莫名拟声音效；
+    "身影喵"或"身影喵。"则自然连读（用户试听 B/D 变体验收）。
+    仅处理非 angry 情绪——生气版"谁干的喵！！！"的爆发语气是用户验收过的，保留。
+    注意：必须在缓存 key 计算之前调用，让"喵！"与"喵。"不共享同一缓存。
+    """
+    if emotion == 'angry':
+        return text
+    m = _TAIL_MEOW_EXCLAM.search(text)
+    if not m:
+        return text
+    return text[:m.start(1)] + m.group(1) + '。'
+
+
 def main():
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     os.makedirs(CACHE_DIR, exist_ok=True)
@@ -391,6 +412,8 @@ def main():
             emotion = str(req.get("emotion", "neutral"))
             if emotion not in EMOTION_CFG:
                 emotion = "neutral"
+            # 句末"喵！"类顿读修复：感叹号降级为句号（缓存 key 前处理，避免复用旧坏缓存）
+            text = soften_tail_meow(text, emotion)
             cp = cache_path(text, emotion)
             force = bool(req.get("force"))
             # 缓存命中（非 force 重试）：直接返回，不再合成
