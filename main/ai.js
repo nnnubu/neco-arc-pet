@@ -66,6 +66,12 @@ let aiConfig = (() => {
     maxTokens: file.maxTokens != null ? Number(file.maxTokens) : (ENV.LLM_MAX_TOKENS != null ? Number(ENV.LLM_MAX_TOKENS) : 256),
     systemPrompt: String(file.systemPrompt || DEFAULT_SYSTEM_PROMPT),
     webSearchEnabled: file.webSearchEnabled != null ? !!file.webSearchEnabled : false,
+    // 联网搜索触发方式：auto=智能判断（疑问句+时效信息才搜，默认）；always=每条消息都联网检索；
+    // custom=按用户自定义关键词触发（searchWords 逗号分隔，问题含任一词即搜）。总开关仍是 webSearchEnabled
+    searchMode: file.searchMode === 'always' ? 'always' : (file.searchMode === 'custom' ? 'custom' : 'auto'),
+    searchWords: String(file.searchWords || ''),
+    // 聊天回答缓存开关（对话窗 💾 控制）：true=同问同答命中缓存直接返回；false=每次重新生成
+    chatCacheEnabled: file.chatCacheEnabled != null ? !!file.chatCacheEnabled : true,
     // 主动说话：桌宠定时找用户搭话（AI 设置面板可配置；默认关闭）
     proactiveEnabled: file.proactiveEnabled != null ? !!file.proactiveEnabled : false,
     proactiveIntervalMin: file.proactiveIntervalMin != null ? Number(file.proactiveIntervalMin) : 30,
@@ -94,6 +100,9 @@ function updateAiConfig(cfg) {
     maxTokens: Number(merged.maxTokens != null ? merged.maxTokens : 256),
     systemPrompt: String(merged.systemPrompt || DEFAULT_SYSTEM_PROMPT),
     webSearchEnabled: merged.webSearchEnabled != null ? !!merged.webSearchEnabled : false,
+    searchMode: merged.searchMode === 'always' ? 'always' : (merged.searchMode === 'custom' ? 'custom' : 'auto'),
+    searchWords: String(merged.searchWords || ''),
+    chatCacheEnabled: merged.chatCacheEnabled != null ? !!merged.chatCacheEnabled : true,
     proactiveEnabled: merged.proactiveEnabled != null ? !!merged.proactiveEnabled : false,
     proactiveIntervalMin: merged.proactiveIntervalMin != null ? Number(merged.proactiveIntervalMin) : 30,
     proactivePrompt: String(merged.proactivePrompt || PROACTIVE_DEFAULT_PROMPT),
@@ -172,9 +181,32 @@ function needsSearch(text) {
   return INFO_WORDS.some((w) => t.includes(w));
 }
 
+// 清空回答缓存（对话窗 🗑️ 清理入口）：清空后写盘，返回清理条数
+function clearAiCache() {
+  const n = Object.keys(aiCache).length;
+  aiCache = {};
+  try { fs.writeFileSync(CACHE_PATH, JSON.stringify(aiCache)); } catch (e) { console.log('[ai] 缓存清空写盘失败:', e.message); }
+  return n;
+}
+
 // 搜索并注入：命中返回增强后的 user 上下文（搜索结果拼进 system 之后），未命中返回 null
 async function maybeEnrichWithSearch(userText) {
-  if (!aiConfig.webSearchEnabled || !needsSearch(userText)) return null;
+  if (!aiConfig.webSearchEnabled) return null;
+  // 触发方式配置化：always=每条都搜；custom=按用户自定义关键词；auto=内置启发式（疑问句+含具体信息词+长度≥6）
+  let should = false;
+  if (aiConfig.searchMode === 'always') {
+    should = true;
+  } else if (aiConfig.searchMode === 'custom') {
+    const t = String(userText);
+    const words = String(aiConfig.searchWords || '')
+      .split(/[,，;；\s]+/)
+      .map((w) => w.trim())
+      .filter(Boolean);
+    should = words.length > 0 && words.some((w) => t.includes(w));
+  } else {
+    should = needsSearch(userText);
+  }
+  if (!should) return null;
   const { searchWeb, formatSearchResults } = require('./web-search');
   const results = await searchWeb(userText);
   if (!results || !results.length) return null;
@@ -359,4 +391,4 @@ async function askAI(userText, opts = {}) {
   throw lastErr || new Error('AI 调用失败');
 }
 
-module.exports = { askAI, getAiConfig, updateAiConfig, defaultSystemPrompt, DEFAULT_SYSTEM_PROMPT };
+module.exports = { askAI, getAiConfig, updateAiConfig, defaultSystemPrompt, DEFAULT_SYSTEM_PROMPT, clearAiCache };

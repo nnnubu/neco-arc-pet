@@ -6,10 +6,33 @@
   let curIdx = -1;
   let curEl = null;
 
+  // hex → 同色系深浅档（amt：负=加深，正=提亮；0=原色）
+  function shade(hex, amt) {
+    const n = parseInt(hex.slice(1), 16);
+    let r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+    const t = amt < 0 ? 0 : 255, p = Math.abs(amt);
+    r = Math.round((t - r) * p + r);
+    g = Math.round((t - g) * p + g);
+    b = Math.round((t - b) * p + b);
+    return '#' + ((r << 16) | (g << 8) | b).toString(16).padStart(6, '0');
+  }
+  // hex → rgba 字符串（未唱部分用半透明暗色，卡拉OK未唱观感）
+  function rgba(hex, a) {
+    const n = parseInt(hex.slice(1), 16);
+    const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+    return 'rgba(' + r + ',' + g + ',' + b + ',' + a + ')';
+  }
+
   window.lyricApi.onData((d) => {
     lyrics = (d && d.lyrics) || [];
     const title = (d && d.title) || '';
     $('#title').textContent = title;
+    // 歌词文本颜色（可配置，默认当前亮黄）：按主色推导卡拉OK三档（已唱亮/已唱主/未唱暗）
+    const col = (d && /^#[0-9a-fA-F]{6}$/.test(String(d.color))) ? String(d.color) : '#ffd04d';
+    const cur = $('#cur');
+    cur.style.setProperty('--cur-bright', shade(col, 0.55));
+    cur.style.setProperty('--cur-mid', col);
+    cur.style.setProperty('--cur-dim', rgba(col, 0.38));
     curIdx = -1;
     render(-1);
   });

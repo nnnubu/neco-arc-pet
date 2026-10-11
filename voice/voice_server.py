@@ -624,8 +624,14 @@ def main():
             out_path = str(req.get("out_path") or "").strip()
             # 句末"喵！"类顿读修复：感叹号降级为句号（缓存 key 前处理，避免复用旧坏缓存）
             text = soften_tail_meow(text, emotion)
+            # 口癖原版音频开关（TTS 面板可切）：true=遇到口癖词用原版音频拼接（默认）；
+            # false=不做映射，直接 TTS 朗读口癖词（未做口癖替换的原始样子）
+            try:
+                meow_clips = bool(req.get("meow_clips", True))
+            except Exception:
+                meow_clips = True
             # 口癖替换：文本含 Burenyuu!/Nya! 等 → 拆段合成后与原版音频拼接
-            meow_parts = split_meow_clips(text)
+            meow_parts = split_meow_clips(text) if meow_clips else None
             # 口癖拼接走独立缓存 key（前缀标记），旧"纯 TTS 念怪叫"缓存不会命中
             cp = cache_path(('\x01meowmix\x02' + text) if meow_parts else text,
                             emotion, f0, index_rate, intensity, voice_override)

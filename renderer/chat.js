@@ -48,19 +48,18 @@
     return d;
   }
 
-  // ── 发送 / 重试 ──
-  function send(force) {
+  // ── 发送（force=绕过回答缓存；缓存开关关闭时每次发送都绕过）──
+  function send() {
     const t = input.value.replace(/[\uD800-\uDFFF]/g, '').trim();
     if (!t) return;
     addMsg('me', t);
     input.value = '';
-    setStatus(force ? '重新合成中喵…' : '喵…思考中');
-    window.chatApi.sendText(t, force);
+    setStatus(cacheEnabled ? '喵…思考中' : '喵…正在重新生成（已绕过缓存）');
+    window.chatApi.sendText(t, !cacheEnabled);
   }
-  $('#btnSend').addEventListener('click', () => send(false));
-  $('#btnRetry').addEventListener('click', () => send(true));
+  $('#btnSend').addEventListener('click', () => send());
   input.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') send(false);
+    if (e.key === 'Enter') send();
   });
 
   // ── 联网搜索开关（状态持久化在主进程 ai 配置，打开时高亮）──
@@ -73,6 +72,27 @@
   btnSearch.addEventListener('click', async () => {
     const next = await window.chatApi.toggleSearch();
     setSearchUI(next);
+  });
+
+  // ── 回答缓存开关（💾）：开=同问同答命中缓存；关=每次重新生成（状态持久化在主进程 ai 配置）──
+  const btnCache = $('#btnCache');
+  let cacheEnabled = true;
+  function setCacheUI(on) {
+    cacheEnabled = !!on;
+    btnCache.classList.toggle('on', cacheEnabled);
+    btnCache.title = cacheEnabled ? '缓存：开（同问同答直接返回，点击关闭）' : '缓存：关（每次重新生成，点击开启）';
+  }
+  window.chatApi.cacheState().then(setCacheUI);
+  btnCache.addEventListener('click', async () => {
+    const next = await window.chatApi.cacheToggle();
+    setCacheUI(next);
+  });
+
+  // ── 清空回答缓存（🗑️）：一键清空，状态行提示清理条数 ──
+  $('#btnCacheClear').addEventListener('click', async () => {
+    const n = await window.chatApi.cacheClear();
+    setStatus('已清空回答缓存' + (typeof n === 'number' ? `（${n} 条）` : '') + '喵');
+    setTimeout(() => setStatus(''), 2500);
   });
 
   // ── 静音模式（arc 不说话；翻唱音乐不受影响）──

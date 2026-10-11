@@ -48,6 +48,21 @@
         <span>角色提示词（system prompt）</span>
         <textarea id="inPrompt" rows="7" spellcheck="false"></textarea>
       </label>
+
+      <div class="divider"></div>
+      <div class="section-title">联网搜索</div>
+      <label class="field">
+        <span>触发方式（总开关在对话窗 🌐）</span>
+        <select id="inSearchMode">
+          <option value="auto">智能判断（内置规则：疑问句+时效/信息词才搜索）</option>
+          <option value="always">总是搜索（每条消息都联网检索）</option>
+          <option value="custom">自定义关键词（按下方填写的词触发）</option>
+        </select>
+      </label>
+      <label class="field hidden" id="lblSearchWords">
+        <span>触发关键词（逗号分隔；问题含任一词即联网搜索）</span>
+        <input id="inSearchWords" type="text" placeholder="例如：今天天气, 最新, 价格, 新闻, 汇率" />
+      </label>
     </div>
 
     <div id="colRight">

@@ -17,6 +17,10 @@
   const emotionIntensity = $('#emotionIntensity');
   const chkApplyChat = $('#chkApplyChat');
   const chkApplySing = $('#chkApplySing');
+  const chkMeowClips = $('#chkMeowClips');
+  const bubbleSizeSlider = $('#bubbleSizeSlider');
+  const bubbleSizeVal = $('#bubbleSizeVal');
+  const bubbleColor = $('#bubbleColor');
   const list = $('#historyList');
   let cfg = null;
 
@@ -91,6 +95,51 @@
   voiceSel.addEventListener('change', () => saveParams());
   chkApplyChat.addEventListener('change', () => saveParams());
   chkApplySing.addEventListener('change', () => saveParams());
+  chkMeowClips.addEventListener('change', () => saveParams());
+  bindSlider(bubbleSizeSlider, bubbleSizeVal); // 气泡字号：即时保存，对所有气泡生效
+  // 颜色选色盘：即时保存（默认值=当前使用的颜色；气泡同色系渐变按主色自动推导）
+  bubbleColor.addEventListener('input', () => saveParams());
+  // 一键恢复默认气泡颜色（当前金→珊瑚渐变主色 #ffd166）
+  $('#btnBubbleColorReset').addEventListener('click', () => {
+    bubbleColor.value = '#ffd166';
+    saveParams();
+  });
+
+  // ── 自定义声线下拉：深色玻璃列表，与面板统一；原生 select 隐藏仅作 value 载体 ──
+  const voiceWrap = $('#voiceWrap');
+  const voiceBtn = $('#voiceBtn');
+  const voiceList = $('#voiceList');
+  const voiceBtnText = $('#voiceBtnText');
+  function voiceLabel(v) {
+    const opt = voiceSel.querySelector(`option[value="${CSS.escape(v)}"]`);
+    return opt ? opt.textContent : '随情绪默认';
+  }
+  function syncVoiceBtn() {
+    voiceBtnText.textContent = voiceLabel(voiceSel.value);
+    voiceList.querySelectorAll('.cs-item').forEach((it) => {
+      it.classList.toggle('active', it.dataset.v === voiceSel.value);
+    });
+  }
+  voiceBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const opening = voiceList.classList.contains('hidden');
+    voiceList.classList.toggle('hidden', !opening);
+    voiceBtn.classList.toggle('open', opening);
+  });
+  voiceList.querySelectorAll('.cs-item').forEach((it) => {
+    it.addEventListener('click', (e) => {
+      e.stopPropagation();
+      voiceSel.value = it.dataset.v;
+      syncVoiceBtn();
+      voiceList.classList.add('hidden');
+      voiceBtn.classList.remove('open');
+      voiceSel.dispatchEvent(new Event('change')); // 复用现有 saveParams
+    });
+  });
+  document.addEventListener('click', () => {
+    voiceList.classList.add('hidden');
+    voiceBtn.classList.remove('open');
+  });
 
   function saveParams() {
     const m = currentEmotion();
@@ -104,6 +153,9 @@
       voice: voiceSel.value,
       applyToChat: chkApplyChat.checked,
       applyToSing: chkApplySing.checked,
+      meowClips: chkMeowClips.checked, // 口癖原版音频开关：开=遇到口癖用原版音频拼接；关=直接朗读
+      bubbleFontSize: parseInt(bubbleSizeSlider.value, 10) || 16, // 气泡字号
+      bubbleColor: bubbleColor.value,  // 气泡文本颜色（hex）
     });
   }
 
@@ -174,8 +226,13 @@
     arousalVal.textContent = arousalSlider.value;
     renderEmotionTag();
     voiceSel.value = cfg.voice;
+    syncVoiceBtn();
     chkApplyChat.checked = !!cfg.applyToChat;
     chkApplySing.checked = !!cfg.applyToSing;
+    chkMeowClips.checked = cfg.meowClips !== false; // 旧配置无该字段默认开（保持映射行为）
+    bubbleSizeSlider.value = cfg.bubbleFontSize != null ? cfg.bubbleFontSize : 16;
+    bubbleSizeVal.textContent = bubbleSizeSlider.value;
+    bubbleColor.value = /^#[0-9a-fA-F]{6}$/.test(cfg.bubbleColor || '') ? cfg.bubbleColor : '#ffd166';
     setPresetActive();
     refreshHistory();
   }

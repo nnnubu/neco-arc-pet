@@ -14,7 +14,7 @@ let generating = false; // 防重入：一次只生成一段
 
 const TTS_DIR = path.join(__dirname, '..', 'voice', 'tts_output');
 const CONFIG_PATH = path.join(__dirname, '..', 'assets', 'tts-config.json');
-const DEFAULT_CONFIG = { emotion: 'neutral', f0: 0, indexRate: 0.75, intensity: 1, voice: '', valence: 0, arousal: 50, applyToChat: false, applyToSing: false };
+const DEFAULT_CONFIG = { emotion: 'neutral', f0: 0, indexRate: 0.75, intensity: 1, voice: '', valence: 0, arousal: 50, applyToChat: false, applyToSing: false, meowClips: true, bubbleFontSize: 16, bubbleColor: '#ffd166', lyricColor: '#ffd04d' };
 
 function loadConfig() {
   try {
@@ -29,6 +29,10 @@ function loadConfig() {
       arousal: c.arousal != null ? Number(c.arousal) : 50,
       applyToChat: !!c.applyToChat,
       applyToSing: !!c.applyToSing,
+      meowClips: c.meowClips !== false, // 口癖原版音频开关：默认 true=映射拼接；false=直接朗读
+      bubbleFontSize: c.bubbleFontSize != null ? Number(c.bubbleFontSize) : 16, // 气泡字号（桌面歌词已弃用，文本用 arc 旁气泡逐句显示）
+      bubbleColor: /^#[0-9a-fA-F]{6}$/.test(String(c.bubbleColor || '')) ? String(c.bubbleColor) : '#ffd166', // 气泡文本颜色（默认当前金→珊瑚渐变主色）
+      lyricColor: /^#[0-9a-fA-F]{6}$/.test(String(c.lyricColor || '')) ? String(c.lyricColor) : '#ffd04d',   // 桌面歌词已唱主色（默认当前亮黄）
     });
   } catch (e) {
     return JSON.parse(JSON.stringify(DEFAULT_CONFIG));
@@ -46,6 +50,10 @@ function saveConfig(c) {
     arousal: c && c.arousal != null ? Number(c.arousal) : 50,
     applyToChat: !!(c && c.applyToChat),
     applyToSing: !!(c && c.applyToSing),
+    meowClips: c ? c.meowClips !== false : true,
+    bubbleFontSize: c && c.bubbleFontSize != null ? Number(c.bubbleFontSize) : 16,
+    bubbleColor: /^#[0-9a-fA-F]{6}$/.test(String((c && c.bubbleColor) || '')) ? String(c.bubbleColor) : '#ffd166',
+    lyricColor: /^#[0-9a-fA-F]{6}$/.test(String((c && c.lyricColor) || '')) ? String(c.lyricColor) : '#ffd04d',
   });
   try {
     fs.mkdirSync(path.dirname(CONFIG_PATH), { recursive: true });
@@ -205,4 +213,4 @@ function registerTtsPanelIpc() {
   });
 }
 
-module.exports = { showTtsPanel, registerTtsPanelIpc, textToLyrics };
+module.exports = { showTtsPanel, registerTtsPanelIpc, textToLyrics, loadConfig, saveConfig };

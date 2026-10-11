@@ -81,6 +81,8 @@ body { display: flex; flex-direction: column; }
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
 }
+/* 条件显隐：自定义关键词输入框 */
+.hidden { display: none !important; }
 #body::-webkit-scrollbar { width: 6px; }
 #body::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.16); border-radius: 3px; }
 #body::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.28); }
@@ -109,7 +111,7 @@ body { display: flex; flex-direction: column; }
   font-weight: 600;
   letter-spacing: 0.5px;
 }
-.field input, .field textarea {
+.field input, .field textarea, .field select {
   width: 100%;
   padding: 9px 12px;
   border: 1px solid var(--line-strong);
@@ -121,12 +123,24 @@ body { display: flex; flex-direction: column; }
   outline: none;
   transition: border-color 0.2s var(--ease), box-shadow 0.2s var(--ease), background 0.2s var(--ease);
 }
-.field input:hover, .field textarea:hover { border-color: rgba(255, 255, 255, 0.22); }
-.field input:focus, .field textarea:focus {
+.field input:hover, .field textarea:hover, .field select:hover { border-color: rgba(255, 255, 255, 0.22); }
+.field input:focus, .field textarea:focus, .field select:focus {
   border-color: rgba(255, 95, 109, 0.85);
   background: rgba(10, 11, 20, 0.8);
   box-shadow: 0 0 0 3px rgba(255, 95, 109, 0.14);
 }
+/* 下拉框与整体深色玻璃风格统一（含选项面板，右侧自绘小箭头） */
+.field select {
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, rgba(255, 255, 255, 0.55) 50%), linear-gradient(135deg, rgba(255, 255, 255, 0.55) 50%, transparent 50%);
+  background-position: calc(100% - 16px) 55%, calc(100% - 11px) 55%;
+  background-size: 5px 5px;
+  background-repeat: no-repeat;
+  padding-right: 28px;
+}
+.field select option { background: #141522; color: #eee; }
 #keyRow { display: flex; gap: 7px; }
 #keyRow input { flex: 1; }
 .field.check {

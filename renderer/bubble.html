@@ -14,14 +14,18 @@
     }
     #bt {
       position: fixed;
-      inset: 0;
+      left: 0;
+      right: 0;
+      top: 0;
+      width: 100%;
+      min-height: 100%;
       box-sizing: border-box;
-      padding: 8px 12px;
+      padding: 10px 14px;
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: flex-start;
-      overflow: hidden;
+      overflow: visible;
       font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
       font-weight: 700;
       font-size: 16px;
@@ -29,7 +33,7 @@
       word-break: break-word;
       white-space: pre-wrap;
       color: transparent;
-      background: linear-gradient(180deg, #fff3c4 0%, #ffd166 40%, #ff9a5c 75%, #ff6b6b 100%);
+      background: linear-gradient(180deg, var(--c1) 0%, var(--c2) 40%, var(--c3) 75%, var(--c4) 100%);
       -webkit-background-clip: text;
       background-clip: text;
       -webkit-text-fill-color: transparent;
@@ -59,12 +63,38 @@
   <div id="bt"></div>
   <script>
     const bt = document.getElementById('bt');
-    // 收到完整文本：整段替换并重放"放大淡入"动画（不做逐字打字，避免卡顿）
-    window.bubbleApi.onText((t) => {
+    // hex → 同色系深浅档（amt：负=加深，正=提亮；0=原色）
+    function shade(hex, amt) {
+      const n = parseInt(hex.slice(1), 16);
+      let r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+      const t = amt < 0 ? 0 : 255, p = Math.abs(amt);
+      r = Math.round((t - r) * p + r);
+      g = Math.round((t - g) * p + g);
+      b = Math.round((t - b) * p + b);
+      return '#' + ((r << 16) | (g << 8) | b).toString(16).padStart(6, '0');
+    }
+    // 收到文本 + 字号 + 颜色：整段替换并重放"放大淡入"动画（不做逐字打字，避免卡顿）
+    window.bubbleApi.onText((p) => {
+      const t = (p && p.text != null) ? p.text : p;
+      const fs = (p && p.fontSize) ? Number(p.fontSize) : 16;
+      const col = (p && /^#[0-9a-fA-F]{6}$/.test(String(p.color))) ? String(p.color) : '#ffd166';
+      bt.style.fontSize = Math.max(10, Math.min(60, fs)) + 'px';
+      // 按所选颜色生成同色系渐变（亮→主→暗，保留原有视觉质感；默认色 = 现在的金→珊瑚系）
+      bt.style.setProperty('--c1', shade(col, 0.45));
+      bt.style.setProperty('--c2', col);
+      bt.style.setProperty('--c3', shade(col, -0.12));
+      bt.style.setProperty('--c4', shade(col, -0.38));
       bt.textContent = t || '';
       bt.classList.remove('pop-in', 'pop-out');
       void bt.offsetWidth; // 强制回流，确保动画每次都能重放
       bt.classList.add('pop-in');
+      // 测量内容真实布局高度（等布局稳定后）→ 通知主进程动态调整窗口高度，字大/内容多不被裁剪。
+      // 注意不能用 body.scrollHeight：#bt 是 position:fixed，fixed 元素不参与文档流，scrollHeight 恒为窗口高；
+      // 用 bt.offsetHeight（不受 pop-in 的 transform 缩放影响，返回未变换的布局高度）
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        const h = Math.ceil(bt.offsetHeight);
+        if (h > 0 && window.bubbleApi && window.bubbleApi.resizeContent) window.bubbleApi.resizeContent(h);
+      }));
     });
     // 主进程准备隐藏窗口前先播"缩小淡出"，随后窗口真正隐藏
     window.bubbleApi.onFadeOut(() => {

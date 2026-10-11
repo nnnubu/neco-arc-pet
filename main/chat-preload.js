@@ -9,6 +9,11 @@ contextBridge.exposeInMainWorld('chatApi', {
   // 联网搜索开关（状态持久化在主进程 ai 配置）
   searchState: () => ipcRenderer.invoke('chat-search-state'),
   toggleSearch: () => ipcRenderer.invoke('chat-search-toggle'),
+  // 回答缓存开关（💾）：开=同问同答命中缓存直接返回；关=每次重新生成。持久化在主进程 ai 配置
+  cacheState: () => ipcRenderer.invoke('chat-cache-state'),
+  cacheToggle: () => ipcRenderer.invoke('chat-cache-toggle'),
+  // 清空回答缓存（🗑️）：主进程清空 voice/ai_cache.json，返回清理条数
+  cacheClear: () => ipcRenderer.invoke('chat-cache-clear'),
   // 静音模式（arc 不说话，翻唱音乐不受影响）
   muteState: () => ipcRenderer.invoke('chat-mute-state'),
   muteToggle: () => ipcRenderer.invoke('chat-mute-toggle'),

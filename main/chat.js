@@ -79,6 +79,17 @@ function registerChatIpc() {
     return next;
   });
 
+  // 回答缓存开关（对话窗 💾；持久化到 ai-config.json 的 chatCacheEnabled）
+  ipcMain.handle('chat-cache-state', () => getAiConfig().chatCacheEnabled !== false);
+  ipcMain.handle('chat-cache-toggle', () => {
+    const next = getAiConfig().chatCacheEnabled === false;
+    updateAiConfig({ chatCacheEnabled: next });
+    return next;
+  });
+
+  // 清空回答缓存（对话窗 🗑️）：清 voice/ai_cache.json，返回清理条数
+  ipcMain.handle('chat-cache-clear', () => require('./ai').clearAiCache());
+
   // 静音模式（对话窗按钮）：arc 的 AI 语音/随机发声静音，翻唱音乐不受影响
   ipcMain.handle('chat-mute-state', () => !!getAiConfig().muteVoice);
   ipcMain.handle('chat-mute-toggle', () => {

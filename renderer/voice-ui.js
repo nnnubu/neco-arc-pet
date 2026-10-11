@@ -7,6 +7,7 @@ window.VoiceUI = (() => {
   let singAudio = null;   // 翻唱播放
   let lastLyricIdx = -1;  // 歌词窗口当前句索引（避免重复 send）
   let currentSingLyrics = null; // 当前翻唱歌词（播放不等歌词：搜索完成异步补发）
+  let currentSingIsTts = false; // 当前播放是否为 TTS（语音合成）：文本改用 arc 旁气泡逐句显示，不再弹桌面歌词窗口
 
   // AI 回复全文（语音播放时整段显示到气泡，不做逐字打字）
   let replyText = '';
@@ -59,11 +60,18 @@ window.VoiceUI = (() => {
           }
           if (idx !== lastLyricIdx) {
             lastLyricIdx = idx;
-            window.pet.lyricUpdate(idx);
+            if (currentSingIsTts) {
+              // TTS 文本：逐句推到 arc 旁气泡（不显示桌面歌词窗口）
+              if (ls[idx] && ls[idx].text) bubbleShow(ls[idx].text);
+            } else {
+              window.pet.lyricUpdate(idx);
+            }
           }
-          // 每帧句内进度 → 歌词窗口卡拉OK颜色渐变（已唱/未唱分界跟随进度）+ 整首进度条
-          window.pet.lyricProgress(idx, t, singAudio.duration || 0);
-        } else {
+          if (!currentSingIsTts) {
+            // 每帧句内进度 → 歌词窗口卡拉OK颜色渐变（已唱/未唱分界跟随进度）+ 整首进度条
+            window.pet.lyricProgress(idx, t, singAudio.duration || 0);
+          }
+        } else if (!currentSingIsTts) {
           // 无歌词：只发整首进度条/时间（句索引 -1，歌词窗口不更新句子）
           window.pet.lyricProgress(-1, t, singAudio.duration || 0);
         }
@@ -139,10 +147,12 @@ window.VoiceUI = (() => {
     });
 
     // ── 翻唱（唱歌）──
-    // 播放翻唱完整版 + 桌面歌词同步（菜单历史/翻唱面板/翻唱完成自动播放都走这里；歌词可稍后补发）
-    function playSing(full, name) {
+    // 播放完整版 + 桌面歌词同步（菜单历史/翻唱面板/翻唱完成自动播放都走这里；歌词可稍后补发）
+    // isTts=true：TTS 文本逐句显示到 arc 旁气泡，不弹桌面歌词窗口
+    function playSing(full, name, isTts) {
       try {
         if (!full) return;
+        currentSingIsTts = !!isTts;
         // 上报当前播放歌名（歌词窗"下一首"定位用）
         try { window.pet.singNow(name || ''); } catch (e) {}
         // 暂停语音（互斥：翻唱播放时不让语音插话）
@@ -159,8 +169,13 @@ window.VoiceUI = (() => {
         const url = 'file:///' + String(full).replace(/\\/g, '/').split('/').map(encodeURIComponent).join('/');
         singAudio.src = url;
         if (currentSingLyrics && currentSingLyrics.length) {
-          window.pet.lyricShow(currentSingLyrics, name || '');
-        } else {
+          if (isTts) {
+            // TTS：不弹桌面歌词窗口，先显示首句气泡（后续由 rAF 按时间轴逐句切换）
+            if (currentSingLyrics[0] && currentSingLyrics[0].text) bubbleShow(currentSingLyrics[0].text);
+          } else {
+            window.pet.lyricShow(currentSingLyrics, name || '');
+          }
+        } else if (!isTts) {
           window.pet.lyricHide();
         }
         lastLyricIdx = -1;
@@ -168,9 +183,11 @@ window.VoiceUI = (() => {
         startLyricRaf();
         singAudio.onended = () => {
           stopLyricRaf();
+          if (currentSingIsTts) bubbleHide(); // TTS 播完：收起气泡
           window.pet.lyricHide();
           lastLyricIdx = -1;
           currentSingLyrics = null;
+          currentSingIsTts = false;
           try { window.pet.singState('ended'); } catch (e) {}
           // 翻唱播放完毕 → 自动播放下一首（历史顺序环绕；TTS 播放名不在历史中 → 主进程自然跳过）
           try { window.pet.singAutoNext(); } catch (e) {}
@@ -229,20 +246,29 @@ window.VoiceUI = (() => {
     window.pet.onSingDone((r) => {
       // 翻唱完成 → 自动播放完整版（播放不等歌词，歌词搜索完成后由 onSingLyric 补发）
       currentSingLyrics = null;
-      if (r && r.full) playSing(r.full, r.name || '');
+      if (r && r.full) playSing(r.full, r.name || '', false);
     });
-    // 菜单「翻唱历史」/ 翻唱面板历史：播放某首歌（歌词搜到后异步补发）
+    // 菜单「翻唱历史」/ 翻唱面板历史 / TTS 语音合成：播放某段音频（歌词搜到后异步补发）
+    // TTS 播放 payload 的 dir=voice/tts_output → 文本走 arc 旁气泡逐句显示；翻唱走桌面歌词窗口
     window.pet.onSingPlay((r) => {
       if (!r || !r.full) return;
       currentSingLyrics = null;
-      playSing(r.full, r.name || '');
+      const isTts = String(r.dir || '').replace(/\\/g, '/').endsWith('tts_output');
+      playSing(r.full, r.name || '', isTts);
     });
     // 歌词异步补发：播放开始后搜到歌词 → 显示桌面歌词窗口（时间轴与翻唱一致，同步立即生效）
-    // 空歌词（本地无 .lrc 且联网搜不到）→ 同样显示窗口，占位"暂无歌词"
+    // 空歌词（本地无 .lrc 且联网搜不到）→ 同样显示窗口，占位"暂无歌词"；TTS 的 source='tts' → 只更新气泡
     window.pet.onSingLyric((r) => {
       if (!r || r.lyrics == null) return;
       currentSingLyrics = r.lyrics;
-      if (singAudio && !singAudio.paused) window.pet.lyricShow(r.lyrics, r.title || '');
+      if (currentSingIsTts) {
+        // TTS 文本补发：气泡直接显示首句（若未播放中则等待播放触发，rAF 会接管逐句）
+        if (singAudio && !singAudio.paused && r.lyrics.length && r.lyrics[0].text) {
+          bubbleShow(r.lyrics[0].text);
+        }
+      } else if (singAudio && !singAudio.paused) {
+        window.pet.lyricShow(r.lyrics, r.title || '');
+      }
     });
     // 翻唱失败：气泡提示（详细消息显示在对话窗）
     window.pet.onSingError((e) => {

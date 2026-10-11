@@ -31,12 +31,13 @@
     <!-- 状态行（思考中/生成语音中/翻唱进度/错误） -->
     <div id="chatStatus"></div>
 
-    <!-- 输入行 -->
+    <!-- 输入行：联网搜索开关 + 输入框 + 发送 + 回答缓存开关 + 清空缓存 -->
     <div id="inputRow">
       <button id="btnSearch" title="联网搜索（回答最新/实时信息时自动搜索增强）">🌐</button>
       <input id="chatInput" type="text" placeholder="说点什么喵…" maxlength="200" />
       <button id="btnSend">发送</button>
-      <button id="btnRetry" title="重新合成（绕过缓存）">↻</button>
+      <button id="btnCache" title="缓存：开=同问同答直接返回，关=每次重新生成">💾</button>
+      <button id="btnCacheClear" title="清空回答缓存">🗑️</button>
     </div>
   </div>
   <script src="chat.js"></script>

@@ -17,6 +17,8 @@ contextBridge.exposeInMainWorld('singPanelApi', {
   setLrcFile: (p, song) => ipcRenderer.invoke('sing-panel-set-lrc', p, song),
   // 重开桌面歌词窗口
   showLyric: () => ipcRenderer.invoke('sing-panel-lyric'),
+  getLyricColor: () => ipcRenderer.invoke('sing-panel-get-lyric-color'),
+  setLyricColor: (hex) => ipcRenderer.send('sing-panel-set-lyric-color', hex),
   onStart: (cb) => ipcRenderer.on('sing-panel-start', (_e, p) => cb(p)),
   onProgress: (cb) => ipcRenderer.on('sing-progress', (_e, s) => cb(s)),
   onDone: (cb) => ipcRenderer.on('sing-done', (_e, r) => cb(r)),

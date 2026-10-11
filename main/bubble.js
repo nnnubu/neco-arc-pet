@@ -4,12 +4,13 @@
 const { BrowserWindow, ipcMain, screen } = require('electron');
 const path = require('path');
 
-const BW = 340; // 气泡窗口固定尺寸（字号不随桌宠缩放，稳定可读）
-const BH = 150;
+const BW = 430; // 气泡窗口宽度（字号可调 12~50px；高度随内容自适应，不裁剪文字）
+const BH = 220; // 初始/默认高度
 
 let bubble = null;
 let petWinGetter = null;
 let hideTimer = null;
+let curBH = BH; // 当前实际窗口高度（内容自适应后更新，供重新定位/高度重算使用）
 
 function getBubble() {
   if (bubble && !bubble.isDestroyed()) return bubble;
@@ -53,8 +54,22 @@ function placeBubble(facing) {
   else x = pb.x - BW - gap;
   y = pb.y + Math.round(pb.height * 0.18);
   x = Math.max(wa.x + 4, Math.min(x, wa.x + wa.width - BW - 4));
-  y = Math.max(wa.y + 4, Math.min(y, wa.y + wa.height - BH - 4));
-  b.setBounds({ x, y, width: BW, height: BH });
+  y = Math.max(wa.y + 4, Math.min(y, wa.y + wa.height - curBH - 4));
+  b.setBounds({ x, y, width: BW, height: curBH });
+}
+
+// 渲染层内容高度上报：窗口高度动态跟随文本内容（字大/内容多不裁剪），保持窗口中心锚点不动
+function resizeBubble(_e, h) {
+  const b = getBubble();
+  if (!b || b.isDestroyed()) return;
+  const wa = screen.getDisplayMatching(b.getBounds()).workArea;
+  const nh = Math.max(90, Math.min(Math.round(Number(h) || 0), Math.max(90, wa.height - 24)));
+  if (nh === curBH) return;
+  const old = b.getBounds();
+  // 中心锚点不变：高度增减时 y 相应上移/下移（文字位置视觉不动，只扩展/收缩窗口）
+  const ny = Math.round(old.y + (curBH - nh) / 2);
+  curBH = nh;
+  b.setBounds({ x: old.x, y: ny, width: old.width, height: nh });
 }
 
 function showBubble(text, facing) {
@@ -63,7 +78,14 @@ function showBubble(text, facing) {
   // 若正在播淡出等待隐藏：取消，避免刚隐藏又被延迟任务关掉
   clearTimeout(hideTimer);
   placeBubble(typeof facing === 'number' ? facing : 1);
-  b.webContents.send('bubble-text', String(text));
+  // 气泡字号/文本颜色可配置（TTS 面板"显示设置"）：统一对所有气泡生效；读 tts-config，失败/旧配置用默认
+  let fontSize = 16, color = '#ffd166';
+  try {
+    const tts = require('./voice').readTtsConfig() || {};
+    fontSize = Number(tts.bubbleFontSize) || 16;
+    if (/^#[0-9a-fA-F]{6}$/.test(String(tts.bubbleColor || ''))) color = String(tts.bubbleColor);
+  } catch (e) {}
+  b.webContents.send('bubble-text', { text: String(text), fontSize, color });
   if (!b.isVisible()) b.showInactive();
 }
 
@@ -81,6 +103,7 @@ function registerBubbleIpc(getWinFn) {
   petWinGetter = getWinFn;
   ipcMain.on('bubble-show', (_e, text, facing) => showBubble(text, facing));
   ipcMain.on('bubble-hide', () => hideBubble());
+  ipcMain.on('bubble-resize', (_e, h) => resizeBubble(_e, h));
 }
 
 module.exports = { registerBubbleIpc, showBubble, hideBubble };

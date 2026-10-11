@@ -165,6 +165,19 @@ function registerSingPanelIpc() {
 
   // 面板查询历史
   ipcMain.handle('sing-panel-history', () => scanSingHistory());
+  // ── 桌面歌词颜色（配置化，默认当前亮黄 #ffd04d）：读写 tts-config.json（运行时 require 防循环依赖）──
+  ipcMain.handle('sing-panel-get-lyric-color', () => {
+    try { return require('./tts-panel').loadConfig().lyricColor; } catch (e) { return '#ffd04d'; }
+  });
+  ipcMain.on('sing-panel-set-lyric-color', (_e, hex) => {
+    if (!/^#[0-9a-fA-F]{6}$/.test(String(hex || ''))) return;
+    try {
+      const tp = require('./tts-panel');
+      const full = tp.loadConfig();               // 拿全量（防 saveConfig 只传单字段重置其他配置）
+      full.lyricColor = String(hex);
+      tp.saveConfig(full);
+    } catch (e) {}
+  });
 }
 
 module.exports = { showSingPanel, closeSingPanel, getSingPanelWin, registerSingPanelIpc, setPanelLrc, getPanelLrc, consumePanelLrc };

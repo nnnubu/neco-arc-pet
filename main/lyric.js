@@ -130,12 +130,21 @@ async function getLyrics(songPath) {
 }
 
 // ── 桌面歌词窗口 ──
+// 歌词文本颜色可配置（TTS 面板"显示设置"→歌词文本颜色，默认当前亮黄 #ffd04d）：随数据下发，渲染层生成卡拉OK渐变
+function getLyricColor() {
+  try {
+    const tts = require('./voice').readTtsConfig() || {};
+    if (/^#[0-9a-fA-F]{6}$/.test(String(tts.lyricColor || ''))) return String(tts.lyricColor);
+  } catch (e) {}
+  return '#ffd04d';
+}
 function showLyricWindow(lyrics, title) {
   // 允许空数组：渲染层显示"暂无歌词"占位；null 才忽略
   if (lyrics == null) return;
   // 缓存最近歌词（翻唱面板"显示歌词"重开入口用）
   lastLyrics = lyrics;
   lastTitle = title || '';
+  const payload = { lyrics, title, color: getLyricColor() };
   if (!lyricWin || lyricWin.isDestroyed()) {
     const wa = screen.getPrimaryDisplay().workArea;
     const W = 680, H = 130;
@@ -159,13 +168,13 @@ function showLyricWindow(lyrics, title) {
     // loadFile 异步：必须等渲染层加载完成再发歌词数据，否则首帧数据丢失
     lyricWin.webContents.once('did-finish-load', () => {
       if (lyricWin && !lyricWin.isDestroyed()) {
-        lyricWin.webContents.send('lyric-data', { lyrics, title });
+        lyricWin.webContents.send('lyric-data', payload);
       }
     });
     lyricWin.on('closed', () => { lyricWin = null; });
   } else {
     lyricWin.show();
-    lyricWin.webContents.send('lyric-data', { lyrics, title });
+    lyricWin.webContents.send('lyric-data', payload);
   }
 }
 

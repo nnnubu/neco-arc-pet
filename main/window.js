@@ -29,6 +29,7 @@ function createWindow() {
     skipTaskbar: true,
     fullscreenable: false,
     backgroundColor: '#00000000',
+    icon: path.join(__dirname, '..', 'assets', 'icons', 'arc.ico'), // 窗口/任务栏显示 arc 图标（替代 electron 默认）
     webPreferences: {
       preload: path.join(__dirname, '..', 'preload.js'),
       contextIsolation: true,

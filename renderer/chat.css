@@ -258,19 +258,42 @@ html, body {
   box-shadow: 0 6px 22px rgba(217, 58, 66, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.25);
 }
 #btnSend:active { transform: scale(0.94); }
-#btnRetry {
+/* 回答缓存开关（💾）：关=灰阶 / 开=正常+暖色光（与 🌐 同款交互，点击切换） */
+#btnCache {
   flex: 0 0 auto;
   width: 40px; height: 40px;
-  font-size: 15px;
-  color: rgba(255, 255, 255, 0.8);
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid var(--line);
+  font-size: 16px;
+  background: transparent;
+  border: 1px solid transparent;
   border-radius: 11px;
+  cursor: pointer;
+  filter: grayscale(1);
+  opacity: 0.5;
+  transition: filter 0.2s var(--ease), opacity 0.2s var(--ease), text-shadow 0.2s var(--ease), background 0.2s var(--ease);
+}
+#btnCache:hover { filter: grayscale(0.4); opacity: 0.85; background: rgba(255, 255, 255, 0.05); }
+#btnCache.on {
+  filter: none;
+  opacity: 1;
+  background: transparent;
+  border-color: transparent;
+  text-shadow: 0 0 12px rgba(255, 191, 105, 0.95), 0 0 24px rgba(255, 191, 105, 0.5);
+}
+/* 清空缓存（🗑️）：小按钮，hover 变红提示 */
+#btnCacheClear {
+  flex: 0 0 auto;
+  width: 32px; height: 32px;
+  margin-left: 4px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--line);
+  border-radius: 9px;
   cursor: pointer;
   transition: background 0.18s var(--ease), color 0.18s var(--ease), transform 0.12s var(--ease);
 }
-#btnRetry:hover { background: rgba(255, 255, 255, 0.14); color: #fff; }
-#btnRetry:active { transform: rotate(180deg) scale(0.92); }
+#btnCacheClear:hover { background: rgba(217, 58, 66, 0.18); color: #ff9aa0; }
+#btnCacheClear:active { transform: scale(0.9); }
 /* 联网搜索开关：关=🌐灰阶 / 开=🌐正常蓝色+蓝光（不改背景色） */
 #btnSearch {
   flex: 0 0 auto;

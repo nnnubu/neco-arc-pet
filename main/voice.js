@@ -20,6 +20,10 @@ function readTtsConfig() {
       voice: String(c.voice || ''),
       applyToChat: !!c.applyToChat,
       applyToSing: !!c.applyToSing,
+      meowClips: c.meowClips !== false, // 口癖原版音频开关：默认 true=遇到口癖用原版音频拼接；false=纯 TTS 直接朗读
+      bubbleFontSize: c.bubbleFontSize != null ? Number(c.bubbleFontSize) : 16, // 气泡字号（bubble.js 读取）
+      bubbleColor: /^#[0-9a-fA-F]{6}$/.test(String(c.bubbleColor || '')) ? String(c.bubbleColor) : '#ffd166', // 气泡文本颜色
+      lyricColor: /^#[0-9a-fA-F]{6}$/.test(String(c.lyricColor || '')) ? String(c.lyricColor) : '#ffd04d',   // 桌面歌词已唱主色
     };
   } catch (e) { return null; }
 }
@@ -197,6 +201,8 @@ async function handleProactiveSpeak() {
     req.intensity = ttsCfg.intensity != null ? Number(ttsCfg.intensity) : 1;
     req.voice = String(ttsCfg.voice || '');
   }
+  // 口癖原版音频开关：全局生效（默认 true=映射拼接；false=直接朗读口癖词）
+  if (ttsCfg) req.meow_clips = ttsCfg.meowClips !== false;
   if (voiceReady && voiceProc) {
     voiceProc.stdin.write(JSON.stringify(req) + '\n');
   } else {
@@ -315,6 +321,8 @@ async function handleSpeakText(text, force) {
     req.intensity = ttsCfg.intensity != null ? Number(ttsCfg.intensity) : 1;
     req.voice = String(ttsCfg.voice || '');
   }
+  // 口癖原版音频开关：全局生效（默认 true=映射拼接；false=直接朗读口癖词）
+  if (ttsCfg) req.meow_clips = ttsCfg.meowClips !== false;
   if (force) req.force = true; // 重试：绕过缓存强制重新合成（覆盖旧缓存）
   if (voiceReady && voiceProc) {
     voiceProc.stdin.write(JSON.stringify(req) + '\n');
@@ -340,6 +348,11 @@ function generateTts(text, params) {
     voice: params && params.voice != null ? String(params.voice) : '',
   };
   if (params && params.outPath) req.out_path = String(params.outPath);
+  // 口癖原版音频开关（面板保存即生效，未显式传时读已存配置；默认 true=映射拼接，false=直接朗读）
+  const ttsCfg = readTtsConfig();
+  req.meow_clips = params && params.meowClips != null
+    ? !!params.meowClips
+    : (ttsCfg ? ttsCfg.meowClips !== false : true);
   return new Promise((resolve, reject) => {
     ttsCallbacks.set(id, { resolve, reject });
     if (voiceReady && voiceProc) {

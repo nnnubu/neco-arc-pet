@@ -194,5 +194,16 @@
   $('#btnClose').addEventListener('click', () => window.singPanelApi.close());
   $('#btnDir').addEventListener('click', () => window.singPanelApi.openDir());
 
+  // ── 桌面歌词颜色（配置化，默认当前亮黄 #ffd04d）：选色即保存，下次播放歌词生效 ──
+  const lyricColor = $('#lyricColor');
+  window.singPanelApi.getLyricColor().then((c) => {
+    lyricColor.value = /^#[0-9a-fA-F]{6}$/.test(c || '') ? c : '#ffd04d';
+  });
+  lyricColor.addEventListener('input', () => window.singPanelApi.setLyricColor(lyricColor.value));
+  $('#btnLyricColorReset').addEventListener('click', () => {
+    lyricColor.value = '#ffd04d';
+    window.singPanelApi.setLyricColor('#ffd04d');
+  });
+
   refreshHistory();
 })();

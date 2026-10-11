@@ -874,7 +874,7 @@ window.SpriteCore = (() => {
       const files = s._frameFiles;
       const fno = files ? files[s.currentFrame] : s.currentFrame + 1; // 文件名（1-based）
       const bb = bbMap[fno];
-      if (!bb) return false;
+      if (!bb) return true; // 该帧缺 bbox（如 act_49/33）：兜底视为可点，避免"鼠标在角色上却点不动/拖不动"
       const tex = s.texture;
       const tw = tex.width, th = tex.height;
       const sx = Math.abs(s.scale.x), sy = Math.abs(s.scale.y);

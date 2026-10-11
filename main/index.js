@@ -61,9 +61,11 @@ app.whenReady().then(() => {
 let tray = null;
 function setupTray() {
   try {
-    const icon = nativeImage
-      .createFromPath(path.join(__dirname, '..', 'assets', 'sprite', 'animations', 'act_4', '1.png'))
-      .resize({ width: 16, height: 16 });
+    // 托盘图标：arc 头部透明图标（32px 源图，Windows 按 DPI 自动选用 16/32），比全身帧缩 16px 更清晰
+    const icon = nativeImage.createFromPath(
+      path.join(__dirname, '..', 'assets', 'icons', 'arc-head-32.png')
+    );
+    if (icon.isEmpty()) throw new Error('托盘图标加载为空');
     tray = new Tray(icon);
     tray.setToolTip('猫姬桌宠');
     tray.on('click', () => openModule('chat'));

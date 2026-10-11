@@ -17,7 +17,7 @@
 
   <!-- 内容区（内部滚动，滚动条在内容区右侧，避免整页滚动右侧留白） -->
   <div id="scroller">
-    <!-- 文本输入 -->
+    <!-- 文本输入：弹性占满剩余高度，消除输入区下方空白 -->
     <div id="inputSec">
       <div class="sec-title">朗读文本</div>
       <textarea id="txtInput" placeholder="输入想让猫姬朗读的文本…" spellcheck="false"></textarea>
@@ -46,7 +46,27 @@
       </div>
       <div class="param-row">
         <span class="pname">声线</span>
-        <select id="voiceSel">
+        <!-- 自定义下拉（深色玻璃，与面板统一；隐藏的原生 select 仅作 value 载体） -->
+        <div class="cs" id="voiceWrap">
+          <button type="button" class="cs-btn" id="voiceBtn" title="选择声线">
+            <span id="voiceBtnText">随情绪默认</span>
+            <span class="cs-arrow"></span>
+          </button>
+          <div class="cs-list hidden" id="voiceList">
+            <div class="cs-item" data-v="">随情绪默认</div>
+            <div class="cs-group">女声</div>
+            <div class="cs-item" data-v="anna">anna（沉稳）</div>
+            <div class="cs-item" data-v="bella">bella（热情）</div>
+            <div class="cs-item" data-v="claire">claire（温柔）</div>
+            <div class="cs-item" data-v="diana">diana（开朗）</div>
+            <div class="cs-group">男声</div>
+            <div class="cs-item" data-v="alex">alex（沉稳）</div>
+            <div class="cs-item" data-v="benjamin">benjamin（深沉）</div>
+            <div class="cs-item" data-v="charles">charles（磁性）</div>
+            <div class="cs-item" data-v="david">david（开朗）</div>
+          </div>
+        </div>
+        <select id="voiceSel" class="hidden-sel" tabindex="-1" aria-hidden="true">
           <option value="">随情绪默认</option>
           <optgroup label="女声">
             <option value="anna">anna（沉稳）</option>
@@ -84,6 +104,20 @@
       <div class="apply-row">
         <label class="chk"><input type="checkbox" id="chkApplyChat"><span class="box"></span>应用到聊天语音</label>
         <label class="chk"><input type="checkbox" id="chkApplySing"><span class="box"></span>应用到翻唱（音高/贴合）</label>
+        <label class="chk"><input type="checkbox" id="chkMeowClips" checked><span class="box"></span>口癖用原版音频</label>
+      </div>
+      <div class="sec-title">显示设置</div>
+      <div class="param-row">
+        <span class="pname">气泡字号</span>
+        <input id="bubbleSizeSlider" type="range" min="12" max="50" step="1" value="16">
+        <span class="pval" id="bubbleSizeVal">16</span>
+        <span class="punit">px</span>
+      </div>
+      <div class="param-row">
+        <span class="pname">气泡颜色</span>
+        <input id="bubbleColor" type="color" value="#ffd166">
+        <button id="btnBubbleColorReset" class="mini-btn" title="恢复默认颜色（#ffd166）">↺</button>
+        <span class="pval">文字主色</span>
       </div>
     </div>
 

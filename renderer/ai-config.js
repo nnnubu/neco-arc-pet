@@ -21,6 +21,8 @@
       randomVoiceEnabled: !!$('#inRandVoice').checked,
       randomVoiceMin: parseFloat($('#inRvMin').value) || 3,
       randomVoiceMax: parseFloat($('#inRvMax').value) || 8,
+      searchMode: $('#inSearchMode').value === 'always' ? 'always' : ($('#inSearchMode').value === 'custom' ? 'custom' : 'auto'),
+      searchWords: $('#inSearchWords').value.trim(),
       muteVoice: !!$('#inMute').checked,
     };
   }
@@ -40,8 +42,17 @@
     $('#inRandVoice').checked = !!c.randomVoiceEnabled;
     $('#inRvMin').value = c.randomVoiceMin != null ? c.randomVoiceMin : 3;
     $('#inRvMax').value = c.randomVoiceMax != null ? c.randomVoiceMax : 8;
+    $('#inSearchMode').value = c.searchMode === 'always' ? 'always' : (c.searchMode === 'custom' ? 'custom' : 'auto');
+    $('#inSearchWords').value = c.searchWords || '';
     $('#inMute').checked = !!c.muteVoice;
+    syncSearchWordsVisibility();
   });
+
+  // 触发方式切换：仅"自定义关键词"时显示关键词输入框
+  function syncSearchWordsVisibility() {
+    $('#lblSearchWords').classList.toggle('hidden', $('#inSearchMode').value !== 'custom');
+  }
+  $('#inSearchMode').addEventListener('change', syncSearchWordsVisibility);
 
   // 密钥明文/密文切换
   $('#btnKeyEye').addEventListener('click', () => {

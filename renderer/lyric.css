@@ -44,17 +44,18 @@ html, body {
   color: rgba(255, 255, 255, 0.35);
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
 }
-/* 当前句：卡拉OK渐变—— 已唱（--p 之前）亮黄白，未唱（--p 之后）暗色；
-   颜色分界随音频进度移动，即"字体颜色渐变跟随进度" */
+/* 当前句：卡拉OK渐变—— 已唱（--p 之前）亮色，未唱（--p 之后）暗色；
+   颜色分界随音频进度移动，即"字体颜色渐变跟随进度"。
+   三档颜色由 lyric-render.js 按用户配置的主色推导（默认=当前亮黄 #ffd04d） */
 #cur {
   font-size: 22px;
   font-weight: bold;
   background: linear-gradient(
     90deg,
-    #fff2b0 0%,
-    #ffd04d var(--p, 0%),
-    rgba(255, 255, 255, 0.4) var(--p, 0%),
-    rgba(255, 255, 255, 0.4) 100%
+    var(--cur-bright, #fff2b0) 0%,
+    var(--cur-mid, #ffd04d) var(--p, 0%),
+    var(--cur-dim, rgba(255, 255, 255, 0.4)) var(--p, 0%),
+    var(--cur-dim, rgba(255, 255, 255, 0.4)) 100%
   );
   -webkit-background-clip: text;
   background-clip: text;
