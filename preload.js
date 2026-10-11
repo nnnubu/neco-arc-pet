@@ -35,6 +35,9 @@ contextBridge.exposeInMainWorld('pet', {
   // 语音（说句话…）
   speakText: (text, force) => ipcRenderer.send('speak-text', text, !!force),
   onSpeakAudio: (cb) => ipcRenderer.on('play-audio', (_e, p) => cb(p)),
+  // 语音播放状态上报：渲染层开始/结束播放聊天语音 → 主进程暂停/恢复随机发声倒计时
+  voicePlaying: () => ipcRenderer.send('voice-playing'),
+  voiceDone: () => ipcRenderer.send('voice-done'),
   // 随机发声素材（assets/voice-clips/*.wav）：偶尔主动叫一声
   onPlayClip: (cb) => ipcRenderer.on('pet-play-clip', (_e, r) => cb(r)),
   onSpeakState: (cb) => ipcRenderer.on('speak-state', (_e, s) => cb(s)),

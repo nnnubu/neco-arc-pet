@@ -82,6 +82,13 @@ window.VoiceUI = (() => {
     });
 
     // 语音播放 + 整段文本气泡（不做逐字打字：文本整体缩放淡入出现，播放结束缩放淡出消失，流畅不卡）
+    let voiceActive = false; // 语音是否正在播放（上报主进程：播放期间暂停随机发声倒计时）
+    function reportVoiceState() {
+      try {
+        if (voiceActive) window.pet.voicePlaying();
+        else window.pet.voiceDone();
+      } catch (e) {}
+    }
     window.pet.onSpeakAudio((p) => {
       // 语音说话优先：打断翻唱播放并隐藏歌词窗口（互斥，避免两路声音重叠）
       if (singAudio && !singAudio.paused) {
@@ -95,16 +102,24 @@ window.VoiceUI = (() => {
       // file:// URL 逐段编码：路径含中文/空格时直接拼接可能解码失败或播错
       const url = 'file:///' + p.replace(/\\/g, '/').split('/').map(encodeURIComponent).join('/');
       audio.src = url;
-      audio.play().catch((e) => {
-        // 播放失败：气泡提示
-        bubbleTip('播放失败喵：' + (e.message || e), 5000);
-      });
+      audio.play()
+        .then(() => { voiceActive = true; reportVoiceState(); })
+        .catch((e) => {
+          // 播放失败：气泡提示
+          voiceActive = false; reportVoiceState();
+          bubbleTip('播放失败喵：' + (e.message || e), 5000);
+        });
       // 完整文本一次性显示（气泡窗口 pop-in 放大淡入），不再逐字跟随
       if (replyText) {
         bubbleShow(replyText);
         audio.onended = () => {
+          voiceActive = false; reportVoiceState();
           // 播完停留片刻，再缩放淡出隐藏
           setTimeout(bubbleHide, 2000);
+        };
+        audio.onpause = () => {
+          // 被翻唱/切歌等打断：同样视为播放结束，恢复随机发声计时
+          if (voiceActive) { voiceActive = false; reportVoiceState(); }
         };
       }
     });

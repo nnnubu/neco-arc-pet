@@ -57,7 +57,7 @@ function restartProactiveTimer() {
   if (!cfg.proactiveEnabled) return;
   const min = Math.max(1, Number(cfg.proactiveIntervalMin) || 30);
   proactiveTimer = setInterval(() => {
-    if (isSpeaking()) return; // 用户正在听/正在合成中，不打扰
+    if (isSpeaking() || voicePlaying) return; // 用户正在听/正在合成或播放中，不打扰
     if (singPlaying) return;  // 翻唱播放中：不主动搭话，避免打断用户听歌
     handleProactiveSpeak();
   }, min * 60 * 1000);
@@ -72,6 +72,9 @@ let singPlaying = false;
 const CLIP_DIR = path.join(__dirname, '..', 'assets', 'voice-clips');
 let voiceClips = [];
 let voiceTimer = null;
+// 聊天语音是否正在播放（渲染层上报 voice-playing/voice-done）：
+// 播放期间暂停随机发声倒计时，播完才重新计时，避免随机音频叠在聊天语音上
+let voicePlaying = false;
 
 function loadVoiceClips() {
   try {
@@ -83,11 +86,11 @@ function loadVoiceClips() {
   return voiceClips.length;
 }
 
-// 单次触发：随机选一个素材播放（严格避开：静音模式/说话中/翻唱播放中）
+// 单次触发：随机选一个素材播放（严格避开：静音模式/说话中/语音播放中/翻唱播放中）
 function fireRandomVoice() {
   const cfg = getAiConfig();
   if (!cfg.randomVoiceEnabled || cfg.muteVoice) return false;
-  if (singPlaying || isSpeaking()) return false;
+  if (singPlaying || isSpeaking() || voicePlaying) return false;
   if (!voiceClips.length) return false;
   const name = voiceClips[Math.floor(Math.random() * voiceClips.length)];
   const win = getWin();
@@ -109,6 +112,18 @@ function restartVoiceTimer() {
     fireRandomVoice();
     restartVoiceTimer();
   }, delay);
+}
+
+// 聊天语音开始播放：暂停随机发声倒计时（倒计时作废，等播完重新计时）
+function onVoicePlaying() {
+  voicePlaying = true;
+  if (voiceTimer) { clearTimeout(voiceTimer); voiceTimer = null; }
+}
+
+// 聊天语音播放完毕：恢复随机发声计时（从头开始完整间隔）
+function onVoiceDone() {
+  voicePlaying = false;
+  restartVoiceTimer();
 }
 function buildProactivePrompt(cfg) {
   const base = cfg.proactivePrompt || '主动找人类搭一句话：简短一句，用猫姬人设，直接输出台词不要解释。';
@@ -270,6 +285,9 @@ function registerVoiceIpc() {
   ipcMain.on('speak-text', (_e, text, force) => handleSpeakText(text, force));
   // 翻唱播放状态：渲染层播放翻唱时发 sing-state('playing'/'paused'/'ended')，主动搭话/随机发声据此避开
   ipcMain.on('sing-state', (_e, s) => { singPlaying = s === 'playing'; });
+  // 聊天语音播放状态：渲染层开始/结束播放语音时上报，随机发声倒计时暂停/恢复
+  ipcMain.on('voice-playing', () => onVoicePlaying());
+  ipcMain.on('voice-done', () => onVoiceDone());
   // 加载随机发声素材并启动定时器（配置保存后由 ai-config.js 调 restart 刷新）
   loadVoiceClips();
   // 模块加载即按当前配置启动主动说话/随机发声定时器
