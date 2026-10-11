@@ -1,10 +1,9 @@
-// 猫姬桌宠 - 动作面板逻辑：常用动作 + 按类别分组，点击动作持续播放不关闭面板（便于连续测试）
+// 猫姬桌宠 - 动作面板逻辑：全部动作按编号顺序平铺，点击持续播放不关闭面板（便于连续测试）
 (function () {
   const $ = (s) => document.querySelector(s);
-  const secFixed = $('#sec-fixed');
-  const groupsBox = $('#groups');
+  const allBox = $('#all-items');
 
-  // 渲染一个动作项：只显示编号（去掉中文标注，按顺序用编号）
+  // 渲染一个动作项：只显示编号（去掉中文标注与类别分组，按编号排）
   function itemEl(it) {
     const div = document.createElement('div');
     div.className = 'item';
@@ -15,31 +14,6 @@
     num.textContent = it.num || '';
     div.appendChild(num);
     return div;
-  }
-
-  // 渲染分组（details 折叠）
-  function groupEl(g) {
-    const det = document.createElement('details');
-    det.className = 'fgroup';
-    const sum = document.createElement('summary');
-    const gt = document.createElement('span');
-    gt.className = 'gtitle';
-    gt.textContent = g.title;
-    const gc = document.createElement('span');
-    gc.className = 'gcount';
-    gc.textContent = g.items.length;
-    const ar = document.createElement('span');
-    ar.className = 'arrow';
-    ar.textContent = '▶';
-    sum.appendChild(gt);
-    sum.appendChild(gc);
-    sum.appendChild(ar);
-    det.appendChild(sum);
-    const box = document.createElement('div');
-    box.className = 'items';
-    for (const it of g.items) box.appendChild(itemEl(it));
-    det.appendChild(box);
-    return det;
   }
 
   // 点击动作：pick（转发给桌宠播放，面板保持打开）
@@ -55,9 +29,28 @@
   $('#btnMin').addEventListener('click', () => window.actionPanelApi.minimize());
   $('#btnClose').addEventListener('click', () => window.actionPanelApi.close());
 
-  // 接收主进程动作数据并渲染
+  // 接收主进程动作数据并渲染：固定动作 + 全部类别动作 合并 → 按编号升序平铺
   window.actionPanelApi.onData((data) => {
-    for (const it of data.fixed) secFixed.appendChild(itemEl(it));
-    for (const g of data.groups) groupsBox.appendChild(groupEl(g));
+    const all = [];
+    for (const it of data.fixed) all.push(it);
+    for (const g of data.groups) for (const it of g.items) all.push(it);
+    // 去重（固定动作与 act_* 编号不冲突，但保险起见按 id 去重）
+    const seen = new Set();
+    const merged = [];
+    for (const it of all) {
+      if (seen.has(it.id)) continue;
+      seen.add(it.id);
+      merged.push(it);
+    }
+    // 编号优先数字升序，无编号（固定动作）排最后
+    merged.sort((a, b) => {
+      const na = parseInt(a.num, 10);
+      const nb = parseInt(b.num, 10);
+      if (!isNaN(na) && !isNaN(nb)) return na - nb;
+      if (!isNaN(na)) return -1;
+      if (!isNaN(nb)) return 1;
+      return (a.id < b.id ? -1 : 1);
+    });
+    for (const it of merged) allBox.appendChild(itemEl(it));
   });
 })();

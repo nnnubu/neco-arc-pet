@@ -74,30 +74,12 @@ body { display: flex; flex-direction: column; height: 100vh; }
 #scroller::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.28); }
 #scroller::-webkit-scrollbar-track { background: transparent; }
 
-/* 分组标题 */
-.sec-title {
-  padding: 10px 16px 6px;
-  font-size: 11px;
-  color: var(--txt3);
-  letter-spacing: 2px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 7px;
-}
-.sec-title::before {
-  content: '';
-  width: 3px; height: 11px;
-  border-radius: 2px;
-  background: linear-gradient(180deg, var(--brand2), var(--brand1));
-}
-
-/* 动作项（网格平铺，一屏可看更多；仅显示编号） */
+/* 动作项（网格平铺，仅显示编号） */
 .items {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 4px;
-  padding: 2px 12px;
+  padding: 10px 12px;
 }
 .item {
   display: flex;
@@ -125,7 +107,7 @@ body { display: flex; flex-direction: column; height: 100vh; }
 }
 .item:hover .num { color: #fff; }
 
-/* 类别折叠块 */
+/* 类别折叠块（已不使用，保留基础样式兜底） */
 .fgroup { border-top: 1px solid var(--line); }
 .fgroup:first-of-type { border-top: none; }
 .fgroup summary {
