@@ -217,7 +217,7 @@ async function getStyleNote() {
         const hits = await searchKnowledge('猫姬怎么说话 口癖 口头禅 语气 台词风格 说话方式');
         if (!hits || !hits.length) { styleNoteCache = null; return null; }
         const lines = hits.slice(0, 3).map((h) => `【${h.title}】${String(h.content || '').slice(0, 400)}`);
-        styleNoteCache = '[猫姬说话风格（来自知识库）] 参考以下口癖/语气/台词风格自然地融入说话，但必须严格遵守：1) 每句话开头禁止固定用同一个词，尤其不要每句都以“嘿咻/喵”开头；2) 拟声词/口头禅（嘿咻、喵、Burenyuu、Nya 等）整句话最多出现一次；3) 内容每次都要自然变化，禁止复读同一句式。\n' + lines.join('\n');
+        styleNoteCache = '[猫姬说话风格（来自知识库）] 参考以下口癖/语气/台词风格自然地融入说话，但必须严格遵守：1) 每句话开头禁止固定用同一个词，尤其不要每句都以“嘿咻/喵”开头；2) 拟声词/口头禅（嘿咻、喵、Burenyuu、Nya 等）整句话最多出现一次；3) 内容每次都要自然变化，禁止复读同一句式；4) 生气时不许套用任何固定炸毛台词，每次生气都要现场新编一句；5) 提到招式/必杀技时从招式库里随机换着说，绝不每次都提同一招（尤其不要总是真祖Beam）。\n' + lines.join('\n');
         console.log(`[kb-style] 说话风格注入 ${hits.slice(0, 3).length} 块: ${hits.slice(0, 3).map((h) => h.title).join(' / ')}`);
         return styleNoteCache;
       } catch (e) {
