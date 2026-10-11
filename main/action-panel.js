@@ -26,6 +26,7 @@ function showActionPanel() {
     alwaysOnTop: true,
     skipTaskbar: false,
     fullscreenable: false,
+    show: true, // 创建后立即显示（避免菜单点击后"没反应"的感知）
     webPreferences: {
       preload: path.join(__dirname, 'action-panel-preload.js'),
       contextIsolation: true,
@@ -34,10 +35,15 @@ function showActionPanel() {
     },
   });
   panelWin.loadFile(path.join(__dirname, '..', 'renderer', 'action-panel.html'));
-  panelWin.webContents.on('did-finish-load', () => {
+  panelWin.webContents.once('did-finish-load', () => {
     // 运行时 require：menu.js 顶层 require 本模块，本模块顶层不能反向 require menu（避免循环依赖）
     const { buildMenuData } = require('./menu');
-    panelWin.webContents.send('action-panel-data', buildMenuData());
+    if (panelWin && !panelWin.isDestroyed()) {
+      panelWin.webContents.send('action-panel-data', buildMenuData());
+      // 加载完成后再次显示并聚焦（首次点击菜单后窗口立即可见，避免"要点两次"）
+      panelWin.show();
+      panelWin.focus();
+    }
   });
   panelWin.on('closed', () => { panelWin = null; });
 }

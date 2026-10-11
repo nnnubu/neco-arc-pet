@@ -66,6 +66,12 @@ window.Controls = (() => {
     window.pet.onMenuAction((name) => {
       if (name === 'SPEAK') { window.pet.openChat(); return; } // 打开独立对话窗口（不再用桌宠内输入条）
       if (name === 'RESET') { sprite.backToIdle(); return; }
+      // 趴下 / 站起切换：常驻趴（act_23）循环播放中 → 回待机站立；否则 → 播放 act_23 常驻趴
+      if (name === 'TOGGLE_LIE') {
+        if (sprite.currentName === 'act_23' && sprite.state === 'oneshot') { sprite.backToIdle(); return; }
+        sprite.playOneshot('act_23');
+        return;
+      }
       // 转向动画内容自带方向，走专用播放（不按当前朝向翻转，避免方向反掉）
       if (name === 'turn_left' || name === 'turn_right') { sprite.playTurn(name); return; }
       sprite.playOneshot(name);

@@ -4,20 +4,16 @@
   const secFixed = $('#sec-fixed');
   const groupsBox = $('#groups');
 
-  // 渲染一个动作项
+  // 渲染一个动作项：只显示编号（去掉中文标注，按顺序用编号）
   function itemEl(it) {
     const div = document.createElement('div');
     div.className = 'item';
     div.dataset.act = it.id;
-    div.title = it.label;
+    div.title = it.label; // 悬停提示保留中文，方便识别
     const num = document.createElement('span');
     num.className = 'num';
     num.textContent = it.num || '';
-    const lbl = document.createElement('span');
-    lbl.className = 'lbl';
-    lbl.textContent = it.label;
     div.appendChild(num);
-    div.appendChild(lbl);
     return div;
   }
 

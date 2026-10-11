@@ -1,54 +1,19 @@
-// 猫姬桌宠 - 自绘右键菜单逻辑：动作模块（常用+分组统合）+ 设置模块（随机播放参数），点击动作回传选择
+// 猫姬桌宠 - 自绘右键菜单逻辑：动作面板入口 + 设置模块（随机播放参数），点击功能项回传选择
 (function () {
   const $ = (s) => document.querySelector(s);
-  const secFixed = $('#sec-fixed');
-  const groupsBox = $('#groups');
   const secSing = $('#sec-sing');
   let cfg = { randomAction: { enabled: true, intervalSec: 15 } };
 
-  // 渲染一个动作项
-  function itemEl(it, isFunc) {
+  // 渲染一个功能项
+  function funcEl(it) {
     const div = document.createElement('div');
-    div.className = 'item' + (isFunc ? ' func' : '');
+    div.className = 'item func';
     div.dataset.act = it.id;
-    if (!isFunc) {
-      const num = document.createElement('span');
-      num.className = 'num';
-      num.textContent = it.num || '';
-      const lbl = document.createElement('span');
-      lbl.className = 'lbl';
-      lbl.textContent = it.label;
-      div.appendChild(num);
-      div.appendChild(lbl);
-    } else {
-      const fname = document.createElement('span');
-      fname.className = 'fname';
-      fname.textContent = it.label;
-      div.appendChild(fname);
-    }
+    const fname = document.createElement('span');
+    fname.className = 'fname';
+    fname.textContent = it.label;
+    div.appendChild(fname);
     return div;
-  }
-
-  // 渲染分组（details 折叠）
-  function groupEl(g) {
-    const det = document.createElement('details');
-    det.className = 'fgroup';
-    const sum = document.createElement('summary');
-    const gt = document.createElement('span');
-    gt.className = 'gtitle';
-    gt.textContent = g.title;
-    const gc = document.createElement('span');
-    gc.className = 'gcount';
-    gc.textContent = g.items.length;
-    const ar = document.createElement('span');
-    ar.className = 'arrow';
-    ar.textContent = '▶';
-    sum.appendChild(gt);
-    sum.appendChild(gc);
-    sum.appendChild(ar);
-    det.appendChild(sum);
-    for (const it of g.items) det.appendChild(itemEl(it, false));
-    return det;
   }
 
   // 设置模块 UI 更新
@@ -94,15 +59,11 @@
   // 接收主进程菜单数据并渲染
   window.menuApi.onData((data) => {
     if (data.config) cfg = Object.assign({}, cfg, data.config);
-    for (const it of data.fixed) secFixed.appendChild(itemEl(it, false));
-    for (const g of data.groups) groupsBox.appendChild(groupEl(g));
-    const total = data.fixed.length + data.groups.reduce((s, g) => s + g.items.length, 0);
-    $('#act-count').textContent = total;
     // 翻唱历史：每首歌一个可点击项（点击 → pick('sing:歌名')），并显示数量
     const hist = data.singHistory || [];
     $('#sing-count').textContent = hist.length;
     for (const h of hist) {
-      secSing.appendChild(itemEl({ id: 'sing:' + h.name, label: h.name }, false));
+      secSing.appendChild(funcEl({ id: 'sing:' + h.name, label: h.name }));
     }
     renderCfg();
     bindCfg();

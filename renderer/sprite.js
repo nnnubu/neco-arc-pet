@@ -823,5 +823,6 @@ window.SpriteCore = (() => {
     resizeRenderer,
     get state() { return SPRITE.state; },
     get facing() { return SPRITE.facing; },
+    get currentName() { return SPRITE.currentName; },
   };
 })();

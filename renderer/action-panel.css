@@ -92,18 +92,19 @@ body { display: flex; flex-direction: column; height: 100vh; }
   background: linear-gradient(180deg, var(--brand2), var(--brand1));
 }
 
-/* 动作项（网格平铺，一屏可看更多） */
+/* 动作项（网格平铺，一屏可看更多；仅显示编号） */
 .items {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 4px;
   padding: 2px 12px;
 }
 .item {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 7px 9px;
+  justify-content: center;
+  min-height: 34px;
+  padding: 6px 4px;
   border-radius: 9px;
   border: 1px solid transparent;
   cursor: pointer;
@@ -117,18 +118,12 @@ body { display: flex; flex-direction: column; height: 100vh; }
 }
 .item:active { background: rgba(255, 95, 109, 0.2); transform: scale(0.97); }
 .item .num {
-  min-width: 25px;
-  text-align: right;
-  font-size: 11px;
-  color: var(--txt3);
+  font-size: 13px;
+  color: var(--txt2);
   font-variant-numeric: tabular-nums;
+  font-weight: 600;
 }
-.item .lbl {
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  color: var(--txt);
-}
+.item:hover .num { color: #fff; }
 
 /* 类别折叠块 */
 .fgroup { border-top: 1px solid var(--line); }
