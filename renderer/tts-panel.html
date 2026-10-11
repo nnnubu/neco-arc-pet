@@ -15,95 +15,98 @@
     </div>
   </div>
 
-  <!-- 文本输入 -->
-  <div id="inputSec">
-    <div class="sec-title">朗读文本</div>
-    <textarea id="txtInput" placeholder="输入想让猫姬朗读的文本…" spellcheck="false"></textarea>
-  </div>
+  <!-- 内容区（内部滚动，滚动条在内容区右侧，避免整页滚动右侧留白） -->
+  <div id="scroller">
+    <!-- 文本输入 -->
+    <div id="inputSec">
+      <div class="sec-title">朗读文本</div>
+      <textarea id="txtInput" placeholder="输入想让猫姬朗读的文本…" spellcheck="false"></textarea>
+    </div>
 
-  <!-- 音色参数：预设快捷 + f0/index/情绪 -->
-  <div id="paramSec">
-    <div class="sec-title">音色参数</div>
-    <div id="presetRow">
-      <button class="preset" data-f0="0" data-idx="0.75">V0 基线</button>
-      <button class="preset" data-f0="1" data-idx="0.75">V1 升1半音</button>
-      <button class="preset" data-f0="2" data-idx="0.75">V2 升2半音</button>
-      <button class="preset" data-f0="0" data-idx="0.90">V3 贴模型</button>
-      <button class="preset" data-f0="1" data-idx="0.90">V4 组合</button>
+    <!-- 音色参数：预设快捷 + f0/index/情绪 -->
+    <div id="paramSec">
+      <div class="sec-title">音色参数</div>
+      <div id="presetRow">
+        <button class="preset" data-f0="0" data-idx="0.75">V0 基线</button>
+        <button class="preset" data-f0="1" data-idx="0.75">V1 升1半音</button>
+        <button class="preset" data-f0="2" data-idx="0.75">V2 升2半音</button>
+        <button class="preset" data-f0="0" data-idx="0.90">V3 贴模型</button>
+        <button class="preset" data-f0="1" data-idx="0.90">V4 组合</button>
+      </div>
+      <div class="param-row">
+        <span class="pname">音高偏移</span>
+        <input id="f0Slider" type="range" min="-3" max="3" step="0.5" value="0">
+        <span class="pval" id="f0Val">0</span>
+        <span class="punit">半音</span>
+      </div>
+      <div class="param-row">
+        <span class="pname">音色贴合</span>
+        <input id="idxSlider" type="range" min="0.5" max="1" step="0.05" value="0.75">
+        <span class="pval" id="idxVal">0.75</span>
+      </div>
+      <div class="param-row">
+        <span class="pname">声线</span>
+        <select id="voiceSel">
+          <option value="">随情绪默认</option>
+          <optgroup label="女声">
+            <option value="anna">anna（沉稳）</option>
+            <option value="bella">bella（热情）</option>
+            <option value="claire">claire（温柔）</option>
+            <option value="diana">diana（开朗）</option>
+          </optgroup>
+          <optgroup label="男声">
+            <option value="alex">alex（沉稳）</option>
+            <option value="benjamin">benjamin（深沉）</option>
+            <option value="charles">charles（磁性）</option>
+            <option value="david">david（开朗）</option>
+          </optgroup>
+        </select>
+      </div>
+      <div class="param-row">
+        <span class="pname">情绪</span>
+        <span class="emotion-tag" id="emotionTag">平静自然</span>
+        <span class="pval" id="emotionIntensity">（强度 50%）</span>
+      </div>
+      <div class="param-row">
+        <span class="pname">效价</span>
+        <span class="edge-label">难过</span>
+        <input id="valenceSlider" type="range" min="-100" max="100" step="1" value="0">
+        <span class="edge-label">开心</span>
+        <span class="pval" id="valenceVal">0</span>
+      </div>
+      <div class="param-row">
+        <span class="pname">活跃度</span>
+        <span class="edge-label">平静</span>
+        <input id="arousalSlider" type="range" min="0" max="100" step="1" value="50">
+        <span class="edge-label">激烈</span>
+        <span class="pval" id="arousalVal">50</span>
+      </div>
+      <div class="apply-row">
+        <label class="chk"><input type="checkbox" id="chkApplyChat"><span class="box"></span>应用到聊天语音</label>
+        <label class="chk"><input type="checkbox" id="chkApplySing"><span class="box"></span>应用到翻唱（音高/贴合）</label>
+      </div>
     </div>
-    <div class="param-row">
-      <span class="pname">音高偏移</span>
-      <input id="f0Slider" type="range" min="-3" max="3" step="0.5" value="0">
-      <span class="pval" id="f0Val">0</span>
-      <span class="punit">半音</span>
-    </div>
-    <div class="param-row">
-      <span class="pname">音色贴合</span>
-      <input id="idxSlider" type="range" min="0.5" max="1" step="0.05" value="0.75">
-      <span class="pval" id="idxVal">0.75</span>
-    </div>
-    <div class="param-row">
-      <span class="pname">声线</span>
-      <select id="voiceSel">
-        <option value="">随情绪默认</option>
-        <optgroup label="女声">
-          <option value="anna">anna（沉稳）</option>
-          <option value="bella">bella（热情）</option>
-          <option value="claire">claire（温柔）</option>
-          <option value="diana">diana（开朗）</option>
-        </optgroup>
-        <optgroup label="男声">
-          <option value="alex">alex（沉稳）</option>
-          <option value="benjamin">benjamin（深沉）</option>
-          <option value="charles">charles（磁性）</option>
-          <option value="david">david（开朗）</option>
-        </optgroup>
-      </select>
-    </div>
-    <div class="param-row">
-      <span class="pname">情绪</span>
-      <span class="emotion-tag" id="emotionTag">平静自然</span>
-      <span class="pval" id="emotionIntensity">（强度 50%）</span>
-    </div>
-    <div class="param-row">
-      <span class="pname">效价</span>
-      <span class="edge-label">难过</span>
-      <input id="valenceSlider" type="range" min="-100" max="100" step="1" value="0">
-      <span class="edge-label">开心</span>
-      <span class="pval" id="valenceVal">0</span>
-    </div>
-    <div class="param-row">
-      <span class="pname">活跃度</span>
-      <span class="edge-label">平静</span>
-      <input id="arousalSlider" type="range" min="0" max="100" step="1" value="50">
-      <span class="edge-label">激烈</span>
-      <span class="pval" id="arousalVal">50</span>
-    </div>
-    <div class="apply-row">
-      <label class="chk"><input type="checkbox" id="chkApplyChat"><span class="box"></span>应用到聊天语音</label>
-      <label class="chk"><input type="checkbox" id="chkApplySing"><span class="box"></span>应用到翻唱（音高/贴合）</label>
-    </div>
-  </div>
 
-  <!-- 生成 -->
-  <div id="genRow">
-    <button id="btnGen" disabled>生成语音</button>
-  </div>
-  <div id="statusText"></div>
+    <!-- 生成 -->
+    <div id="genRow">
+      <button id="btnGen" disabled>生成语音</button>
+    </div>
+    <div id="statusText"></div>
 
-  <!-- 播放控制 -->
-  <div id="playRow" class="hidden">
-    <button id="btnToggle" title="播放 / 暂停">⏸</button>
-    <span id="playingName"></span>
-    <button id="btnLyric" title="显示桌面歌词">♪</button>
-  </div>
+    <!-- 播放控制 -->
+    <div id="playRow" class="hidden">
+      <button id="btnToggle" title="播放 / 暂停">⏸</button>
+      <span id="playingName"></span>
+      <button id="btnLyric" title="显示桌面歌词">♪</button>
+    </div>
 
-  <!-- 历史 -->
-  <div id="historyHead">
-    <span>已生成</span>
-    <button id="btnDir" title="打开语音文件夹">📂</button>
+    <!-- 历史 -->
+    <div id="historyHead">
+      <span>已生成</span>
+      <button id="btnDir" title="打开语音文件夹">📂</button>
+    </div>
+    <div id="historyList"></div>
   </div>
-  <div id="historyList"></div>
 
   <script src="tts-panel.js"></script>
 </body>

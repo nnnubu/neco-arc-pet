@@ -22,7 +22,8 @@ contextBridge.exposeInMainWorld('pet', {
   // 钻地隐藏：窗口整体透明度（0=全透明消除白点/残留，1=恢复可见）
   setOpacity: (v) => ipcRenderer.send('pet-opacity', v),
   getMaxScale: () => ipcRenderer.invoke('pet-get-max-scale'),
-  showMenu: () => ipcRenderer.send('show-context-menu'),
+  // 右键点击桌宠 → 打开总面板（原右键菜单栏已移除）
+  openMaster: () => ipcRenderer.send('master-open'),
   getActions: () => ipcRenderer.invoke('get-actions'),
   // 鼠标穿透控制：透明区域不拦截鼠标（true=忽略鼠标事件穿透到下层，false=恢复接收）
   setIgnoreMouse: (ignore) => ipcRenderer.send('pet-ignore-mouse', ignore),

@@ -16,6 +16,30 @@
   </div>
 
   <div id="scroller">
+    <!-- 动作设置：随机表演开关 + 表演间隔区间 + 趴下/站起 + 重置（原右键菜单设置区并入动作模块） -->
+    <div id="cfgCard">
+      <div class="cfg-title">动作设置</div>
+      <div class="cfg-row">
+        <span class="cfg-name">随机表演</span>
+        <button class="cfg-btn" id="cfgToggle">开</button>
+      </div>
+      <div class="cfg-row">
+        <span class="cfg-name">表演间隔</span>
+        <button class="cfg-step" id="cfgDecMin">−</button>
+        <span class="cfg-val" id="cfgMin">10</span>
+        <button class="cfg-step" id="cfgIncMin">＋</button>
+        <span class="cfg-tilde">~</span>
+        <button class="cfg-step" id="cfgDecMax">−</button>
+        <span class="cfg-val" id="cfgMax">30</span>
+        <button class="cfg-step" id="cfgIncMax">＋</button>
+        <span class="cfg-unit">秒</span>
+      </div>
+      <div class="cfg-row cfg-acts">
+        <button class="cfg-btn" id="cfgLie">趴下/站起</button>
+        <button class="cfg-btn" id="cfgReset">重置动作</button>
+      </div>
+    </div>
+
     <!-- 全部动作按编号顺序平铺 -->
     <div id="all-items" class="items"></div>
   </div>

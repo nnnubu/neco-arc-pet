@@ -22,6 +22,7 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 html, body {
   position: relative;
+  height: 100%;
   background:
     radial-gradient(120% 70% at 90% 0%, rgba(255, 120, 110, 0.08) 0%, transparent 55%),
     radial-gradient(110% 60% at 0% 100%, rgba(120, 130, 255, 0.06) 0%, transparent 50%),
@@ -33,6 +34,9 @@ html, body {
   -webkit-user-select: none;
   user-select: none;
 }
+
+/* 撑满整页：标题栏固定，中间表单区滚动，底部按钮吸底（不再底部空白/压缩） */
+body { display: flex; flex-direction: column; }
 
 #titlebar {
   display: flex;
@@ -68,11 +72,19 @@ html, body {
 #btnClose:active, #btnMin:active { transform: scale(0.9); }
 
 #body {
+  flex: 1;
+  min-height: 0;
   display: flex;
   gap: 18px;
   padding: 14px 16px 4px;
-  height: auto;
+  overflow-y: auto; /* 表单区超高时内部滚动，footer 始终吸底 */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
 }
+#body::-webkit-scrollbar { width: 6px; }
+#body::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.16); border-radius: 3px; }
+#body::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.28); }
+#body::-webkit-scrollbar-track { background: transparent; }
 #colLeft { flex: 1.25; min-width: 0; }
 #colRight {
   flex: 1;
@@ -83,6 +95,7 @@ html, body {
 #rvRow { display: flex; gap: 10px; }
 #rvRow .field { flex: 1; min-width: 0; }
 #footer {
+  flex: none; /* 底部固定，不随内容滚动 */
   padding: 8px 16px 14px;
   border-top: 1px solid var(--line);
   background: linear-gradient(180deg, rgba(18, 19, 31, 0) 0%, rgba(11, 12, 21, 0.55) 40%);

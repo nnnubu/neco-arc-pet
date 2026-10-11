@@ -5,6 +5,7 @@
 //      （webContents 可直接 send，isDestroyed 反映 view 是否存活）→ sing/voice/lyric 广播链路不变。
 const { BrowserWindow, WebContentsView, ipcMain, screen } = require('electron');
 const path = require('path');
+const { getWin } = require('./window');
 
 // 模块注册表：html 与 preload 全部复用原面板文件
 const MODULES = {
@@ -24,6 +25,27 @@ const H = 720;
 let masterWin = null;
 let views = {}; // name -> { view, loaded }
 let active = null;
+// 真正退出标志：仅"退出桌宠"（总面板退出按钮/托盘退出）置位；
+// 平时总面板关闭=隐藏、桌宠窗口常驻，window-all-closed 不应退出进程（托盘可找回）
+let quitting = false;
+
+function isQuitting() { return quitting; }
+
+// 退出桌宠：复用既有退出动画链路（渲染层 act_49 火箭飞出/act_33 钻地 → 播完发 quit → app.quit()），
+// 12 秒兜底：动画播放异常/渲染层无响应时强制退出
+function requestQuit() {
+  if (quitting) return;
+  quitting = true;
+  const win = getWin();
+  if (win && !win.isDestroyed()) {
+    win.webContents.send('start-exit-anim');
+    setTimeout(() => {
+      if (quitting) require('electron').app.quit();
+    }, 12000);
+  } else {
+    require('electron').app.quit();
+  }
+}
 
 function getMasterWin() { return masterWin; }
 
@@ -93,12 +115,7 @@ function ensureMasterWin() {
   return masterWin;
 }
 
-// 各模块 view 注入的滚动兼容 CSS（内容超高时整页滚动，footer 吸底）
-const SCROLL_CSS = [
-  'html, body { overflow-y: auto !important; }',
-  '#footer { position: sticky; bottom: 0; background: #0b0c15; z-index: 5; }',
-].join('\n');
-
+// 各模块 view 加载后的附加处理（滚动兼容等已由各面板 css 自行承担，此处仅补数据推送）
 function ensureView(name) {
   const mod = MODULES[name];
   if (!mod) return null;
@@ -120,10 +137,6 @@ function ensureView(name) {
   view.webContents.once('did-finish-load', () => {
     if (!views[name] || views[name].view !== view) return;
     views[name].loaded = true;
-    // 模块自己的标题栏保留在 view 顶部（作为模块功能条）；AI 设置内容超高时滚动兼容
-    if (name === 'ai') {
-      view.webContents.insertCSS(SCROLL_CSS).catch(() => {});
-    }
     // 动作面板需要动作列表：原 showActionPanel 在 did-finish-load 后推送，此处等效补发
     // （运行时 require menu 防循环依赖：menu.js 顶层 require 本模块）
     if (name === 'action') {
@@ -172,9 +185,13 @@ function minimizeMaster() {
 function registerMasterPanelIpc() {
   // 导航点击 → 切换模块
   ipcMain.on('master-nav', (_e, name) => openModule(String(name || 'chat')));
+  // 右键点击桌宠 → 打开总面板（原右键菜单栏已移除）
+  ipcMain.on('master-open', () => openModule('chat'));
   // 总面板最小化 / 关闭（关闭 = 隐藏，保留各 view 状态，再开秒开）
   ipcMain.on('master-minimize', () => minimizeMaster());
   ipcMain.on('master-close', () => hideMaster());
+  // 总面板「退出桌宠」：复用退出动画链路（渲染层播完发 quit → app.quit）
+  ipcMain.on('master-quit', () => requestQuit());
 }
 
 module.exports = {
@@ -185,4 +202,6 @@ module.exports = {
   getViewWebContents,
   wrapView,
   registerMasterPanelIpc,
+  requestQuit,
+  isQuitting,
 };

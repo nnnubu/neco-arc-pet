@@ -81,10 +81,10 @@ window.Controls = (() => {
       window.pet.setScale(next);
     }, { passive: false });
 
-    // 右键菜单 → 主进程弹出原生菜单 → menu-action 回调
+    // 右键点击桌宠 → 打开总面板（原右键菜单栏已移除，总面板承载全部功能入口）
     document.addEventListener('contextmenu', (e) => {
       e.preventDefault();
-      window.pet.showMenu();
+      window.pet.openMaster();
     });
     window.pet.onMenuAction((name) => {
       if (name === 'SPEAK') { window.pet.openChat(); return; } // 打开独立对话窗口（不再用桌宠内输入条）

@@ -320,8 +320,10 @@ html, body {
   font-variant-numeric: tabular-nums;
 }
 
-/* 历史列表 */
+/* 历史列表：flex 撑满剩余高度（翻唱面板内"已翻唱"拉高） */
+body { display: flex; flex-direction: column; height: 100vh; }
 #historyHead {
+  flex: none;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -343,8 +345,9 @@ html, body {
 #btnDir:hover { background: rgba(255, 255, 255, 0.12); color: #fff; }
 #btnDir:active { transform: scale(0.92); }
 #historyList {
-  margin: 0 14px;
-  max-height: 150px;
+  flex: 1;
+  min-height: 60px;
+  margin: 0 14px 14px;
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.16) transparent;

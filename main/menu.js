@@ -1,13 +1,13 @@
-// 主进程 - 右键菜单模块：自绘 HTML 菜单窗口（动作统合一个模块 + 设置模块可配置随机播放），点击后向桌宠渲染层发送 menu-action
-const { ipcMain, BrowserWindow, screen, shell } = require('electron');
+// 主进程 - 动作/配置模块：动作注册表 + 菜单动作转发 + 用户配置读写。
+// 说明：原右键自绘菜单窗口已随"去掉右键菜单栏"移除；菜单入口（动作面板 pick / 趴下站起 / 重置等）
+//      统一走 menu-pick 链路，随机表演配置走 get-config / menu-config-set（动作面板设置区复用）。
+const { ipcMain, shell } = require('electron');
 const fs = require('fs');
 const path = require('path');
 const { getWin } = require('./window');
 const { getLyricsByTitle } = require('./lyric');
 const { broadcast } = require('./sing');
 const { openModule } = require('./master-panel');
-
-let menuWin = null;
 
 // 用户配置文件（随机播放等参数，用户可在菜单「设置」中调整，持久化）
 const CONFIG_PATH = path.join(__dirname, '..', 'assets', 'user-config.json');
@@ -48,21 +48,21 @@ function loadActions() {
   }
 }
 
-// 固定表演动作（基础帧组，顶级平铺展示）
+// 固定表演动作（基础帧组，顶级平铺展示；num 为面板显示编号，200+ 与 act_* 编号区分）
 const FIXED_ITEMS = [
-  { id: 'thinking', label: '思考' },
-  { id: 'backflip', label: '后空翻' },
-  { id: 'kick', label: '踢' },
-  { id: 'wine', label: '饮酒' },
-  { id: 'wine_2', label: '饮酒2' },
-  { id: 'smug', label: '得意' },
-  { id: 'tongue', label: '吐舌' },
-  { id: 'push', label: '推手' },
-  { id: 'star', label: '星星眼' },
-  { id: 'pose1', label: '比1' },
-  { id: 'hide', label: '挡脸' },
-  { id: 'pout', label: '撅嘴' },
-  { id: 'lie', label: '躺倒' },
+  { id: 'thinking', num: '200', label: '思考' },
+  { id: 'backflip', num: '201', label: '后空翻' },
+  { id: 'kick', num: '202', label: '踢' },
+  { id: 'wine', num: '203', label: '饮酒' },
+  { id: 'wine_2', num: '204', label: '饮酒2' },
+  { id: 'smug', num: '205', label: '得意' },
+  { id: 'tongue', num: '206', label: '吐舌' },
+  { id: 'push', num: '207', label: '推手' },
+  { id: 'star', num: '208', label: '星星眼' },
+  { id: 'pose1', num: '209', label: '比1' },
+  { id: 'hide', num: '210', label: '挡脸' },
+  { id: 'pout', num: '211', label: '撅嘴' },
+  { id: 'lie', num: '212', label: '躺倒' },
 ];
 
 // 迁移动作分组：标题 + 类别（actions.json 的 cat 字段）
@@ -88,46 +88,7 @@ function buildMenuData() {
   return { fixed: FIXED_ITEMS, groups, config: loadConfig() };
 }
 
-function closeMenu() {
-  if (menuWin && !menuWin.isDestroyed()) menuWin.destroy();
-  menuWin = null;
-}
-
-// 弹出菜单窗口：跟随鼠标位置（防超出工作区），失焦自动关闭
-function showMenu() {
-  const win = getWin();
-  if (!win || win.isDestroyed()) return;
-  const data = buildMenuData();
-  const W = 252;
-  const H = 720; // 高度上限；内容超出由渲染层滚动
-  const wa = screen.getPrimaryDisplay().workArea;
-  const pt = screen.getCursorScreenPoint();
-  let x = Math.min(pt.x, wa.x + wa.width - W - 8);
-  let y = Math.min(pt.y, wa.y + wa.height - H - 8);
-  x = Math.max(wa.x + 4, x);
-  y = Math.max(wa.y + 4, y);
-
-  closeMenu();
-  menuWin = new BrowserWindow({
-    width: W, height: H, x, y,
-    frame: false, transparent: true, alwaysOnTop: true,
-    skipTaskbar: true, resizable: false, focusable: true,
-    hasShadow: false, // 阴影由 CSS 绘制
-    webPreferences: {
-      preload: path.join(__dirname, 'menu-preload.js'),
-      contextIsolation: true,
-      nodeIntegration: false,
-    },
-  });
-  menuWin.loadFile(path.join(__dirname, '..', 'renderer', 'menu.html'));
-  menuWin.webContents.on('did-finish-load', () => {
-    menuWin.webContents.send('menu-data', data);
-    // 加载完成后聚焦菜单窗口：若菜单未激活，第一次点击菜单项会被"激活窗口"吞掉（click 不派发）→ 面板要点两次
-    if (menuWin && !menuWin.isDestroyed()) menuWin.focus();
-  });
-  menuWin.on('blur', () => closeMenu());
-}
-
+// 弹出菜单窗口逻辑已随"去掉右键菜单栏"移除：动作选择统一由总面板动作模块走 menu-pick。
 function registerMenuIpc() {
   // 渲染层取动作列表（sprite.js 动态注册 act_* 帧组）
   ipcMain.handle('get-actions', () => {
@@ -139,12 +100,9 @@ function registerMenuIpc() {
     return acts;
   });
 
-  ipcMain.on('show-context-menu', () => showMenu());
-
-  // 菜单窗口选择动作：转发给桌宠渲染层（menu-action 与旧原生菜单一致）
+  // 动作面板/功能按钮选择动作：转发给桌宠渲染层（menu-action 与旧菜单一致）
   ipcMain.on('menu-pick', (_e, action) => {
     const win = getWin();
-    closeMenu();
     if (!win || win.isDestroyed()) return;
     if (action === '__quit__') {
       // 退出桌宠：先播放退出动画（act_49 火箭飞出 / act_33 钻地），播完由渲染层发 quit 真正退出；
@@ -198,9 +156,6 @@ function registerMenuIpc() {
       win.webContents.send('menu-action', action);
     }
   });
-
-  // 菜单窗口关闭（点击空白/取消）
-  ipcMain.on('menu-close', () => closeMenu());
 
   // 渲染层（桌宠）读取用户配置（随机播放参数等）
   ipcMain.handle('get-config', () => loadConfig());

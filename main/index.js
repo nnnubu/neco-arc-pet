@@ -1,6 +1,7 @@
 // 主进程入口：应用生命周期 + 装配各功能模块
-// 模块职责：window=窗口与移动缩放 / menu=右键菜单 / voice=语音服务
-const { app, BrowserWindow, ipcMain } = require('electron');
+// 模块职责：window=窗口与移动缩放 / menu=动作与配置 / voice=语音服务 / master-panel=总面板与退出
+const { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage } = require('electron');
+const path = require('path');
 const { createWindow, registerWindowIpc } = require('./window');
 const { registerMenuIpc } = require('./menu');
 const { registerVoiceIpc } = require('./voice');
@@ -12,7 +13,7 @@ const { registerAiConfigIpc } = require('./ai-config');
 const { registerBubbleIpc } = require('./bubble');
 const { registerActionPanelIpc } = require('./action-panel');
 const { registerTtsPanelIpc } = require('./tts-panel');
-const { registerMasterPanelIpc } = require('./master-panel');
+const { registerMasterPanelIpc, openModule, requestQuit, isQuitting } = require('./master-panel');
 
 // 透明窗口加固：Windows 上硬件加速合成偶发导致透明失效变白底，
 // 禁用后透明层走软件合成，稳定可靠（像素动画性能不受影响）
@@ -45,9 +46,38 @@ app.whenReady().then(() => {
   // 渲染层退出动画（act_49 火箭飞出）播完由渲染层发 quit → 真正退出
   ipcMain.on('quit', () => app.quit());
 
+  // 系统托盘：桌宠启动即常驻；总面板关闭=隐藏，可从托盘找回；托盘「退出桌宠」走退出动画链路
+  setupTray();
+
+  // 桌宠启动同时启动总面板（原右键菜单栏已移除，总面板是唯一功能入口）
+  openModule('chat');
+
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
 });
 
-app.on('window-all-closed', () => app.quit());
+// 托盘常驻：点击图标/「显示总面板」找回总面板；「退出桌宠」才真正退出（isQuitting 保护 window-all-closed）
+let tray = null;
+function setupTray() {
+  try {
+    const icon = nativeImage
+      .createFromPath(path.join(__dirname, '..', 'assets', 'sprite', 'animations', 'act_4', '1.png'))
+      .resize({ width: 16, height: 16 });
+    tray = new Tray(icon);
+    tray.setToolTip('猫姬桌宠');
+    tray.on('click', () => openModule('chat'));
+    tray.setContextMenu(Menu.buildFromTemplate([
+      { label: '显示总面板', click: () => openModule('chat') },
+      { type: 'separator' },
+      { label: '退出桌宠', click: () => requestQuit() },
+    ]));
+  } catch (e) {
+    console.error('[tray] 托盘创建失败:', e.message);
+  }
+}
+
+// 平时总面板关闭=隐藏、桌宠窗口常驻 → 所有窗口关闭不代表退出；只有「退出桌宠」才退出进程
+app.on('window-all-closed', () => {
+  if (isQuitting()) app.quit();
+});

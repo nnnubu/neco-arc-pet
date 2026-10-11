@@ -14,6 +14,8 @@ items.forEach((b) => {
 
 document.getElementById('btnMin').addEventListener('click', () => window.masterApi.minimize());
 document.getElementById('btnClose').addEventListener('click', () => window.masterApi.close());
+// 退出桌宠：主进程走退出动画链路（播完由桌宠渲染层发 quit 真正退出）
+document.getElementById('btnQuit').addEventListener('click', () => window.masterApi.quit());
 
 window.masterApi.onActive((name) => setActive(name));
 

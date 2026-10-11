@@ -25,15 +25,24 @@ html, body {
   color: var(--txt);
   font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
   font-size: 13px;
-  overflow-y: auto; /* 参数区（情绪量化）变长后窗口内可滚动，避免底部历史被裁剪 */
-  overflow-x: hidden;
+  overflow: hidden; /* 滚动交给内容区 #scroller，避免整页滚动右侧留白 */
   -webkit-user-select: none;
   user-select: none;
 }
-html::-webkit-scrollbar, body::-webkit-scrollbar { width: 7px; }
-html::-webkit-scrollbar-thumb, body::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.14); border-radius: 4px; }
-html::-webkit-scrollbar-thumb:hover, body::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.26); }
-html::-webkit-scrollbar-track, body::-webkit-scrollbar-track { background: transparent; }
+
+/* 内容区内部滚动：滚动条贴内容区右侧，与动作面板一致 */
+body { display: flex; flex-direction: column; height: 100vh; }
+#scroller {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
+}
+#scroller::-webkit-scrollbar { width: 6px; }
+#scroller::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.16); border-radius: 3px; }
+#scroller::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.28); }
+#scroller::-webkit-scrollbar-track { background: transparent; }
 
 /* 标题栏 */
 #titlebar {
@@ -200,9 +209,10 @@ html::-webkit-scrollbar-track, body::-webkit-scrollbar-track { background: trans
 #emotionSel:focus, #voiceSel:focus { border-color: rgba(255, 95, 109, 0.6); }
 #emotionSel option, #voiceSel option { background: #191b2b; color: var(--txt); }
 
-/* "应用到聊天/翻唱"开关行（品牌勾选：玻璃质感 + 渐变填充，与翻唱面板同一设计体系） */
+/* "应用到聊天/翻唱"开关行（品牌勾选：玻璃质感 + 渐变填充，与翻唱面板同一设计体系；居中展示） */
 .apply-row {
   display: flex;
+  justify-content: center;
   gap: 18px;
   margin: 10px 0 2px;
 }

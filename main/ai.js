@@ -233,9 +233,25 @@ async function getStyleNote() {
 async function askAI(userText, opts = {}) {
   const { onToken, force, timeoutMs = 30000 } = opts;
   if (!aiConfig.apiKey) throw new Error('未配置 AI 密钥（右键 → AI 设置）');
-  // 同问同答：未强制重试时先查缓存（流式命中同样直接返回，回复文本走 ai-reply）
+  // AI 记忆：最近 ~12 条对话历史（me→user、pet→assistant、不带 ts）。
+  // 运行时 require('./chat') 防循环依赖（chat.js 顶层 require('./ai')，顶层互引会拿到空导出）。
+  // 过滤掉与当前提问完全相同的最后一条 me 记录——当前问题已单独 push，避免重复。
+  const history = [];
+  try {
+    const { getHistory } = require('./chat');
+    const cur = String(userText);
+    const hist = getHistory().slice(-12);
+    for (let i = 0; i < hist.length; i++) {
+      const h = hist[i];
+      const isLast = i === hist.length - 1;
+      if (isLast && h.role === 'me' && String(h.text) === cur) continue;
+      history.push(h);
+    }
+  } catch (e) { /* 历史模块异常不影响问答 */ }
+  // 同问同答缓存：仅"无历史"的单轮问题命中（同样的话在不同上下文会被旧回答命中，记忆修复失效）；
+  // 带历史（多轮上下文）时跳过缓存、也不写缓存，避免不同上下文互相污染
   const cacheKey = normalizeKey(userText);
-  if (!force) {
+  if (!force && !history.length) {
     const hit = aiCache[cacheKey];
     if (hit) return hit;
   }
@@ -251,6 +267,10 @@ async function askAI(userText, opts = {}) {
   if (styleNote) messages.push({ role: 'system', content: styleNote });
   if (knowledgeNote) messages.push({ role: 'system', content: knowledgeNote });
   if (searchNote) messages.push({ role: 'system', content: searchNote });
+  // 对话历史（交替 user/assistant）插入在搜索注入之后、当前提问之前，让猫姬记住上下文延续话题
+  for (const h of history) {
+    messages.push({ role: h.role === 'me' ? 'user' : 'assistant', content: String(h.text) });
+  }
   messages.push({ role: 'user', content: String(userText) });
   // 推理类模型适配：Qwen3 / GLM-Z1 / DeepSeek-R1 等默认开思考（输出思维链），
   // 经硅基流动顶层参数 enable_thinking 关闭，让桌宠只输出台词（关闭思考后 temperature 等采样参数照常可用）
@@ -317,16 +337,14 @@ async function askAI(userText, opts = {}) {
         }
         const cleaned = cleanContent(full);
         if (!cleaned) throw new Error('AI 返回空内容');
-        aiCache[cacheKey] = cleaned;
-        saveAiCache();
+        if (!history.length) { aiCache[cacheKey] = cleaned; saveAiCache(); }
         return cleaned;
       }
       const data = await resp.json();
       const content = data?.choices?.[0]?.message?.content;
       if (!content) throw new Error('AI 返回空内容');
       const cleaned = cleanContent(content);
-      aiCache[cacheKey] = cleaned;
-      saveAiCache();
+      if (!history.length) { aiCache[cacheKey] = cleaned; saveAiCache(); }
       return cleaned;
     } catch (e) {
       lastErr = e;

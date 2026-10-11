@@ -74,6 +74,78 @@ body { display: flex; flex-direction: column; height: 100vh; }
 #scroller::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.28); }
 #scroller::-webkit-scrollbar-track { background: transparent; }
 
+/* 动作设置区（原右键菜单设置并入）：随机表演开关 + 表演间隔区间 + 趴下/站起 + 重置 */
+#cfgCard {
+  margin: 10px 12px 4px;
+  padding: 10px 12px 6px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.015));
+}
+.cfg-title {
+  margin-bottom: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: var(--txt3);
+}
+.cfg-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.cfg-name {
+  flex: none;
+  width: 52px;
+  color: var(--txt2);
+  font-size: 12px;
+}
+.cfg-btn {
+  padding: 5px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--txt2);
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.16s var(--ease), color 0.16s var(--ease), border-color 0.16s var(--ease), box-shadow 0.16s var(--ease), transform 0.12s var(--ease);
+}
+.cfg-btn:hover { background: rgba(255, 255, 255, 0.12); color: #fff; }
+.cfg-btn:active { transform: scale(0.95); }
+.cfg-btn.on {
+  background: linear-gradient(180deg, var(--brand1), var(--brand2));
+  border-color: rgba(255, 255, 255, 0.28);
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 0 12px rgba(255, 95, 109, 0.35);
+}
+.cfg-step {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--line-strong);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--txt2);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.16s var(--ease), color 0.16s var(--ease), transform 0.12s var(--ease);
+}
+.cfg-step:hover { background: rgba(255, 95, 109, 0.18); color: #fff; }
+.cfg-step:active { transform: scale(0.9); }
+.cfg-val {
+  min-width: 22px;
+  text-align: center;
+  color: #ffe9a8;
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.cfg-unit, .cfg-tilde { color: var(--txt3); font-size: 11px; }
+.cfg-acts .cfg-btn { flex: 1; }
+
 /* 动作项（网格平铺，仅显示编号） */
 .items {
   display: grid;
