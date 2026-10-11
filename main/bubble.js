@@ -58,18 +58,25 @@ function placeBubble(facing) {
   b.setBounds({ x, y, width: BW, height: curBH });
 }
 
-// 渲染层内容高度上报：窗口高度动态跟随文本内容（字大/内容多不裁剪），保持窗口中心锚点不动
+// 渲染层内容高度上报：窗口高度动态跟随文本内容（字大/内容多不裁剪），保持窗口中心锚点不动。
+// 只升不降：短句不把窗口缩回去（下一条长句显示瞬间窗口已足够大，杜绝"显示时被裁、resize 前已切走"）；
+// 高度最多到工作区高-24，超长文本以能显示完整窗口为上限
 function resizeBubble(_e, h) {
   const b = getBubble();
   if (!b || b.isDestroyed()) return;
   const wa = screen.getDisplayMatching(b.getBounds()).workArea;
-  const nh = Math.max(90, Math.min(Math.round(Number(h) || 0), Math.max(90, wa.height - 24)));
-  if (nh === curBH) return;
-  const old = b.getBounds();
-  // 中心锚点不变：高度增减时 y 相应上移/下移（文字位置视觉不动，只扩展/收缩窗口）
-  const ny = Math.round(old.y + (curBH - nh) / 2);
-  curBH = nh;
-  b.setBounds({ x: old.x, y: ny, width: old.width, height: nh });
+  const want = Math.max(90, Math.round(Number(h) || 0));
+  const maxH = Math.max(90, wa.height - 24);
+  if (want >= curBH) {
+    const nh = Math.min(want, maxH);
+    if (nh === curBH) return;
+    const old = b.getBounds();
+    // 中心锚点不变：高度增减时 y 相应上移/下移（文字位置视觉不动，只扩展/收缩窗口）
+    const ny = Math.round(old.y + (curBH - nh) / 2);
+    curBH = nh;
+    b.setBounds({ x: old.x, y: ny, width: old.width, height: nh });
+  }
+  // want < curBH（短句）：不缩回，窗口保持当前高度 —— 长句完整显示优先
 }
 
 function showBubble(text, facing) {
@@ -85,7 +92,11 @@ function showBubble(text, facing) {
     fontSize = Number(tts.bubbleFontSize) || 16;
     if (/^#[0-9a-fA-F]{6}$/.test(String(tts.bubbleColor || ''))) color = String(tts.bubbleColor);
   } catch (e) {}
-  b.webContents.send('bubble-text', { text: String(text), fontSize, color });
+  // 渲染层"字号动态适应"上限：内容超高时自动缩小字号，保证整段完整显示（工作区高-24 = 气泡窗口最大高度）
+  const pet = petWinGetter ? petWinGetter() : null;
+  const wa = pet && !pet.isDestroyed() ? screen.getDisplayMatching(pet.getBounds()).workArea : null;
+  const maxH = wa ? Math.max(90, wa.height - 24) : 900;
+  b.webContents.send('bubble-text', { text: String(text), fontSize, color, maxH });
   if (!b.isVisible()) b.showInactive();
 }
 
@@ -96,6 +107,7 @@ function hideBubble() {
   clearTimeout(hideTimer);
   hideTimer = setTimeout(() => {
     if (bubble && !bubble.isDestroyed()) bubble.hide();
+    curBH = BH; // 复位默认高度：下次显示按默认尺寸重新定位，避免上次长句撑大的窗口残留
   }, 210);
 }
 

@@ -78,23 +78,38 @@
       const t = (p && p.text != null) ? p.text : p;
       const fs = (p && p.fontSize) ? Number(p.fontSize) : 16;
       const col = (p && /^#[0-9a-fA-F]{6}$/.test(String(p.color))) ? String(p.color) : '#ffd166';
-      bt.style.fontSize = Math.max(10, Math.min(60, fs)) + 'px';
+      const maxH = (p && p.maxH) ? Number(p.maxH) : 900; // 气泡窗口最大高度（工作区高-24）：超长兜底缩字用
+      // 字号动态适应兜底：先用配置字号排，内容超高（窗口最大高度也放不下，如极端超长/极小屏幕）时
+      // 逐级缩小字号保证整段完整显示；正常分段显示（每段 ≤36 字）不会触发，字号保持用户配置
+      let fs2 = Math.max(10, Math.min(60, fs));
+      bt.style.fontSize = fs2 + 'px';
       // 按所选颜色生成同色系渐变（亮→主→暗，保留原有视觉质感；默认色 = 现在的金→珊瑚系）
       bt.style.setProperty('--c1', shade(col, 0.45));
       bt.style.setProperty('--c2', col);
       bt.style.setProperty('--c3', shade(col, -0.12));
       bt.style.setProperty('--c4', shade(col, -0.38));
       bt.textContent = t || '';
+      // 超高兜底：内容高度超过 maxH 时逐级缩字号（每次-2px，下限10px）直至放得下
+      let h = bt.offsetHeight;
+      while (h > maxH && fs2 > 10) {
+        fs2 -= 2;
+        bt.style.fontSize = fs2 + 'px';
+        h = bt.offsetHeight;
+      }
       bt.classList.remove('pop-in', 'pop-out');
       void bt.offsetWidth; // 强制回流，确保动画每次都能重放
       bt.classList.add('pop-in');
-      // 测量内容真实布局高度（等布局稳定后）→ 通知主进程动态调整窗口高度，字大/内容多不被裁剪。
+      // 测量内容真实布局高度 → 通知主进程动态调整窗口高度，字大/内容多不被裁剪。
       // 注意不能用 body.scrollHeight：#bt 是 position:fixed，fixed 元素不参与文档流，scrollHeight 恒为窗口高；
-      // 用 bt.offsetHeight（不受 pop-in 的 transform 缩放影响，返回未变换的布局高度）
-      requestAnimationFrame(() => requestAnimationFrame(() => {
+      // 用 bt.offsetHeight（不受 pop-in 的 transform 缩放影响，返回未变换的布局高度）。
+      // 同步立即上报一次 + rAF 复核取更大值：新句显示瞬间窗口就拉到正确高度，
+      // 避免"长句显示时窗口还是上一句小高度 → 结尾被裁，resize 完成前句子已切走"的竞态。
+      const report = () => {
         const h = Math.ceil(bt.offsetHeight);
         if (h > 0 && window.bubbleApi && window.bubbleApi.resizeContent) window.bubbleApi.resizeContent(h);
-      }));
+      };
+      report();
+      requestAnimationFrame(() => requestAnimationFrame(report));
     });
     // 主进程准备隐藏窗口前先播"缩小淡出"，随后窗口真正隐藏
     window.bubbleApi.onFadeOut(() => {

@@ -16,4 +16,8 @@ contextBridge.exposeInMainWorld('ttsPanelApi', {
   // 播放状态同步（复用翻唱播放链路 singAudio）
   onState: (cb) => ipcRenderer.on('sing-panel-state', (_e, s) => cb(s)),
   onSingPlay: (cb) => ipcRenderer.on('sing-play', (_e, r) => cb(r)),
+  // TTS 播放进度（桌宠渲染层 rAF 每帧上报，经主进程转发）
+  onProgress: (cb) => ipcRenderer.on('tts-progress', (_e, p) => cb(p)),
+  // 进度条拖动 seek
+  seek: (t) => ipcRenderer.send('tts-seek', t),
 });

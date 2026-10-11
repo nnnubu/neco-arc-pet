@@ -69,6 +69,8 @@ contextBridge.exposeInMainWorld('pet', {
   lyricUpdate: (index) => ipcRenderer.send('lyric-update', index),
   lyricProgress: (index, t, dur) => ipcRenderer.send('lyric-progress', { index, t, dur }),
   lyricHide: () => ipcRenderer.send('lyric-hide'),
+  // TTS（语音合成）播放进度：转发到语音面板进度条（复用 singAudio 播放，t/dur 单位秒）
+  ttsProgress: (t, dur) => ipcRenderer.send('tts-progress', { t, dur }),
   // 播放控制：上报当前播放歌名（歌词窗"下一首"定位用）；接收歌词窗 seek → 设置播放位置
   singNow: (name) => ipcRenderer.send('sing-now', name),
   // 翻唱播放完毕 → 自动播下一首（主进程按历史顺序环绕；不在历史则忽略）

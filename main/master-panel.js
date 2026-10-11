@@ -98,7 +98,7 @@ function ensureMasterWin() {
     icon: path.join(__dirname, '..', 'assets', 'icons', 'arc.ico'), // 总面板任务栏图标也用 arc（替代 electron 默认）
     // 不置顶：桌宠窗口是 screen-saver 最高置顶层级，若总面板也置顶，Windows 按"最近一次激活/置顶"排序，
     // 总面板被点击（切模块/最大化/任何交互）都会把桌宠盖住。总面板取消置顶 → 桌宠天然永远在总面板之上；
-    // 总面板被其他应用盖住时可从任务栏/托盘随时调出（见 focus/show 兜底 raisePetAbove）
+    // 总面板被其他应用盖住时可从任务栏/托盘随时调出（不再对桌宠反复 setAlwaysOnTop——该操作会使透明窗口瞬闪）
     alwaysOnTop: false,
     resizable: true,
     minWidth: 760,
@@ -115,9 +115,6 @@ function ensureMasterWin() {
   });
   masterWin.loadFile(path.join(__dirname, '..', 'renderer', 'master-panel.html'));
   masterWin.on('resize', () => { layoutViews(); pushMaxState(); });
-  masterWin.on('show', () => raisePetAbove());      // 总面板被调出 → 桌宠抢回最上层
-  masterWin.on('maximize', () => raisePetAbove());  // 最大化（含系统方式）→ 桌宠抢回最上层
-  masterWin.on('unmaximize', () => raisePetAbove());
   masterWin.on('closed', () => { destroyViews(); masterWin = null; });
   return masterWin;
 }
@@ -195,20 +192,11 @@ function toggleMaximizeMaster() {
   if (!w || w.isDestroyed()) return;
   if (w.isMaximized()) w.unmaximize(); else w.maximize();
   pushMaxState();
-  raisePetAbove(); // 最大化/还原后总面板重新排到顶层 → 立即把桌宠抢回置顶最上层
 }
 function pushMaxState() {
   if (masterWin && !masterWin.isDestroyed() && masterWin.webContents) {
     masterWin.webContents.send('master-max-state', !!masterWin.isMaximized());
   }
-}
-// 桌宠永远高于总面板：Windows 下置顶窗口按"最近一次置顶"排序，总面板每次显示/最大化后
-// 都重设桌宠的 screen-saver 置顶，把桌宠抢回最上层（覆盖总面板激活/最大化盖住桌宠的情况）
-function raisePetAbove() {
-  try {
-    const pet = require('./window').getWin();
-    if (pet && !pet.isDestroyed()) pet.setAlwaysOnTop(true, 'screen-saver');
-  } catch (e) {}
 }
 
 function registerMasterPanelIpc() {

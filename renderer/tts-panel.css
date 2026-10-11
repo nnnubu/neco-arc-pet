@@ -411,6 +411,7 @@ body { display: flex; flex-direction: column; height: 100vh; }
 /* 播放控制 */
 #playRow {
   display: flex;
+  flex-wrap: wrap; /* 第二行容纳进度条 */
   align-items: center;
   gap: 9px;
   margin: 4px 14px 10px;
@@ -446,6 +447,55 @@ body { display: flex; flex-direction: column; height: 100vh; }
 }
 #btnLyric:hover { background: rgba(255, 95, 109, 0.3); color: #fff; border-color: rgba(255, 95, 109, 0.6); box-shadow: 0 0 14px rgba(255, 95, 109, 0.25); }
 #btnLyric:active { transform: scale(0.9); }
+
+/* 播放进度条（仿桌面歌词窗口样式：轨道+渐变填充+白色滑块，可拖动 seek） */
+#progWrap {
+  flex: 1 1 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-top: 2px;
+  cursor: pointer;
+}
+#prog {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.16);
+  position: relative;
+}
+#progFill {
+  height: 100%;
+  width: 0%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #ff5f6d, #ff8a5c, #ffd166);
+  background-size: 200% 100%;
+  animation: ttsBarShine 2.4s linear infinite;
+  box-shadow: 0 0 8px rgba(255, 138, 92, 0.55);
+}
+@keyframes ttsBarShine {
+  0% { background-position: 0% 0; }
+  100% { background-position: 200% 0; }
+}
+#progKnob {
+  position: absolute;
+  top: 50%;
+  left: 0%;
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.5), 0 0 10px rgba(255, 138, 92, 0.8);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+#progTime {
+  flex: 0 0 auto;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.65);
+  font-family: "Consolas", "Microsoft YaHei", sans-serif;
+  min-width: 92px;
+  text-align: center;
+}
 
 /* 历史 */
 #historyHead {

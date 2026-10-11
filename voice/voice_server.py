@@ -150,8 +150,9 @@ def _check_text_duration(text, path, tag):
     """校验音频时长与文本长度是否匹配（内容错乱/缺字/空音频时长为异常短）。
     中文语速约 0.25s/字，下限按 0.1s/字 + 最短 0.3s 兜底；明显过短视为生成异常，
     抛错拒绝写入缓存（防止坏内容被缓存复用，下次命中仍然错乱）。
-    上限按 0.45s/字 + 0.5s 兜底：CosyVoice 偶发"跑飞"念出无关大段内容（时长明显超长），
-    同样拒绝写入缓存并触发重试。"""
+    上限按 0.6s/字 + 0.8s 兜底：CosyVoice 偶发"跑飞"念出无关大段内容（时长明显超长），
+    同样拒绝写入缓存并触发重试。系数从 0.45 放宽到 0.6：正常慢读/拖长音（如 2 字 1.44s）
+    会被 0.45 误杀报生成失败；0.6 仍能拦截真正的跑飞（跑飞时长通常超过 2 倍正常值）。"""
     dur = _wav_duration(path)
     if dur is None:
         raise RuntimeError(tag + " 音频文件无效或损坏")
@@ -161,7 +162,7 @@ def _check_text_duration(text, path, tag):
             f"{tag} 音频时长异常（{dur:.2f}s < 预期 {min_dur:.1f}s），"
             f"可能内容错乱，已拒绝写入缓存"
         )
-    max_dur = len(text) * 0.45 + 0.5
+    max_dur = len(text) * 0.6 + 0.8
     if dur > max_dur:
         raise RuntimeError(
             f"{tag} 音频时长异常（{dur:.2f}s > 上限 {max_dur:.1f}s），"

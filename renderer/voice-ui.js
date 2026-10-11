@@ -67,11 +67,16 @@ window.VoiceUI = (() => {
               window.pet.lyricUpdate(idx);
             }
           }
-          if (!currentSingIsTts) {
+          if (currentSingIsTts) {
+            // TTS 播放进度 → 语音面板进度条（每帧 rAF 驱动，60fps）
+            try { window.pet.ttsProgress(t, singAudio.duration || 0); } catch (e) {}
+          } else {
             // 每帧句内进度 → 歌词窗口卡拉OK颜色渐变（已唱/未唱分界跟随进度）+ 整首进度条
             window.pet.lyricProgress(idx, t, singAudio.duration || 0);
           }
-        } else if (!currentSingIsTts) {
+        } else if (currentSingIsTts) {
+          try { window.pet.ttsProgress(t, singAudio.duration || 0); } catch (e) {}
+        } else {
           // 无歌词：只发整首进度条/时间（句索引 -1，歌词窗口不更新句子）
           window.pet.lyricProgress(-1, t, singAudio.duration || 0);
         }

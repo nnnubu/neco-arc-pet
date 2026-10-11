@@ -78,14 +78,49 @@ function textToLyrics(text, durSec) {
       else lines.push(g);
     }
   }
-  const total = lines.reduce((n, l) => n + l.length, 0) || 1;
-  const dur = Number(durSec) || 0;
+  // 超长句按长度二次拆分：大字号下每段高度可控不超屏幕，逐段显示（见 splitLongSegments）
+  const MAX_SEG = 36;
+  const segs = splitLongSegments(lines, MAX_SEG);
+  const total = segs.reduce((n, l) => n + l.length, 0) || 1;
+  // dur 无效（0/NaN/缺失）时按文本量估算一个比例时长：time 轴只取"字符占比×dur"的比例，
+  // 播放进度始终以音频真实时长驱动，比例正确即可，dur 数值只影响相对间隔
+  let dur = Number(durSec);
+  if (!(dur > 0)) dur = total * 0.2;
+  const MIN_GAP = 0.35; // 句间最小间隔（秒）：防止超短句时间窗口 < 一帧（约16ms）被 rAF 帧跳直接跳过
   let acc = 0;
-  return lines.map((l) => {
+  const tl = segs.map((l) => {
     const t = Math.round((dur * acc) / total * 100) / 100;
     acc += l.length;
     return { time: t, text: l };
   });
+  // 保证每句起点至少比前句晚 MIN_GAP（短句不再被跳帧吞掉；尾部时间超出音频时长时最后一句自然提前结束，可接受）
+  for (let i = 1; i < tl.length; i++) {
+    const minT = Math.round((tl[i - 1].time + MIN_GAP) * 100) / 100;
+    if (tl[i].time < minT) tl[i].time = minT;
+  }
+  return tl;
+}
+
+// 超长句按字符数二次拆分（优先在标点后断，无标点则硬切）：
+// 大字号（如 50px）下 430 宽窗口约 8 字/行，一段 ≤ MAX_SEG 字则行数与高度可控、不超出屏幕；
+// 拆出的各段仍按字符占比分配时间，逐段显示，不改变"整段读完才切段"的听感
+function splitLongSegments(lines, maxLen) {
+  const out = [];
+  for (const l of lines) {
+    if (l.length <= maxLen) { out.push(l); continue; }
+    let rest = l;
+    while (rest.length > maxLen) {
+      let cut = maxLen;
+      // 在 [half, maxLen] 区间找最后一个标点，在其后断开（切得自然）；找不到就硬切
+      for (let i = Math.min(maxLen, rest.length - 1); i > Math.floor(maxLen / 2); i--) {
+        if (/[，。、；！？!?；;…]/.test(rest[i])) { cut = i + 1; break; }
+      }
+      out.push(rest.slice(0, cut));
+      rest = rest.slice(cut);
+    }
+    out.push(rest);
+  }
+  return out;
 }
 
 // ── 历史：扫描 tts_output/*.wav（含同名 .txt 存文本），最新在前 ──
@@ -210,6 +245,17 @@ function registerTtsPanelIpc() {
   ipcMain.on('tts-panel-dir', () => {
     try { fs.mkdirSync(TTS_DIR, { recursive: true }); } catch (e) {}
     shell.openPath(TTS_DIR);
+  });
+
+  // TTS 播放进度（桌宠渲染层 rAF 每帧上报）→ 转发语音面板进度条
+  ipcMain.on('tts-progress', (_e, p) => {
+    const wc = getViewWebContents('tts');
+    if (wc && !wc.isDestroyed()) wc.send('tts-progress', p || { t: 0, dur: 0 });
+  });
+  // 语音面板进度条拖动 seek → 桌宠渲染层设置 singAudio.currentTime（与歌词窗 seek 同链路）
+  ipcMain.on('tts-seek', (_e, t) => {
+    const win = getWin();
+    if (win && !win.isDestroyed()) win.webContents.send('sing-seek', t);
   });
 }
 

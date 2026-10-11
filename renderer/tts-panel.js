@@ -202,7 +202,58 @@
   window.ttsPanelApi.onState((s) => {
     $('#btnToggle').textContent = s === 'playing' ? '⏸' : '▶';
     if (s === 'ended') statusText.textContent = '播放结束';
+    if (s === 'ended') setProgress(0, 0); // 播完/未播放：进度归零
   });
+
+  // ── 播放进度条：进度上报更新 + 拖动 seek（仿歌词窗口）──
+  const prog = $('#prog');
+  const progFill = $('#progFill');
+  const progKnob = $('#progKnob');
+  const progTime = $('#progTime');
+  let lastDur = 0; // 最近一次上报的总时长（拖动 seek 换算用）
+  function fmt(t) {
+    t = Math.max(0, Math.floor(Number(t) || 0));
+    const m = Math.floor(t / 60), s = t % 60;
+    return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+  }
+  function setProgress(t, dur) {
+    const d = Number(dur) || 0;
+    if (d > 0) lastDur = d;
+    const pct = d > 0 ? Math.max(0, Math.min(1, (Number(t) || 0) / d)) : 0;
+    progFill.style.width = (pct * 100) + '%';
+    progKnob.style.left = (pct * 100) + '%';
+    progTime.textContent = fmt(t) + ' / ' + fmt(d);
+  }
+  window.ttsPanelApi.onProgress((p) => {
+    if (p) setProgress(p.t, p.dur);
+  });
+  // 拖动 seek：按下即定位，拖动实时跟随，松开跳转
+  let seeking = false;
+  function seekFromEvent(e) {
+    const r = prog.getBoundingClientRect();
+    const pct = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
+    progFill.style.width = (pct * 100) + '%';
+    progKnob.style.left = (pct * 100) + '%';
+    return pct;
+  }
+  prog.addEventListener('pointerdown', (e) => {
+    seeking = true;
+    prog.setPointerCapture(e.pointerId);
+    seekFromEvent(e);
+  });
+  prog.addEventListener('pointermove', (e) => {
+    if (!seeking) return;
+    seekFromEvent(e);
+  });
+  const finishSeek = (e) => {
+    if (!seeking) return;
+    seeking = false;
+    try { prog.releasePointerCapture(e.pointerId); } catch (err) {}
+    const pct = seekFromEvent(e);
+    if (lastDur > 0) window.ttsPanelApi.seek(Math.round(pct * lastDur * 100) / 100);
+  };
+  prog.addEventListener('pointerup', finishSeek);
+  prog.addEventListener('pointercancel', finishSeek);
 
   // 歌词重开入口（与翻唱共用桌面歌词窗口）
   $('#btnLyric').addEventListener('click', () => {
