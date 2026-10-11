@@ -242,6 +242,11 @@ def trim_cache():
 
 
 def synth(text, emotion, out_path):
+    """兼容入口：整段纯 TTS 合成（无口癖拼接时使用）"""
+    _synth_tts(text, emotion, out_path, apply_post_gain=True)
+
+
+def _synth_tts(text, emotion, out_path, apply_post_gain=True):
     """加锁合成（CosyVoice 情绪源 → RVC 变声），写 to out_path；
     RVC 输出 40000Hz 统一转标准 44100Hz 16bit，再按情绪表后处理增益"""
     cfg = EMOTION_CFG.get(emotion, EMOTION_CFG['neutral'])
@@ -263,7 +268,8 @@ def synth(text, emotion, out_path):
         _check_text_duration(text, rvc_out, 'RVC 变声后')
         os.replace(rvc_out, out_path)
     _to_44100(out_path)
-    _apply_gain(out_path, cfg['post_gain'])
+    if apply_post_gain:
+        _apply_gain(out_path, cfg['post_gain'])
 
 
 def _apply_gain(src, db):
@@ -376,6 +382,142 @@ def soften_tail_meow(text, emotion):
     return text[:m.start(1)] + m.group(1) + '。'
 
 
+# ── 口癖原版音频替换：AI 文本里的猫语怪叫（Burenyuu!/Nya! 等）TTS 读出来很怪，
+#    改为从 assets/voice-clips 取原版语音片段拼接进整句（映射表可配置）──
+CLIPS_DIR = os.path.join(BASE_DIR, '..', 'assets', 'voice-clips')
+MEOW_MAPPING_FILE = os.path.join(CLIPS_DIR, 'meow-mapping.json')
+_meow_map = None      # {口癖词: 音频文件名}
+_meow_patterns = None # [(口癖词, 编译好的正则)]，长词在前
+
+def _load_meow_mapping():
+    """加载 口癖词→原版音频 映射（启动后缓存；文件缺失/损坏则空映射=不替换）"""
+    global _meow_map, _meow_patterns
+    if _meow_map is not None:
+        return _meow_map
+    _meow_map = {}
+    try:
+        with open(MEOW_MAPPING_FILE, encoding='utf-8') as f:
+            data = json.load(f)
+        for k, v in data.items():
+            if isinstance(k, str) and isinstance(v, str) and os.path.exists(os.path.join(CLIPS_DIR, v)):
+                _meow_map[k.strip()] = v
+    except Exception:
+        _meow_map = {}
+    keys = sorted(_meow_map.keys(), key=len, reverse=True)  # 长词优先（Nya hahahaha 先于 Nya）
+    _meow_patterns = []
+    for k in keys:
+        stem = re.sub(r'[！!～~…\.。\s]+$', '', k)  # 去尾部语气符号/空格，匹配更宽松
+        # 前后都要非字母数字边界：防误伤招式名（Nyanbushi 里的 Nya）
+        # 后缀只允许紧跟的语气符号，不含空格——避免 "Nya hahahaha!" 被 "Nya" 提前吞掉前半
+        _meow_patterns.append((k, re.compile(r'(?<![A-Za-z0-9])' + re.escape(stem) + r'(?![A-Za-z0-9])[！!～~…\.。]*', re.IGNORECASE)))
+    return _meow_map
+
+
+def split_meow_clips(text):
+    """把文本按口癖词拆成片段列表 [(kind, value)]：
+    kind='text' 走 TTS 合成，kind='clip' 用原版音频。无口癖命中返回 None（走原流程）。"""
+    _load_meow_mapping()
+    if not _meow_patterns:
+        return None
+    parts = []
+    buf = []
+    pos = 0
+    n = len(text)
+    while pos < n:
+        hit = None
+        for k, pat in _meow_patterns:
+            m = pat.match(text, pos)
+            if m:
+                hit = (k, m)
+                break
+        if hit:
+            if buf:
+                parts.append(('text', ''.join(buf)))
+                buf = []
+            parts.append(('clip', _meow_map[hit[0]]))
+            pos = hit[1].end()
+        else:
+            buf.append(text[pos])
+            pos += 1
+    if buf:
+        parts.append(('text', ''.join(buf)))
+    if not any(kind == 'clip' for kind, _ in parts):
+        return None
+    return parts
+
+
+def _resample(x, src_sr, dst_sr):
+    """一维 float32 数组线性重采样（与 _to_44100 同思路）"""
+    import numpy as np
+    n = int(len(x) * dst_sr / src_sr)
+    idx = np.linspace(0, len(x) - 1, n)
+    return np.interp(idx, np.arange(len(x)), x)
+
+
+def _assemble_meow(parts, seg_paths, out_path):
+    """按 parts 顺序拼接：text 段读 seg_paths[idx] 的 44100 单声道音频，
+    clip 段读素材（48k→重采样 44100）交错拼接成最终 wav。素材缺失则跳过该口癖。"""
+    import numpy as np
+    import wave as _wave
+    segs = []
+    ti = 0
+    for kind, val in parts:
+        if kind == 'text':
+            try:
+                with _wave.open(seg_paths[ti], 'rb') as w:
+                    sr = w.getframerate()
+                    segs.append(np.frombuffer(w.readframes(w.getnframes()), dtype=np.int16))
+                ti += 1
+            except Exception:
+                ti += 1
+        else:
+            clip_path = os.path.join(CLIPS_DIR, val)
+            try:
+                with _wave.open(clip_path, 'rb') as w:
+                    sr = w.getframerate()
+                    ch = w.getnchannels()
+                    d = np.frombuffer(w.readframes(w.getnframes()), dtype=np.int16)
+                if ch > 1:
+                    d = d.reshape(-1, ch).mean(axis=1).astype(np.int16)
+                if sr != 44100:
+                    d = (_resample(d.astype(np.float32) / 32768.0, sr, 44100) * 32767).astype(np.int16)
+                segs.append(d)
+            except Exception:
+                pass  # 素材读失败：直接跳过该口癖，不中断合成
+    if not segs:
+        raise RuntimeError('口癖拼接失败：所有音频段均无效')
+    out = np.concatenate(segs)
+    with _wave.open(out_path, 'wb') as w:
+        w.setnchannels(1)
+        w.setsampwidth(2)
+        w.setframerate(44100)
+        w.writeframes(out.astype(np.int16).tobytes())
+
+
+def _synth_meow_parts(parts, full_text, emotion, out_path):
+    """口癖拼接合成：逐段 TTS 合成 text 片段（不单独加情绪增益），
+    与原版口癖音频拼接成整句后统一施加情绪增益。临时段文件用完即删。"""
+    import numpy as np
+    cfg = EMOTION_CFG.get(emotion, EMOTION_CFG['neutral'])
+    text_idxs = [i for i, (k, _) in enumerate(parts) if k == 'text']
+    seg_paths = {}
+    try:
+        for i in text_idxs:
+            seg = parts[i][1]
+            tmp = os.path.join(CACHE_DIR, f'_meow_seg_{i}.wav')
+            _synth_tts(seg, emotion, tmp, apply_post_gain=False)
+            seg_paths[i] = tmp
+        # 拼接结果整体应用情绪后处理增益（生气变响等，与纯 TTS 一致）
+        _assemble_meow(parts, [seg_paths[i] for i in text_idxs], out_path)
+        _apply_gain(out_path, cfg['post_gain'])
+    finally:
+        for p in seg_paths.values():
+            try:
+                os.remove(p)
+            except OSError:
+                pass
+
+
 def main():
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     os.makedirs(CACHE_DIR, exist_ok=True)
@@ -415,7 +557,10 @@ def main():
                 emotion = "neutral"
             # 句末"喵！"类顿读修复：感叹号降级为句号（缓存 key 前处理，避免复用旧坏缓存）
             text = soften_tail_meow(text, emotion)
-            cp = cache_path(text, emotion)
+            # 口癖替换：文本含 Burenyuu!/Nya! 等 → 拆段合成后与原版音频拼接
+            meow_parts = split_meow_clips(text)
+            # 口癖拼接走独立缓存 key（前缀标记），旧"纯 TTS 念怪叫"缓存不会命中
+            cp = cache_path(('\x01meowmix\x02' + text) if meow_parts else text, emotion)
             force = bool(req.get("force"))
             # 缓存命中（非 force 重试）：直接返回，不再合成
             if not force and os.path.exists(cp):
@@ -434,7 +579,10 @@ def main():
                 last_err = None
                 for attempt in range(2):
                     try:
-                        synth(text, emotion, cp)
+                        if meow_parts:
+                            _synth_meow_parts(meow_parts, text, emotion, cp)
+                        else:
+                            synth(text, emotion, cp)
                         last_err = None
                         break
                     except Exception as e:
