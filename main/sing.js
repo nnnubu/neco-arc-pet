@@ -33,10 +33,21 @@ function startSing(songPath) {
 
   const py = path.join(__dirname, '..', 'voice-env310', 'Scripts', 'python.exe');
   const script = path.join(__dirname, '..', 'voice', 'sing.py');
+  // TTS 面板"应用到翻唱"：音高偏移/音色贴合传给 sing.py（情绪/声线是 CosyVoice 源头参数，
+  // 翻唱直接 RVC 变声不适用，只有 f0/index_rate 生效）
+  const args = [script, p];
+  try {
+    const ttsCfg = require('./voice').readTtsConfig();
+    if (ttsCfg && ttsCfg.applyToSing) {
+      const f0 = ttsCfg.f0 != null ? Number(ttsCfg.f0) : 0;
+      const ir = ttsCfg.indexRate != null ? Number(ttsCfg.indexRate) : 0.75;
+      args.push('--f0', String(f0), '--index-rate', String(ir));
+    }
+  } catch (e) {}
   // stderr 进日志文件（GPU 加载日志量大，管道消费不及时会卡死进程）
   const logFile = fs.openSync(path.join(__dirname, '..', 'voice', 'sing.log'), 'a');
   // windowsHide: true 防止 python 弹出黑框抢焦点
-  singProc = spawn(py, [script, p], { cwd: path.join(__dirname, '..', 'voice'), stdio: ['ignore', 'pipe', logFile], windowsHide: true });
+  singProc = spawn(py, args, { cwd: path.join(__dirname, '..', 'voice'), stdio: ['ignore', 'pipe', logFile], windowsHide: true });
 
   let buf = '';
   singProc.stdout.on('data', (chunk) => {
@@ -71,10 +82,19 @@ function startSing(songPath) {
           } catch (e) {}
         }
         getLyrics(p).then((lyr) => {
-          if (win && !win.isDestroyed() && lyr && lyr.lyrics && lyr.lyrics.length) {
-            win.webContents.send('sing-lyric', lyr);
+          if (win && !win.isDestroyed()) {
+            if (lyr && lyr.lyrics && lyr.lyrics.length) {
+              win.webContents.send('sing-lyric', lyr);
+            } else {
+              // 本地无 .lrc 且联网搜不到 → 桌面歌词显示"暂无歌词"占位
+              win.webContents.send('sing-lyric', { lyrics: [], title: srcName, source: 'none' });
+            }
           }
-        }).catch(() => {});
+        }).catch(() => {
+          if (win && !win.isDestroyed()) {
+            win.webContents.send('sing-lyric', { lyrics: [], title: srcName, source: 'none' });
+          }
+        });
       }
       if (msg.error) {
         console.error('[sing] 翻唱失败:', msg.error);

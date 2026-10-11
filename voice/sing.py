@@ -41,9 +41,28 @@ def _to_44100(src):
 
 
 def main():
-    src = sys.argv[1] if len(sys.argv) > 1 else ''
+    # 命令行：python sing.py "<歌曲路径>" [--f0 半音] [--index-rate 0~1]
+    # （TTS 面板"应用到翻唱"时由 sing.js 传入，默认 0 / 0.75 与历史一致）
+    args = [a for a in sys.argv[1:]]
+    f0_up = 0.0
+    index_rate = 0.75
+    src = None
+    i = 0
+    while i < len(args):
+        a = args[i]
+        if a == '--f0' and i + 1 < len(args):
+            try: f0_up = float(args[i + 1])
+            except ValueError: pass
+            i += 2
+        elif a == '--index-rate' and i + 1 < len(args):
+            try: index_rate = float(args[i + 1])
+            except ValueError: pass
+            i += 2
+        else:
+            src = a
+            i += 1
     if not src or not os.path.exists(src):
-        log({'error': '找不到歌曲文件: ' + src}); return
+        log({'error': '找不到歌曲文件: ' + (src or '空')}); return
     name = re.sub(r'\.[^.]+$', '', os.path.basename(src))
     OUT = os.path.join(ROOT, 'voice', 'sing_output', name)
     shutil.rmtree(OUT, ignore_errors=True)
@@ -91,8 +110,8 @@ def main():
             shutil.copy2(INDEX, INDEX_ASCII)
         from tts_with_rvc.vc_infer import RVCConverter
         rvc = RVCConverter(models_dir=os.path.join(ROOT, 'voice', 'assets'))
-        rvc_out = rvc.convert(model_path=MODEL, f0_up_key=0, input_path=vocal,
-                              file_index=INDEX_ASCII, index_rate=0.75,
+        rvc_out = rvc.convert(model_path=MODEL, f0_up_key=f0_up, input_path=vocal,
+                              file_index=INDEX_ASCII, index_rate=index_rate,
                               output_dir_path=OUT, output_filename='neco_vocal.wav')
         rvc.close()
     except Exception as e:

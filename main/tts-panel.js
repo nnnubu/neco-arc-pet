@@ -13,7 +13,7 @@ let generating = false; // 防重入：一次只生成一段
 
 const TTS_DIR = path.join(__dirname, '..', 'voice', 'tts_output');
 const CONFIG_PATH = path.join(__dirname, '..', 'assets', 'tts-config.json');
-const DEFAULT_CONFIG = { emotion: 'neutral', f0: 0, indexRate: 0.75, intensity: 1, voice: '' };
+const DEFAULT_CONFIG = { emotion: 'neutral', f0: 0, indexRate: 0.75, intensity: 1, voice: '', applyToChat: false, applyToSing: false };
 
 function loadConfig() {
   try {
@@ -24,6 +24,8 @@ function loadConfig() {
       indexRate: c.indexRate != null ? Number(c.indexRate) : 0.75,
       intensity: c.intensity != null ? Number(c.intensity) : 1,
       voice: String(c.voice || ''),
+      applyToChat: !!c.applyToChat,
+      applyToSing: !!c.applyToSing,
     });
   } catch (e) {
     return JSON.parse(JSON.stringify(DEFAULT_CONFIG));
@@ -37,6 +39,8 @@ function saveConfig(c) {
     indexRate: c && c.indexRate != null ? Number(c.indexRate) : 0.75,
     intensity: c && c.intensity != null ? Number(c.intensity) : 1,
     voice: String((c && c.voice) || ''),
+    applyToChat: !!(c && c.applyToChat),
+    applyToSing: !!(c && c.applyToSing),
   });
   try {
     fs.mkdirSync(path.dirname(CONFIG_PATH), { recursive: true });

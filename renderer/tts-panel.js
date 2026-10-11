@@ -12,6 +12,8 @@
   const voiceSel = $('#voiceSel');
   const intensitySlider = $('#intensitySlider');
   const intensityVal = $('#intensityVal');
+  const chkApplyChat = $('#chkApplyChat');
+  const chkApplySing = $('#chkApplySing');
   const list = $('#historyList');
   let cfg = null;
 
@@ -54,6 +56,8 @@
   bindSlider(intensitySlider, intensityVal, (v) => Math.round(parseFloat(v) * 100) + '%');
   emotionSel.addEventListener('change', () => saveParams());
   voiceSel.addEventListener('change', () => saveParams());
+  chkApplyChat.addEventListener('change', () => saveParams());
+  chkApplySing.addEventListener('change', () => saveParams());
 
   function saveParams() {
     window.ttsPanelApi.save({
@@ -62,6 +66,8 @@
       emotion: emotionSel.value,
       voice: voiceSel.value,
       intensity: parseFloat(intensitySlider.value),
+      applyToChat: chkApplyChat.checked,
+      applyToSing: chkApplySing.checked,
     });
   }
 
@@ -128,6 +134,8 @@
     intensityVal.textContent = Math.round(cfg.intensity * 100) + '%';
     emotionSel.value = cfg.emotion;
     voiceSel.value = cfg.voice;
+    chkApplyChat.checked = !!cfg.applyToChat;
+    chkApplySing.checked = !!cfg.applyToSing;
     setPresetActive();
     refreshHistory();
   }

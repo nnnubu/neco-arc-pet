@@ -121,6 +121,7 @@ html, body {
 }
 .chk:hover { color: #fff; }
 .chk input { accent-color: var(--brand1); cursor: pointer; }
+.chk-note { font-size: 11px; color: rgba(255, 255, 255, 0.45); margin-left: 4px; }
 #lrcZone.drop {
   margin-top: 8px;
   height: 58px;

@@ -166,6 +166,8 @@ window.VoiceUI = (() => {
           lastLyricIdx = -1;
           currentSingLyrics = null;
           try { window.pet.singState('ended'); } catch (e) {}
+          // 翻唱播放完毕 → 自动播放下一首（历史顺序环绕；TTS 播放名不在历史中 → 主进程自然跳过）
+          try { window.pet.singAutoNext(); } catch (e) {}
         };
         singAudio.onplay = () => { try { window.pet.singState('playing'); } catch (e) {} };
         singAudio.onpause = () => { try { window.pet.singState('paused'); } catch (e) {} };
@@ -230,8 +232,9 @@ window.VoiceUI = (() => {
       playSing(r.full, r.name || '');
     });
     // 歌词异步补发：播放开始后搜到歌词 → 显示桌面歌词窗口（时间轴与翻唱一致，同步立即生效）
+    // 空歌词（本地无 .lrc 且联网搜不到）→ 同样显示窗口，占位"暂无歌词"
     window.pet.onSingLyric((r) => {
-      if (!r || !r.lyrics || !r.lyrics.length) return;
+      if (!r || r.lyrics == null) return;
       currentSingLyrics = r.lyrics;
       if (singAudio && !singAudio.paused) window.pet.lyricShow(r.lyrics, r.title || '');
     });

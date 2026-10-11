@@ -8,6 +8,22 @@ const { getWin } = require('./window');
 const { getChatWin, recordMsg } = require('./chat');
 const { askAI, getAiConfig } = require('./ai');
 
+// TTS 面板参数（voice/../assets/tts-config.json）：聊天/翻唱"应用到…"开关由此读
+const TTS_CONFIG_PATH = path.join(__dirname, '..', 'assets', 'tts-config.json');
+function readTtsConfig() {
+  try {
+    const c = JSON.parse(fs.readFileSync(TTS_CONFIG_PATH, 'utf8'));
+    return {
+      f0: c.f0 != null ? Number(c.f0) : 0,
+      indexRate: c.indexRate != null ? Number(c.indexRate) : 0.75,
+      intensity: c.intensity != null ? Number(c.intensity) : 1,
+      voice: String(c.voice || ''),
+      applyToChat: !!c.applyToChat,
+      applyToSing: !!c.applyToSing,
+    };
+  } catch (e) { return null; }
+}
+
 // 对话事件广播：桌宠窗（播放音频/透明文字逐字）+ 对话窗（消息气泡/状态显示）
 function broadcast(channel, payload) {
   const win = getWin();
@@ -283,6 +299,14 @@ async function handleSpeakText(text, force) {
   const id = Date.now();
   activeReqs.add(id);
   const req = { id, text: speakText, emotion };
+  // TTS 面板"应用到聊天"：音高偏移/音色贴合/情绪强度/声线 跟随面板参数（默认不跟随）
+  const ttsCfg = readTtsConfig();
+  if (ttsCfg && ttsCfg.applyToChat) {
+    req.f0 = Number(ttsCfg.f0) || 0;
+    req.index_rate = ttsCfg.indexRate != null ? Number(ttsCfg.indexRate) : 0.75;
+    req.intensity = ttsCfg.intensity != null ? Number(ttsCfg.intensity) : 1;
+    req.voice = String(ttsCfg.voice || '');
+  }
   if (force) req.force = true; // 重试：绕过缓存强制重新合成（覆盖旧缓存）
   if (voiceReady && voiceProc) {
     voiceProc.stdin.write(JSON.stringify(req) + '\n');
@@ -332,4 +356,4 @@ function registerVoiceIpc() {
   restartVoiceTimer();
 }
 
-module.exports = { registerVoiceIpc, handleSpeakText, handleProactiveSpeak, restartProactiveTimer, restartVoiceTimer, generateTts };
+module.exports = { registerVoiceIpc, handleSpeakText, handleProactiveSpeak, restartProactiveTimer, restartVoiceTimer, generateTts, readTtsConfig };

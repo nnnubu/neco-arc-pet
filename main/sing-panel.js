@@ -164,10 +164,19 @@ function registerSingPanelIpc() {
         } catch (e) {}
       }
       getLyricsByTitle(String(name)).then((lyr) => {
-        if (w && !w.isDestroyed() && lyr && lyr.lyrics && lyr.lyrics.length) {
-          w.webContents.send('sing-lyric', lyr);
+        if (w && !w.isDestroyed()) {
+          if (lyr && lyr.lyrics && lyr.lyrics.length) {
+            w.webContents.send('sing-lyric', lyr);
+          } else {
+            // 本地无 .lrc 且联网搜不到 → 桌面歌词显示"暂无歌词"占位
+            w.webContents.send('sing-lyric', { lyrics: [], title: String(name), source: 'none' });
+          }
         }
-      }).catch(() => {});
+      }).catch(() => {
+        if (w && !w.isDestroyed()) {
+          w.webContents.send('sing-lyric', { lyrics: [], title: String(name), source: 'none' });
+        }
+      });
     } catch (e) {}
   });
 

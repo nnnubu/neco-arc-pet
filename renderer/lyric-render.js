@@ -139,7 +139,8 @@
     curEl = cur;
     cur.style.setProperty('--p', '0%'); // 新句从 0 开始渐变
     if (!lyrics.length) {
-      fadeSwap(cur, '♪');
+      // 无歌词：显示占位（本地无 .lrc 且联网也没搜到时）
+      fadeSwap(cur, '暂无歌词');
       fadeSwap(prev, '');
       fadeSwap(next, '');
       return;

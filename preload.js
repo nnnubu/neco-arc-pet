@@ -70,6 +70,8 @@ contextBridge.exposeInMainWorld('pet', {
   lyricHide: () => ipcRenderer.send('lyric-hide'),
   // 播放控制：上报当前播放歌名（歌词窗"下一首"定位用）；接收歌词窗 seek → 设置播放位置
   singNow: (name) => ipcRenderer.send('sing-now', name),
+  // 翻唱播放完毕 → 自动播下一首（主进程按历史顺序环绕；不在历史则忽略）
+  singAutoNext: () => ipcRenderer.send('sing-auto-next'),
   onSingSeek: (cb) => ipcRenderer.on('sing-seek', (_e, t) => cb(t)),
   // 打开翻唱输出文件夹（资源管理器）
   openSingDir: (dir) => ipcRenderer.send('open-sing-dir', dir),

@@ -131,7 +131,8 @@ async function getLyrics(songPath) {
 
 // ── 桌面歌词窗口 ──
 function showLyricWindow(lyrics, title) {
-  if (!lyrics || !lyrics.length) return;
+  // 允许空数组：渲染层显示"暂无歌词"占位；null 才忽略
+  if (lyrics == null) return;
   // 缓存最近歌词（翻唱面板"显示歌词"重开入口用）
   lastLyrics = lyrics;
   lastTitle = title || '';
@@ -234,14 +235,25 @@ function registerLyricIpc() {
         } catch (e) {}
       }
       getLyricsByTitle(target.name).then((lyr) => {
-        if (win && !win.isDestroyed() && lyr && lyr.lyrics && lyr.lyrics.length) {
-          win.webContents.send('sing-lyric', lyr);
+        if (win && !win.isDestroyed()) {
+          if (lyr && lyr.lyrics && lyr.lyrics.length) {
+            win.webContents.send('sing-lyric', lyr);
+          } else {
+            // 本地无 .lrc 且联网搜不到 → 桌面歌词显示"暂无歌词"占位
+            win.webContents.send('sing-lyric', { lyrics: [], title: target.name, source: 'none' });
+          }
         }
-      }).catch(() => {});
+      }).catch(() => {
+        if (win && !win.isDestroyed()) {
+          win.webContents.send('sing-lyric', { lyrics: [], title: target.name, source: 'none' });
+        }
+      });
     }
   }
   ipcMain.on('lyric-next', () => singNeighbor(1));
   ipcMain.on('lyric-prev', () => singNeighbor(-1));
+  // 渲染层翻唱播放完毕 → 自动播放下一首（TTS 播放不在翻唱历史，findIndex 找不到自然 return，不会误切）
+  ipcMain.on('sing-auto-next', () => singNeighbor(1));
   // 重开桌面歌词窗口（面板「显示歌词」入口用；无缓存返回 false）
   ipcMain.handle('lyric-reopen', () => reopenLyric());
   // 渲染层：显示歌词窗口（翻唱播放开始）
