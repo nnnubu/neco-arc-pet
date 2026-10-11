@@ -1,5 +1,5 @@
 /* 渲染进程 - 桌宠语音/翻唱播放模块（对话交互 UI 已移至独立对话窗口 main/chat.js + renderer/chat.*）
- * 职责：语音播放 + AI 回复透明文字逐字跟随 + 翻唱播放/暂停 + 桌面歌词窗口数据与卡拉OK进度驱动
+ * 职责：语音播放 + AI 回复整段文本气泡（缩放淡入/淡出动效）+ 翻唱播放/暂停 + 桌面歌词窗口数据与卡拉OK进度驱动
  * 消息与状态显示：由主进程 broadcast 到对话窗口（chat.js）负责
  */
 window.VoiceUI = (() => {
@@ -8,9 +8,8 @@ window.VoiceUI = (() => {
   let lastLyricIdx = -1;  // 歌词窗口当前句索引（避免重复 send）
   let currentSingLyrics = null; // 当前翻唱歌词（播放不等歌词：搜索完成异步补发）
 
-  // 流式状态：AI 回复全文、是否正在跟随语音
+  // AI 回复全文（语音播放时整段显示到气泡，不做逐字打字）
   let replyText = '';
-  let syncMode = false;
 
   // ── 随机发声素材播放（独立 audio，短音效；只在空闲时被触发，不打断翻唱/语音）──
   let clipAudio = null;
@@ -67,11 +66,6 @@ window.VoiceUI = (() => {
     lyricRaf = requestAnimationFrame(loop);
   }
 
-  // 显示文本：走独立气泡窗口（逐字打字/整句提示统一入口）
-  function showAiText(text) {
-    bubbleShow(text);
-  }
-
   function init() {
     audio = document.getElementById('petAudio');
     singAudio = document.getElementById('singAudio');
@@ -87,7 +81,7 @@ window.VoiceUI = (() => {
       try { localStorage.setItem('singVolume', String(singAudio.volume)); } catch (e) {}
     });
 
-    // 语音播放 + 透明文字逐字跟随语音节奏（播放阶段才开始渲染文本）
+    // 语音播放 + 整段文本气泡（不做逐字打字：文本整体缩放淡入出现，播放结束缩放淡出消失，流畅不卡）
     window.pet.onSpeakAudio((p) => {
       // 语音说话优先：打断翻唱播放并隐藏歌词窗口（互斥，避免两路声音重叠）
       if (singAudio && !singAudio.paused) {
@@ -105,36 +99,17 @@ window.VoiceUI = (() => {
         // 播放失败：气泡提示
         bubbleTip('播放失败喵：' + (e.message || e), 5000);
       });
+      // 完整文本一次性显示（气泡窗口 pop-in 放大淡入），不再逐字跟随
       if (replyText) {
-        syncMode = true;
-        bubbleHide();
-        const total = replyText.length;
-        let raf = null;
-        let lastN = -1;
-        audio.onloadedmetadata = () => {
-          const dur = audio.duration || 1;
-          const tick = () => {
-            if (!syncMode) return;
-            const n = Math.min(total, Math.round((audio.currentTime / dur) * total));
-            if (n !== lastN) {
-              bubbleShow(replyText.slice(0, n)); // 逐字跟随语音（IPC 小消息，仅文本变化时发送）
-              lastN = n;
-            }
-            if (n < total) raf = requestAnimationFrame(tick);
-          };
-          raf = requestAnimationFrame(tick);
-        };
+        bubbleShow(replyText);
         audio.onended = () => {
-          if (!syncMode) return;
-          syncMode = false;
-          showAiText(replyText);
+          // 播完停留片刻，再缩放淡出隐藏
           setTimeout(bubbleHide, 2000);
         };
       }
     });
-    // AI 流式 token：累积文本（对话窗显示气泡；这里为语音逐字准备全文）
+    // AI 流式 token：累积文本（对话窗显示气泡；这里为语音播放时整段气泡准备全文）
     window.pet.onAiToken((r) => {
-      if (syncMode) return;
       replyText += (r && r.text) || '';
     });
     // AI 回复完成：保存全文

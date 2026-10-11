@@ -9,6 +9,7 @@ const BH = 150;
 
 let bubble = null;
 let petWinGetter = null;
+let hideTimer = null;
 
 function getBubble() {
   if (bubble && !bubble.isDestroyed()) return bubble;
@@ -59,13 +60,21 @@ function placeBubble(facing) {
 function showBubble(text, facing) {
   const b = getBubble();
   if (!text) { hideBubble(); return; }
+  // 若正在播淡出等待隐藏：取消，避免刚隐藏又被延迟任务关掉
+  clearTimeout(hideTimer);
   placeBubble(typeof facing === 'number' ? facing : 1);
   b.webContents.send('bubble-text', String(text));
   if (!b.isVisible()) b.showInactive();
 }
 
 function hideBubble() {
-  if (bubble && !bubble.isDestroyed()) bubble.hide();
+  if (!bubble || bubble.isDestroyed() || !bubble.isVisible()) return;
+  // 先让渲染层播"缩小淡出"动画，再延迟真正隐藏窗口（渲染层动画约 0.2s）
+  try { bubble.webContents.send('bubble-fadeout'); } catch (e) {}
+  clearTimeout(hideTimer);
+  hideTimer = setTimeout(() => {
+    if (bubble && !bubble.isDestroyed()) bubble.hide();
+  }, 210);
 }
 
 function registerBubbleIpc(getWinFn) {

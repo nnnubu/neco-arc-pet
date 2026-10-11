@@ -38,14 +38,40 @@
         drop-shadow(0 0 3px rgba(255, 190, 90, 0.5))
         drop-shadow(0 0 12px rgba(255, 140, 90, 0.3))
         drop-shadow(0 2px 3px rgba(0, 0, 0, 0.85));
+      transform-origin: 50% 40%;
+      will-change: transform, opacity;
     }
+    /* 出现：整段文本整体放大淡入（轻微回弹）；消失：缩小淡出 */
+    @keyframes bubblePopIn {
+      0%   { opacity: 0; transform: scale(0.82); }
+      70%  { opacity: 1; transform: scale(1.04); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+    @keyframes bubblePopOut {
+      0%   { opacity: 1; transform: scale(1); }
+      100% { opacity: 0; transform: scale(0.88); }
+    }
+    #bt.pop-in  { animation: bubblePopIn 0.26s cubic-bezier(0.18, 0.89, 0.32, 1.28) both; }
+    #bt.pop-out { animation: bubblePopOut 0.2s ease-in both; }
   </style>
 </head>
 <body>
   <div id="bt"></div>
   <script>
     const bt = document.getElementById('bt');
-    window.bubbleApi.onText((t) => { bt.textContent = t || ''; });
+    // 收到完整文本：整段替换并重放"放大淡入"动画（不做逐字打字，避免卡顿）
+    window.bubbleApi.onText((t) => {
+      bt.textContent = t || '';
+      bt.classList.remove('pop-in', 'pop-out');
+      void bt.offsetWidth; // 强制回流，确保动画每次都能重放
+      bt.classList.add('pop-in');
+    });
+    // 主进程准备隐藏窗口前先播"缩小淡出"，随后窗口真正隐藏
+    window.bubbleApi.onFadeOut(() => {
+      bt.classList.remove('pop-in');
+      void bt.offsetWidth;
+      bt.classList.add('pop-out');
+    });
   </script>
 </body>
 </html>
