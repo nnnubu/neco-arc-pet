@@ -196,6 +196,10 @@ window.SpriteCore = (() => {
   // 注：act_69/thinking 的抖动已通过"帧脚对齐重绘"修复（循环主体脚部统一固定、身体摆动保留），
   // 不能再做中心补偿（会把身体摆动压平、导致脚跟着动）
   const CENTER_COMP_ACTIONS = { act_22: ACT22_CENTER_COMP };
+  // 需逐帧垂直中心补偿的动作（消除帧间 ±2px 上下起伏导致的"上下抖动"）：
+  // act_95 倒地趴卧 5 帧：帧 bbox 中心 Y = 160/159.5/158/158.5/158，统一补偿到中心 160
+  // （值 = 目标中心 160 - 该帧中心；正=精灵下移、负=上移，保持脚部贴合地面）
+  const CENTER_Y_COMP_ACTIONS = { act_95: [0, 0.5, 2, 1.5, 2] };
 
   // 随机乱跑状态（待机时偶尔自己走动/乱跑）：null 或 { dir, remaining, run }
   let roam = null;
@@ -297,6 +301,8 @@ window.SpriteCore = (() => {
       if (exitPending) { exitPending = false; window.pet.quit(); return; }
       // 需重复播放的动作（act_44 等）：循环重播，MOVE_ACTIONS 位移全程持续
       if (SPRITE.oneshotLeft > 1) { SPRITE.oneshotLeft--; s.gotoAndPlay(0); return; }
+      // act_44 走动：播完立即回待机（不留 400ms 停留——脚步已停，位移须同时停，否则窗口还会继续前移）
+      if (SPRITE.currentName === 'act_44') { spriteBackToIdle(); return; }
       setTimeout(() => { if (bigSprite === s) spriteBackToIdle(); }, 400);
     };
     s.loop = false;
@@ -744,6 +750,12 @@ window.SpriteCore = (() => {
       if (compTable) {
         const c = compTable[SPRITE.current.currentFrame];
         if (c !== undefined) SPRITE.current.x = window.innerWidth / 2 + c * SPRITE.current.scale.x;
+      }
+      // 逐帧垂直中心补偿（act_95 等）：消除帧间上下起伏导致的上下抖动（保持脚部贴地）
+      const yCompTable = CENTER_Y_COMP_ACTIONS[SPRITE.currentName];
+      if (yCompTable) {
+        const cy = yCompTable[SPRITE.current.currentFrame];
+        if (cy !== undefined) SPRITE.current.y = window.innerHeight - 5 + cy * SPRITE.current.scale.y;
       }
       // 一次性动作附带位移：wine 走动段（拿起酒杯前）/ lie 全程——沿当前朝向移动桌宠；
       // act_84 全程向上；act_49 点火（帧18）后向上——dir:'up' 时垂直移动（窗口上移）
