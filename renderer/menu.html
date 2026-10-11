@@ -7,13 +7,16 @@
 </head>
 <body>
   <div id="panel">
-    <!-- 动作模块：入口打开独立动作面板（常驻窗口，可连续测试）+ 趴/站切换 -->
+    <!-- 总面板：统一入口（对话/翻唱/语音/动作/AI 设置 全部整合在一个窗口） -->
+    <div class="item func" data-act="MASTER"><span class="fname">✦ 总面板</span></div>
+
+    <!-- 动作模块：入口打开动作面板（总面板内）+ 趴/站切换 -->
     <details class="fgroup big" open>
       <summary>
         <span class="gtitle">动作</span>
         <span class="arrow">▶</span>
       </summary>
-      <div class="item func" data-act="ACTION_PANEL"><span class="fname">打开动作面板</span></div>
+      <div class="item func" data-act="ACTION_PANEL"><span class="fname">动作面板</span></div>
       <div class="item func" data-act="TOGGLE_LIE"><span class="fname">趴下 / 站起</span></div>
     </details>
 
@@ -50,8 +53,7 @@
         <span class="gtitle">翻唱</span>
         <span class="arrow">▶</span>
       </summary>
-      <div class="item func" data-act="SING_PANEL"><span class="fname">翻唱面板（拖拽音频）</span></div>
-      <div class="item func" data-act="SING_DIR"><span class="fname">打开翻唱文件夹</span></div>
+      <div class="item func" data-act="SING_PANEL"><span class="fname">翻唱面板（拖拽音频）</span></div>      <div class="item func" data-act="SING_DIR"><span class="fname">打开翻唱文件夹</span></div>
     </details>
 
     <!-- 语音模块：文本转语音面板（参数可调，保存到独立文件夹） -->

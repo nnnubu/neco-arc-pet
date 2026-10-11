@@ -4,11 +4,8 @@ const fs = require('fs');
 const path = require('path');
 const { getWin } = require('./window');
 const { getLyricsByTitle } = require('./lyric');
-const { showSingPanel } = require('./sing-panel');
-const { showChat } = require('./chat');
 const { broadcast } = require('./sing');
-const { showActionPanel } = require('./action-panel');
-const { showTtsPanel } = require('./tts-panel');
+const { openModule } = require('./master-panel');
 
 let menuWin = null;
 
@@ -160,21 +157,24 @@ function registerMenuIpc() {
       // 「打开翻唱文件夹」：资源管理器打开 voice/sing_output
       const dir = path.join(__dirname, '..', 'voice', 'sing_output');
       if (fs.existsSync(dir)) shell.openPath(dir);
+    } else if (action === 'MASTER') {
+      // 「总面板」：统一入口，默认对话模块
+      openModule('chat');
     } else if (action === 'SING_PANEL') {
-      // 「翻唱面板」：独立窗口（拖拽音频 → 处理 → 播放）
-      showSingPanel();
+      // 「翻唱面板」：总面板内翻唱模块（拖拽音频 → 处理 → 播放）
+      openModule('sing');
     } else if (action === 'SPEAK') {
-      // 「说句话…」：打开对话窗口（独立窗口，不遮桌宠）
-      showChat();
+      // 「说句话…」：总面板内对话模块
+      openModule('chat');
     } else if (action === 'ACTION_PANEL') {
-      // 「动作面板」：独立常驻窗口（点击动作不关闭，可连续测试）
-      showActionPanel();
+      // 「动作面板」：总面板内动作模块（点击动作不关闭，可连续测试）
+      openModule('action');
     } else if (action === 'TTS_PANEL') {
-      // 「语音面板」：文本转语音（参数可调，播放共用歌词面板）
-      showTtsPanel();
+      // 「语音面板」：总面板内文本转语音模块
+      openModule('tts');
     } else if (action === 'AI_CONFIG') {
-      // 「AI 设置」：独立面板（密钥/模型/接口/提示词 配置化）
-      require('./ai-config').showAiConfig();
+      // 「AI 设置」：总面板内 AI 设置模块
+      openModule('ai');
     } else if (typeof action === 'string' && action.startsWith('sing:')) {
       // 菜单「翻唱历史」点击某首歌：立即播放（无歌词也能播），歌词搜到后异步补发
       const name = action.slice(5);

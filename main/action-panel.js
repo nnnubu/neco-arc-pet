@@ -1,65 +1,31 @@
-// 主进程 - 动作面板窗口：独立常驻窗口（自绘标题栏 + 最小化/关闭），
-// 点击动作持续播放不关闭，方便连续测试多个动作（菜单每次点完会关，体验差）
-const { BrowserWindow, ipcMain } = require('electron');
+// 主进程 - 动作面板模块（整合进总面板）：点击动作持续播放不关闭，方便连续测试多个动作
+// 总面板方案：作为 WebContentsView 挂载在主窗口内容区，渲染层/Preload/IPC 完全复用
+const { ipcMain } = require('electron');
 const path = require('path');
 const { getWin } = require('./window');
+const { openModule, wrapView, hideMaster, minimizeMaster } = require('./master-panel');
 
-let panelWin = null;
+let panelWin = null; // 兼容旧引用：总面板模式下由 master-panel 管理
 
 function getActionPanelWin() {
-  return panelWin;
+  // 总面板模式下返回 view 包装
+  return wrapView('action');
 }
 
-// 打开（或聚焦）动作面板
+// 打开（或切换）动作面板：总面板内
 function showActionPanel() {
-  if (panelWin && !panelWin.isDestroyed()) {
-    panelWin.show();
-    panelWin.focus();
-    return;
-  }
-  panelWin = new BrowserWindow({
-    width: 320,
-    height: 720,
-    frame: false, // 自绘标题栏（可拖动 + 最小化/关闭）
-    transparent: false,
-    resizable: false,
-    alwaysOnTop: true,
-    skipTaskbar: false,
-    fullscreenable: false,
-    show: true, // 创建后立即显示（避免菜单点击后"没反应"的感知）
-    webPreferences: {
-      preload: path.join(__dirname, 'action-panel-preload.js'),
-      contextIsolation: true,
-      nodeIntegration: false,
-      sandbox: true,
-    },
-  });
-  panelWin.loadFile(path.join(__dirname, '..', 'renderer', 'action-panel.html'));
-  panelWin.webContents.once('did-finish-load', () => {
-    // 运行时 require：menu.js 顶层 require 本模块，本模块顶层不能反向 require menu（避免循环依赖）
-    const { buildMenuData } = require('./menu');
-    if (panelWin && !panelWin.isDestroyed()) {
-      panelWin.webContents.send('action-panel-data', buildMenuData());
-      // 加载完成后再次显示并聚焦（首次点击菜单后窗口立即可见，避免"要点两次"）
-      panelWin.show();
-      panelWin.focus();
-    }
-  });
-  panelWin.on('closed', () => { panelWin = null; });
+  openModule('action');
 }
 
 function closeActionPanel() {
-  if (panelWin && !panelWin.isDestroyed()) panelWin.destroy();
-  panelWin = null;
+  hideMaster();
 }
 
 function registerActionPanelIpc() {
-  // 菜单入口：菜单「动作」模块 → 打开动作面板
+  // 菜单入口：菜单「动作」模块 → 打开动作面板（总面板内）
   ipcMain.on('action-panel-open', () => showActionPanel());
   ipcMain.on('action-panel-close', () => closeActionPanel());
-  ipcMain.on('action-panel-minimize', () => {
-    if (panelWin && !panelWin.isDestroyed()) panelWin.minimize();
-  });
+  ipcMain.on('action-panel-minimize', () => minimizeMaster());
 }
 
 module.exports = { showActionPanel, closeActionPanel, getActionPanelWin, registerActionPanelIpc };

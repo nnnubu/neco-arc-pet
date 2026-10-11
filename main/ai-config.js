@@ -1,57 +1,17 @@
-// 主进程 - AI 设置面板：密钥/模型/接口/提示词 配置化（保存到 assets/ai-config.json）
-const { BrowserWindow, ipcMain } = require('electron');
-const path = require('path');
+// 主进程 - AI 设置面板模块（整合进总面板）：密钥/模型/接口/提示词 配置化（保存到 assets/ai-config.json）
+// 总面板方案：作为 WebContentsView 挂载在主窗口内容区，渲染层/Preload/IPC 完全复用
+const { ipcMain } = require('electron');
 const { getAiConfig, updateAiConfig, defaultSystemPrompt } = require('./ai');
-
-let cfgWin = null;
+const { openModule, hideMaster, minimizeMaster } = require('./master-panel');
 
 function showAiConfig() {
-  if (cfgWin && !cfgWin.isDestroyed()) {
-    if (cfgWin.isMinimized()) cfgWin.restore();
-    cfgWin.show();
-    cfgWin.focus();
-    return;
-  }
-  const W = 720, H = 520;
-  cfgWin = new BrowserWindow({
-    width: W, height: H,
-    frame: false,
-    transparent: false,
-    resizable: false,
-    alwaysOnTop: true,
-    skipTaskbar: false,
-    fullscreenable: false,
-    backgroundColor: '#1c1c26',
-    show: true,
-    webPreferences: {
-      preload: path.join(__dirname, 'ai-config-preload.js'),
-      contextIsolation: true,
-      nodeIntegration: false,
-      sandbox: true,
-    },
-  });
-  cfgWin.loadFile(path.join(__dirname, '..', 'renderer', 'ai-config.html'));
-  cfgWin.on('closed', () => { cfgWin = null; });
-  cfgWin.webContents.once('did-finish-load', () => {
-    if (cfgWin && !cfgWin.isDestroyed()) { cfgWin.show(); cfgWin.focus(); }
-    // 窗口高度自适应内容：固定高度容易"底部空白"或"按钮被裁剪"（提示词长短会变）。
-    // 加载完成后按页面实际内容高度重设窗口高度，恰好贴合内容，不多不少。
-    setTimeout(() => {
-      if (!cfgWin || cfgWin.isDestroyed()) return;
-      cfgWin.webContents.executeJavaScript('document.documentElement.scrollHeight').then((h) => {
-        const n = Math.max(360, Math.min(900, Math.round(h)));
-        if (cfgWin && !cfgWin.isDestroyed() && Math.abs(cfgWin.getBounds().height - n) > 8) {
-          cfgWin.setBounds({ width: W, height: n });
-        }
-      }).catch(() => {});
-    }, 120);
-  });
+  openModule('ai');
 }
 
 function registerAiConfigIpc() {
   ipcMain.on('ai-config-open', () => showAiConfig());
-  ipcMain.on('ai-config-close', () => { if (cfgWin && !cfgWin.isDestroyed()) cfgWin.destroy(); cfgWin = null; });
-  ipcMain.on('ai-config-minimize', () => { if (cfgWin && !cfgWin.isDestroyed()) cfgWin.minimize(); });
+  ipcMain.on('ai-config-close', () => hideMaster());
+  ipcMain.on('ai-config-minimize', () => minimizeMaster());
 
   // 读取当前配置（面板打开时回填表单）
   ipcMain.handle('ai-config-load', () => {

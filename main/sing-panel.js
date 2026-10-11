@@ -1,19 +1,21 @@
-// 主进程 - 翻唱面板窗口：拖拽/选择音频 → 开始翻唱（复用 sing-song 链路）→ 进度/完成/错误回显
+// 主进程 - 翻唱面板模块（整合进总面板）：拖拽/选择音频 → 开始翻唱（复用 sing-song 链路）→ 进度/完成/错误回显
 //               历史列表播放/暂停控制/打开文件夹；播放由桌宠渲染层执行（singAudio + 桌面歌词）
-const { BrowserWindow, ipcMain, dialog, shell } = require('electron');
+// 总面板方案：作为 WebContentsView 挂载在主窗口内容区，渲染层/Preload/IPC 完全复用
+const { ipcMain, dialog, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { getWin } = require('./window');
 const { scanSingHistory, getLyricsByTitle } = require('./lyric');
+const { openModule, wrapView, hideMaster, minimizeMaster, getMasterWin } = require('./master-panel');
 // 注意：不在这里顶层解构 ./sing 的 startSing —— sing.js 与本模块互相 require（sing.js 顶层引 getSingPanelWin），
 // 顶层解构会拿到未完成的空导出；改为回调运行时 require（届时模块已完整加载）
 
-let panelWin = null;
 // 用户勾选"使用歌词文件"后选定的 .lrc；与歌曲绑定（song=null 表示未绑定，首次播放时绑定当前歌）
 let panelLrc = { path: null, song: null };
 
 function getSingPanelWin() {
-  return panelWin;
+  // 总面板模式下返回 view 包装（广播链路 sing.js/lyric.js 原样可用）
+  return wrapView('sing');
 }
 
 function setPanelLrc(p, song) {
@@ -37,57 +39,24 @@ function consumePanelLrc(song) {
   return null;
 }
 
-// 打开（或聚焦）翻唱面板
+// 打开（或切换）翻唱面板：总面板内
 function showSingPanel() {
-  if (panelWin && !panelWin.isDestroyed()) {
-    panelWin.show();
-    panelWin.focus();
-    return;
-  }
-  panelWin = new BrowserWindow({
-    width: 400,
-    height: 560,
-    frame: false, // 自绘标题栏（可拖动 + 关闭按钮）
-    transparent: false,
-    resizable: false,
-    alwaysOnTop: true,
-    skipTaskbar: false,
-    fullscreenable: false,
-    show: true, // 创建后立即显示（避免菜单点击后"没反应"的感知）
-    webPreferences: {
-      preload: path.join(__dirname, 'sing-panel-preload.js'),
-      contextIsolation: true,
-      nodeIntegration: false,
-      sandbox: true,
-    },
-  });
-  panelWin.loadFile(path.join(__dirname, '..', 'renderer', 'sing-panel.html'));
-  panelWin.on('closed', () => { panelWin = null; });
-  // 加载完成后再次显示并聚焦（防止首次创建后窗口未完成加载时用户重复点击）
-  panelWin.webContents.once('did-finish-load', () => {
-    if (panelWin && !panelWin.isDestroyed()) {
-      panelWin.show();
-      panelWin.focus();
-    }
-  });
+  openModule('sing');
 }
 
 function closeSingPanel() {
-  if (panelWin && !panelWin.isDestroyed()) panelWin.destroy();
-  panelWin = null;
+  hideMaster();
 }
 
 function registerSingPanelIpc() {
   // 菜单入口
   ipcMain.on('sing-panel-open', () => showSingPanel());
   ipcMain.on('sing-panel-close', () => closeSingPanel());
-  ipcMain.on('sing-panel-minimize', () => {
-    if (panelWin && !panelWin.isDestroyed()) panelWin.minimize();
-  });
+  ipcMain.on('sing-panel-minimize', () => minimizeMaster());
 
   // 选音频文件（点击拖拽区）
   ipcMain.handle('sing-panel-pick', async () => {
-    const r = await dialog.showOpenDialog(panelWin || undefined, {
+    const r = await dialog.showOpenDialog(getMasterWin() || undefined, {
       title: '选择要翻唱的音频',
       properties: ['openFile'],
       filters: [
@@ -106,7 +75,7 @@ function registerSingPanelIpc() {
 
   // 选歌词文件（勾选"使用歌词文件"后点击歌词选框）；song=当前正在播放/显示的歌（绑定，避免别的歌误用）
   ipcMain.handle('sing-panel-pick-lrc', async (_e, song) => {
-    const r = await dialog.showOpenDialog(panelWin || undefined, {
+    const r = await dialog.showOpenDialog(getMasterWin() || undefined, {
       title: '选择歌词文件（.lrc / .txt）',
       properties: ['openFile'],
       filters: [

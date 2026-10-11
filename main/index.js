@@ -12,6 +12,7 @@ const { registerAiConfigIpc } = require('./ai-config');
 const { registerBubbleIpc } = require('./bubble');
 const { registerActionPanelIpc } = require('./action-panel');
 const { registerTtsPanelIpc } = require('./tts-panel');
+const { registerMasterPanelIpc } = require('./master-panel');
 
 // 透明窗口加固：Windows 上硬件加速合成偶发导致透明失效变白底，
 // 禁用后透明层走软件合成，稳定可靠（像素动画性能不受影响）
@@ -38,6 +39,7 @@ app.whenReady().then(() => {
   registerAiConfigIpc();
   registerActionPanelIpc();
   registerTtsPanelIpc();
+  registerMasterPanelIpc();
   // 独立气泡窗口：跟随桌宠窗口定位（透传 window 模块的 getWin）
   registerBubbleIpc(() => require('./window').getWin());
   // 渲染层退出动画（act_49 火箭飞出）播完由渲染层发 quit → 真正退出

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>猫姬总面板</title>
+  <link rel="stylesheet" href="master-panel.css">
+</head>
+<body>
+  <!-- 左侧导航列：标题（可拖动窗口）+ 模块按钮 + 底部最小化/关闭 -->
+  <aside id="nav">
+    <div id="navHead">
+      <span class="logo">✦</span>
+      <span id="navTitle">猫姬控制台</span>
+    </div>
+    <div id="navItems">
+      <button class="nav-item" data-mod="chat" title="AI 对话">
+        <span class="ic">💬</span><span class="nm">对话</span>
+      </button>
+      <button class="nav-item" data-mod="sing" title="翻唱面板">
+        <span class="ic">🎵</span><span class="nm">翻唱</span>
+      </button>
+      <button class="nav-item" data-mod="tts" title="文本转语音">
+        <span class="ic">🗣️</span><span class="nm">语音合成</span>
+      </button>
+      <button class="nav-item" data-mod="action" title="动作面板">
+        <span class="ic">🎬</span><span class="nm">动作</span>
+      </button>
+      <button class="nav-item" data-mod="ai" title="AI 设置">
+        <span class="ic">⚙️</span><span class="nm">AI 设置</span>
+      </button>
+    </div>
+    <div id="navFoot">
+      <button id="btnMin" title="最小化">—</button>
+      <button id="btnClose" title="关闭">×</button>
+    </div>
+  </aside>
+
+  <!-- 右侧内容区：WebContentsView 挂载（占位，view 叠加其上） -->
+  <main id="content"></main>
+
+  <script src="master-panel.js"></script>
+</body>
+</html>

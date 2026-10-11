@@ -1,14 +1,15 @@
-// 主进程 - TTS 文本转语音面板：输入文本 → 生成语音 → 持久保存到 voice/tts_output/
+// 主进程 - TTS 文本转语音面板模块（整合进总面板）：输入文本 → 生成语音 → 持久保存到 voice/tts_output/
 // 播放复用翻唱播放链路（singAudio + 桌面歌词窗口），歌词 = 文本按句切分 + 按时长估算时间轴
 // 音色参数（f0 音高偏移 / index_rate 索引强度 / emotion）可在面板随时切换，持久化 assets/tts-config.json
-const { BrowserWindow, ipcMain, shell } = require('electron');
+// 总面板方案：作为 WebContentsView 挂载在主窗口内容区，渲染层/Preload/IPC 完全复用
+const { ipcMain, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { getWin } = require('./window');
 const { generateTts } = require('./voice');
 const { broadcast } = require('./sing');
+const { openModule, hideMaster, minimizeMaster, getViewWebContents } = require('./master-panel');
 
-let panelWin = null;
 let generating = false; // 防重入：一次只生成一段
 
 const TTS_DIR = path.join(__dirname, '..', 'voice', 'tts_output');
@@ -119,45 +120,18 @@ function safeName(text) {
 }
 
 function showTtsPanel() {
-  if (panelWin && !panelWin.isDestroyed()) {
-    if (panelWin.isMinimized()) panelWin.restore();
-    panelWin.show();
-    panelWin.focus();
-    return;
-  }
-  const W = 420, H = 760; // 情绪量化（效价/活跃度）后内容变多，760 高保证历史列表完整可见
-  panelWin = new BrowserWindow({
-    width: W, height: H,
-    frame: false, transparent: true, alwaysOnTop: true,
-    skipTaskbar: true, resizable: false, hasShadow: false,
-    fullscreenable: false,
-    show: true, // 创建后立即显示（避免菜单点击后"没反应"的感知）
-    webPreferences: {
-      preload: path.join(__dirname, 'tts-panel-preload.js'),
-      contextIsolation: true,
-      nodeIntegration: false,
-      sandbox: true,
-    },
-  });
-  panelWin.loadFile(path.join(__dirname, '..', 'renderer', 'tts-panel.html'));
-  panelWin.on('closed', () => { panelWin = null; });
-  // 加载完成后再次显示并聚焦（transparent 窗口加载中全透明不可见，不聚焦会像"没打开"→ 点两次）
-  panelWin.webContents.once('did-finish-load', () => {
-    if (panelWin && !panelWin.isDestroyed()) {
-      panelWin.show();
-      panelWin.focus();
-    }
-  });
+  openModule('tts');
 }
 
 function registerTtsPanelIpc() {
   ipcMain.on('tts-panel-open', () => showTtsPanel());
-  ipcMain.on('tts-panel-close', () => { if (panelWin && !panelWin.isDestroyed()) panelWin.destroy(); panelWin = null; });
-  ipcMain.on('tts-panel-minimize', () => { if (panelWin && !panelWin.isDestroyed()) panelWin.minimize(); });
+  ipcMain.on('tts-panel-close', () => hideMaster());
+  ipcMain.on('tts-panel-minimize', () => minimizeMaster());
 
   // 播放状态同步：翻唱/语音共用 singAudio 播放器，sing-state 转发到 TTS 面板（按钮 ▶/⏸ 一致）
   ipcMain.on('sing-state', (_e, s) => {
-    if (panelWin && !panelWin.isDestroyed()) panelWin.webContents.send('sing-panel-state', s);
+    const wc = getViewWebContents('tts');
+    if (wc && !wc.isDestroyed()) wc.send('sing-panel-state', s);
   });
 
   // 面板打开：回填配置 + 历史
@@ -197,15 +171,17 @@ function registerTtsPanelIpc() {
       try { fs.writeFileSync(finalPath.replace(/\.wav$/i, '.txt'), t, 'utf8'); } catch (e) {}
       const name = path.basename(finalPath);
       const dur = r.dur || 0;
-      // 通知 TTS 面板（仅本窗口）；播放走 sing-play 广播（桌宠窗播 + 翻唱面板/对话窗同步）
-      if (panelWin && !panelWin.isDestroyed()) {
-        panelWin.webContents.send('tts-done', { full: finalPath, name, text: t, dur });
+      // 通知 TTS 面板（仅本模块）；播放走 sing-play 广播（桌宠窗播 + 翻唱面板/对话窗同步）
+      const wc = getViewWebContents('tts');
+      if (wc && !wc.isDestroyed()) {
+        wc.send('tts-done', { full: finalPath, name, text: t, dur });
       }
       playTts(finalPath, name, t, dur);
       return { ok: true, full: finalPath, name, dur, cached: !!r.cached };
     } catch (e) {
-      if (panelWin && !panelWin.isDestroyed()) {
-        panelWin.webContents.send('tts-error', String(e.message || e));
+      const wc2 = getViewWebContents('tts');
+      if (wc2 && !wc2.isDestroyed()) {
+        wc2.send('tts-error', String(e.message || e));
       }
       return { ok: false, error: e.message || String(e) };
     } finally {

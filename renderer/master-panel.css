@@ -1,0 +1,135 @@
+/* 总面板框架 — 左侧导航 + 右侧内容区（WebContentsView 挂载） */
+:root {
+  --bg0: #0b0c15;
+  --bg1: #12131f;
+  --bg2: #191b2b;
+  --line: rgba(255, 255, 255, 0.08);
+  --line-strong: rgba(255, 255, 255, 0.14);
+  --txt: #f2f4fb;
+  --txt2: #a7afc5;
+  --txt3: #626c86;
+  --brand1: #ff5f6d;
+  --brand2: #ff8a5c;
+  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background:
+    radial-gradient(120% 70% at 90% 0%, rgba(255, 120, 110, 0.08) 0%, transparent 55%),
+    radial-gradient(110% 60% at 0% 100%, rgba(120, 130, 255, 0.06) 0%, transparent 50%),
+    linear-gradient(165deg, var(--bg1) 0%, var(--bg0) 60%, var(--bg0) 100%);
+  color: var(--txt);
+  font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+  font-size: 13px;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+#nav {
+  position: fixed;
+  left: 0; top: 0; bottom: 0;
+  width: 184px;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.015));
+  border-right: 1px solid var(--line);
+  z-index: 10;
+}
+
+#navHead {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0 14px;
+  -webkit-app-region: drag; /* 顶部可拖动窗口 */
+  border-bottom: 1px solid var(--line);
+}
+#navHead .logo {
+  font-size: 17px;
+  background: linear-gradient(180deg, var(--brand1), var(--brand2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+#navTitle {
+  font-weight: 700;
+  letter-spacing: 2px;
+  font-size: 14px;
+  background: linear-gradient(90deg, #ffb0b6, #ff9a7a);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+#navItems {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 12px 10px;
+  overflow-y: auto;
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 11px 12px;
+  border: 1px solid transparent;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.045);
+  color: var(--txt2);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: background 0.16s var(--ease), color 0.16s var(--ease), transform 0.12s var(--ease),
+              border-color 0.16s var(--ease), box-shadow 0.16s var(--ease);
+  -webkit-app-region: no-drag;
+}
+.nav-item .ic { font-size: 15px; width: 18px; text-align: center; }
+.nav-item:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
+.nav-item:active { transform: scale(0.97); }
+.nav-item.active {
+  border-color: rgba(255, 95, 109, 0.55);
+  background: linear-gradient(135deg, rgba(255, 95, 109, 0.2), rgba(255, 138, 92, 0.12));
+  color: #fff;
+  box-shadow: 0 2px 12px rgba(255, 95, 109, 0.16);
+}
+
+#navFoot {
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--line);
+}
+#navFoot button {
+  flex: 1;
+  height: 30px;
+  border: none;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.16s var(--ease), color 0.16s var(--ease), transform 0.12s var(--ease);
+}
+#navFoot #btnMin:hover { background: rgba(255, 255, 255, 0.14); color: #fff; }
+#navFoot #btnClose:hover { background: #ff7d85; color: #fff; }
+#navFoot button:active { transform: scale(0.9); }
+
+#content {
+  position: fixed;
+  left: 184px; top: 0; right: 0; bottom: 0;
+  background: transparent;
+}
+
+/* 统一滚动条：与各面板同款细条 */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.16); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.28); }
+::-webkit-scrollbar-track { background: transparent; }
