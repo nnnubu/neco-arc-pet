@@ -355,12 +355,13 @@ def clean_text(s):
     return "".join(ch for ch in s if not (0xD800 <= ord(ch) <= 0xDFFF)).strip()
 
 
-# 句末"喵+感叹号"正则（用户实测仅"喵"需要处理；"呀/哦"等保留原语气）
-_TAIL_MEOW_EXCLAM = re.compile(r'(喵)([！!]+)$')
+# 句末"喵+语气符号"正则（用户实测仅"喵"需要处理；"呀/哦"等保留原语气）
+# 覆盖感叹号/波浪号/省略号等常见尾缀——CosyVoice 对"喵！""喵～"都会顿读，统一降级为句号
+_TAIL_MEOW_EXCLAM = re.compile(r'(喵)([！!～~…]+)\s*$')
 
 
 def soften_tail_meow(text, emotion):
-    """句末拟声词后的感叹号降级为句号。
+    """句末拟声词后的语气符号降级为句号。
 
     实测：CosyVoice 对"身影喵！"会把喵单独顿读并生成莫名拟声音效；
     "身影喵"或"身影喵。"则自然连读（用户试听 B/D 变体验收）。
