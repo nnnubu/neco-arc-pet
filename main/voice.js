@@ -46,6 +46,8 @@ let voiceQueue = [];
 // activeReqs：跟踪"用户输入/主动搭话"发出去的合成请求，收到对应响应才算说完，
 // 避免 preset 预生成的完成事件把播放状态误判为空闲
 const activeReqs = new Set();
+// TTS 面板请求：独立回调表（id 前缀 'tts-'），响应不走说话播放链路
+const ttsCallbacks = new Map();
 let proactiveTimer = null;
 
 function isSpeaking() { return activeReqs.size > 0; }
@@ -207,6 +209,14 @@ function ensureVoiceServer() {
       } else if (msg.event === 'preset_done') {
         // 预生成完成：只记录，不触发播放/状态（避免误报"出错了"）
         console.log('[voice] 预生成完成:', msg.count);
+      } else if (msg.id && ttsCallbacks.has(msg.id)) {
+        // TTS 面板请求完成/失败：走独立回调（不触发说话播放/状态）
+        const cb = ttsCallbacks.get(msg.id);
+        ttsCallbacks.delete(msg.id);
+        if (cb) {
+          if (msg.ok) cb.resolve({ wav: msg.wav, out: msg.out || msg.wav, dur: msg.dur || 0, cached: !!msg.cached });
+          else cb.reject(new Error(msg.error || 'TTS 生成失败'));
+        }
       } else if (msg.ok && msg.wav) {
         if (activeReqs.has(msg.id)) activeReqs.delete(msg.id);
         // 合成期间用户切到翻唱 / 开了静音：丢弃这条语音，只结束状态，不打断听歌
@@ -281,6 +291,31 @@ async function handleSpeakText(text, force) {
   }
 }
 
+// TTS 面板生成：直接文本 → 语音（不走 AI 问答），参数可调（音高偏移/索引强度/情绪），
+// 可指定 out_path 持久保存（voice_server 合成后复制到该路径）。返回 Promise<{wav,out,dur,cached}>
+function generateTts(text, params) {
+  const t = String(text || '').replace(/[\uD800-\uDFFF]/g, '').trim();
+  if (!t) return Promise.reject(new Error('文本为空'));
+  ensureVoiceServer();
+  const id = 'tts-' + Date.now() + '-' + Math.floor(Math.random() * 1e6);
+  const req = {
+    id,
+    text: t,
+    emotion: (params && params.emotion) || 'neutral',
+    f0: params && params.f0 != null ? Number(params.f0) : 0,
+    index_rate: params && params.indexRate != null ? Number(params.indexRate) : 0.75,
+  };
+  if (params && params.outPath) req.out_path = String(params.outPath);
+  return new Promise((resolve, reject) => {
+    ttsCallbacks.set(id, { resolve, reject });
+    if (voiceReady && voiceProc) {
+      try { voiceProc.stdin.write(JSON.stringify(req) + '\n'); } catch (e) { ttsCallbacks.delete(id); reject(e); }
+    } else {
+      voiceQueue.push(req); // 模型仍在加载，排队等 READY（flushVoiceQueue 会原样写出）
+    }
+  });
+}
+
 function registerVoiceIpc() {
   ipcMain.on('speak-text', (_e, text, force) => handleSpeakText(text, force));
   // 翻唱播放状态：渲染层播放翻唱时发 sing-state('playing'/'paused'/'ended')，主动搭话/随机发声据此避开
@@ -295,4 +330,4 @@ function registerVoiceIpc() {
   restartVoiceTimer();
 }
 
-module.exports = { registerVoiceIpc, handleSpeakText, handleProactiveSpeak, restartProactiveTimer, restartVoiceTimer };
+module.exports = { registerVoiceIpc, handleSpeakText, handleProactiveSpeak, restartProactiveTimer, restartVoiceTimer, generateTts };

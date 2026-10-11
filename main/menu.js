@@ -8,6 +8,7 @@ const { showSingPanel } = require('./sing-panel');
 const { showChat } = require('./chat');
 const { broadcast } = require('./sing');
 const { showActionPanel } = require('./action-panel');
+const { showTtsPanel } = require('./tts-panel');
 
 let menuWin = null;
 
@@ -166,6 +167,9 @@ function registerMenuIpc() {
     } else if (action === 'ACTION_PANEL') {
       // 「动作面板」：独立常驻窗口（点击动作不关闭，可连续测试）
       showActionPanel();
+    } else if (action === 'TTS_PANEL') {
+      // 「语音面板」：文本转语音（参数可调，播放共用歌词面板）
+      showTtsPanel();
     } else if (action === 'AI_CONFIG') {
       // 「AI 设置」：独立面板（密钥/模型/接口/提示词 配置化）
       require('./ai-config').showAiConfig();

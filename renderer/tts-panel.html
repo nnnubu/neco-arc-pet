@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>猫姬语音</title>
+  <link rel="stylesheet" href="tts-panel.css">
+</head>
+<body>
+  <!-- 自绘标题栏：可拖动 + 最小化/关闭 -->
+  <div id="titlebar">
+    <span class="t">🎙 猫姬语音</span>
+    <div id="tbBtns">
+      <button id="btnMin" title="最小化">—</button>
+      <button id="btnClose" title="关闭">×</button>
+    </div>
+  </div>
+
+  <!-- 文本输入 -->
+  <div id="inputSec">
+    <div class="sec-title">朗读文本</div>
+    <textarea id="txtInput" placeholder="输入想让猫姬朗读的文本…" spellcheck="false"></textarea>
+  </div>
+
+  <!-- 音色参数：预设快捷 + f0/index/情绪 -->
+  <div id="paramSec">
+    <div class="sec-title">音色参数</div>
+    <div id="presetRow">
+      <button class="preset" data-f0="0" data-idx="0.75">V0 基线</button>
+      <button class="preset" data-f0="1" data-idx="0.75">V1 升1半音</button>
+      <button class="preset" data-f0="2" data-idx="0.75">V2 升2半音</button>
+      <button class="preset" data-f0="0" data-idx="0.90">V3 贴模型</button>
+      <button class="preset" data-f0="1" data-idx="0.90">V4 组合</button>
+    </div>
+    <div class="param-row">
+      <span class="pname">音高偏移</span>
+      <input id="f0Slider" type="range" min="-3" max="3" step="0.5" value="0">
+      <span class="pval" id="f0Val">0</span>
+      <span class="punit">半音</span>
+    </div>
+    <div class="param-row">
+      <span class="pname">音色贴合</span>
+      <input id="idxSlider" type="range" min="0.5" max="1" step="0.05" value="0.75">
+      <span class="pval" id="idxVal">0.75</span>
+    </div>
+    <div class="param-row">
+      <span class="pname">情绪</span>
+      <select id="emotionSel">
+        <option value="neutral">平静自然</option>
+        <option value="happy">开心欢快</option>
+        <option value="angry">生气</option>
+        <option value="sad">难过</option>
+        <option value="surprised">惊讶</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- 生成 -->
+  <div id="genRow">
+    <button id="btnGen" disabled>生成语音</button>
+  </div>
+  <div id="statusText"></div>
+
+  <!-- 播放控制 -->
+  <div id="playRow" class="hidden">
+    <button id="btnToggle" title="播放 / 暂停">⏸</button>
+    <span id="playingName"></span>
+    <button id="btnLyric" title="显示桌面歌词">♪</button>
+  </div>
+
+  <!-- 历史 -->
+  <div id="historyHead">
+    <span>已生成</span>
+    <button id="btnDir" title="打开语音文件夹">📂</button>
+  </div>
+  <div id="historyList"></div>
+
+  <script src="tts-panel.js"></script>
+</body>
+</html>

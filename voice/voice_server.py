@@ -225,9 +225,10 @@ def _normalize_key_text(text):
     return "".join(out).strip()
 
 
-def cache_path(text, emotion):
-    """文本+情绪 → 缓存文件路径（内容寻址，相同文本+情绪命中同一文件）"""
-    key = f"{_normalize_key_text(text)}\x00{emotion}".encode("utf-8")
+def cache_path(text, emotion, f0=0, index_rate=0.75):
+    """文本+情绪+音色参数 → 缓存文件路径（内容寻址：相同文本+情绪+参数命中同一文件；
+    f0/index_rate 影响变声结果，必须进 key，否则不同参数串缓存）"""
+    key = f"{_normalize_key_text(text)}\x00{emotion}\x00{f0}\x00{index_rate}".encode("utf-8")
     return os.path.join(CACHE_DIR, hashlib.md5(key).hexdigest() + ".wav")
 
 
@@ -241,14 +242,15 @@ def trim_cache():
             break
 
 
-def synth(text, emotion, out_path):
+def synth(text, emotion, out_path, f0=0, index_rate=0.75):
     """兼容入口：整段纯 TTS 合成（无口癖拼接时使用）"""
-    _synth_tts(text, emotion, out_path, apply_post_gain=True)
+    _synth_tts(text, emotion, out_path, apply_post_gain=True, f0=f0, index_rate=index_rate)
 
 
-def _synth_tts(text, emotion, out_path, apply_post_gain=True):
+def _synth_tts(text, emotion, out_path, apply_post_gain=True, f0=0, index_rate=0.75):
     """加锁合成（CosyVoice 情绪源 → RVC 变声），写 to out_path；
-    RVC 输出 40000Hz 统一转标准 44100Hz 16bit，再按情绪表后处理增益"""
+    RVC 输出 40000Hz 统一转标准 44100Hz 16bit，再按情绪表后处理增益。
+    f0=变声音高偏移（半音），index_rate=索引强度（0~1，越高越贴模型音色）"""
     cfg = EMOTION_CFG.get(emotion, EMOTION_CFG['neutral'])
     with _synth_lock:
         src = os.path.join(CACHE_DIR, '_cosy_src.wav')
@@ -256,10 +258,10 @@ def _synth_tts(text, emotion, out_path, apply_post_gain=True):
         rvc = _ensure_rvc()
         rvc.convert(
             model_path=_rvc_model,
-            f0_up_key=0,
+            f0_up_key=float(f0),
             input_path=src,
             file_index=_rvc_index,
-            index_rate=0.75,
+            index_rate=float(index_rate),
             output_dir_path=CACHE_DIR,
             output_filename='_cosy_out.wav',
         )
@@ -494,7 +496,23 @@ def _assemble_meow(parts, seg_paths, out_path):
         w.writeframes(out.astype(np.int16).tobytes())
 
 
-def _synth_meow_parts(parts, full_text, emotion, out_path):
+def _export_out(cp, out_path):
+    """可选持久保存：把缓存 wav 复制到 TTS 面板指定路径（自动建目录；失败静默，仅返回缓存路径）"""
+    if not out_path or not cp or cp == out_path:
+        return
+    try:
+        d = os.path.dirname(out_path)
+        if d:
+            os.makedirs(d, exist_ok=True)
+        if not os.path.exists(cp):
+            return
+        import shutil
+        shutil.copy2(cp, out_path)
+    except Exception:
+        pass  # 保存失败不阻断主链路（面板仍可用缓存路径播放）
+
+
+def _synth_meow_parts(parts, full_text, emotion, out_path, f0=0, index_rate=0.75):
     """口癖拼接合成：逐段 TTS 合成 text 片段（不单独加情绪增益），
     与原版口癖音频拼接成整句后统一施加情绪增益。临时段文件用完即删。"""
     import numpy as np
@@ -505,7 +523,7 @@ def _synth_meow_parts(parts, full_text, emotion, out_path):
         for i in text_idxs:
             seg = parts[i][1]
             tmp = os.path.join(CACHE_DIR, f'_meow_seg_{i}.wav')
-            _synth_tts(seg, emotion, tmp, apply_post_gain=False)
+            _synth_tts(seg, emotion, tmp, apply_post_gain=False, f0=f0, index_rate=index_rate)
             seg_paths[i] = tmp
         # 拼接结果整体应用情绪后处理增益（生气变响等，与纯 TTS 一致）
         _assemble_meow(parts, [seg_paths[i] for i in text_idxs], out_path)
@@ -555,16 +573,34 @@ def main():
             emotion = str(req.get("emotion", "neutral"))
             if emotion not in EMOTION_CFG:
                 emotion = "neutral"
+            # 音色参数（TTS 面板可调）：变声音高偏移（半音）+ 索引强度（0~1）
+            try:
+                f0 = float(req.get("f0", 0) or 0)
+            except (TypeError, ValueError):
+                f0 = 0.0
+            try:
+                index_rate = float(req.get("index_rate", 0.75) or 0.75)
+            except (TypeError, ValueError):
+                index_rate = 0.75
+            if not (0 <= index_rate <= 1):
+                index_rate = 0.75
+            # 可选持久保存路径（TTS 面板）：合成结果复制到该路径（缓存仍保留，供再次命中）
+            out_path = str(req.get("out_path") or "").strip()
             # 句末"喵！"类顿读修复：感叹号降级为句号（缓存 key 前处理，避免复用旧坏缓存）
             text = soften_tail_meow(text, emotion)
             # 口癖替换：文本含 Burenyuu!/Nya! 等 → 拆段合成后与原版音频拼接
             meow_parts = split_meow_clips(text)
             # 口癖拼接走独立缓存 key（前缀标记），旧"纯 TTS 念怪叫"缓存不会命中
-            cp = cache_path(('\x01meowmix\x02' + text) if meow_parts else text, emotion)
+            cp = cache_path(('\x01meowmix\x02' + text) if meow_parts else text, emotion, f0, index_rate)
             force = bool(req.get("force"))
             # 缓存命中（非 force 重试）：直接返回，不再合成
             if not force and os.path.exists(cp):
-                print(json.dumps({"id": req.get("id"), "ok": True, "wav": cp.replace(os.sep, "/"), "cached": True}), flush=True)
+                _export_out(cp, out_path)
+                print(json.dumps({"id": req.get("id"), "ok": True,
+                                  "wav": cp.replace(os.sep, "/"),
+                                  "out": (out_path or cp).replace(os.sep, "/"),
+                                  "dur": _wav_duration(cp) or 0,
+                                  "cached": True}), flush=True)
                 continue
             # 用户请求优先标记：预生成线程看到后让路
             _user_waiting.set()
@@ -580,9 +616,9 @@ def main():
                 for attempt in range(2):
                     try:
                         if meow_parts:
-                            _synth_meow_parts(meow_parts, text, emotion, cp)
+                            _synth_meow_parts(meow_parts, text, emotion, cp, f0, index_rate)
                         else:
-                            synth(text, emotion, cp)
+                            synth(text, emotion, cp, f0, index_rate)
                         last_err = None
                         break
                     except Exception as e:
@@ -592,9 +628,14 @@ def main():
                 if last_err is not None:
                     raise last_err
                 trim_cache()
+                _export_out(cp, out_path)
             finally:
                 _user_waiting.clear()
-            print(json.dumps({"id": req.get("id"), "ok": True, "wav": cp.replace(os.sep, "/"), "cached": False}), flush=True)
+            print(json.dumps({"id": req.get("id"), "ok": True,
+                              "wav": cp.replace(os.sep, "/"),
+                              "out": (out_path or cp).replace(os.sep, "/"),
+                              "dur": _wav_duration(cp) or 0,
+                              "cached": False}), flush=True)
         except Exception as e:
             traceback.print_exc()
             print(json.dumps({"id": req.get("id"), "ok": False, "error": str(e)}), flush=True)
