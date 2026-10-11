@@ -52,23 +52,27 @@
       </select>
     </div>
     <div class="param-row">
-      <span class="pname">情绪强度</span>
-      <input id="intensitySlider" type="range" min="0.1" max="1" step="0.05" value="1">
-      <span class="pval" id="intensityVal">100%</span>
+      <span class="pname">情绪</span>
+      <span class="emotion-tag" id="emotionTag">平静自然</span>
+      <span class="pval" id="emotionIntensity">（强度 50%）</span>
     </div>
     <div class="param-row">
-      <span class="pname">情绪</span>
-      <select id="emotionSel">
-        <option value="neutral">平静自然</option>
-        <option value="happy">开心欢快</option>
-        <option value="angry">生气</option>
-        <option value="sad">难过</option>
-        <option value="surprised">惊讶</option>
-      </select>
+      <span class="pname">效价</span>
+      <span class="edge-label">难过</span>
+      <input id="valenceSlider" type="range" min="-100" max="100" step="1" value="0">
+      <span class="edge-label">开心</span>
+      <span class="pval" id="valenceVal">0</span>
+    </div>
+    <div class="param-row">
+      <span class="pname">活跃度</span>
+      <span class="edge-label">平静</span>
+      <input id="arousalSlider" type="range" min="0" max="100" step="1" value="50">
+      <span class="edge-label">激烈</span>
+      <span class="pval" id="arousalVal">50</span>
     </div>
     <div class="apply-row">
-      <label class="chk"><input type="checkbox" id="chkApplyChat"> 应用到聊天语音</label>
-      <label class="chk"><input type="checkbox" id="chkApplySing"> 应用到翻唱（音高/贴合）</label>
+      <label class="chk"><input type="checkbox" id="chkApplyChat"><span class="box"></span>应用到聊天语音</label>
+      <label class="chk"><input type="checkbox" id="chkApplySing"><span class="box"></span>应用到翻唱（音高/贴合）</label>
     </div>
   </div>
 

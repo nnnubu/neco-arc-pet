@@ -105,22 +105,49 @@ html, body {
   display: none;
 }
 
-/* 歌词文件选项 */
+/* 歌词文件选项（checkbox 统一样式：自定义方框+对勾，跨面板一致） */
 #lrcRow {
   margin: 10px 14px 2px;
 }
 .chk {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  color: rgba(255, 255, 255, 0.8);
+  gap: 8px;
+  color: rgba(255, 255, 255, 0.82);
   font-size: 12px;
   cursor: pointer;
   user-select: none;
   transition: color 0.16s var(--ease);
 }
 .chk:hover { color: #fff; }
-.chk input { accent-color: var(--brand1); cursor: pointer; }
+.chk:hover .box { border-color: rgba(255, 255, 255, 0.6); background: rgba(255, 255, 255, 0.08); }
+.chk input { position: absolute; opacity: 0; width: 0; height: 0; }
+.chk .box {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid rgba(255, 255, 255, 0.35);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  position: relative;
+  transition: all 0.16s var(--ease);
+  box-sizing: border-box;
+}
+.chk input:checked + .box {
+  background: var(--brand1);
+  border-color: var(--brand1);
+}
+.chk input:checked + .box::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 4px;
+  height: 8px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
 .chk-note { font-size: 11px; color: rgba(255, 255, 255, 0.45); margin-left: 4px; }
 #lrcZone.drop {
   margin-top: 8px;

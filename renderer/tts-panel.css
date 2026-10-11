@@ -167,6 +167,19 @@ html, body {
   transition: transform 0.12s var(--ease);
 }
 .param-row input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
+/* 情绪量化：效价/活跃度双滑杆两端标签 + 实时情绪标签 */
+.edge-label { color: var(--txt3); font-size: 10px; flex: none; }
+.emotion-tag {
+  flex: 1;
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: rgba(255, 95, 109, 0.14);
+  border: 1px solid rgba(255, 95, 109, 0.35);
+  color: #ffb0b6;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+}
 #emotionSel, #voiceSel {
   flex: 1;
   padding: 5px 8px;
@@ -182,19 +195,51 @@ html, body {
 #emotionSel:focus, #voiceSel:focus { border-color: rgba(255, 95, 109, 0.6); }
 #emotionSel option, #voiceSel option { background: #191b2b; color: var(--txt); }
 
-/* "应用到聊天/翻唱"开关行 */
+/* "应用到聊天/翻唱"开关行（checkbox 统一样式，与翻唱面板一致） */
 .apply-row {
   display: flex;
   gap: 18px;
   margin: 10px 0 2px;
 }
 .apply-row .chk {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   font-size: 12px;
   color: var(--txt-dim);
   cursor: pointer;
   user-select: none;
+  transition: color 0.16s ease;
 }
-.apply-row .chk input { accent-color: var(--accent, #ff5f6d); margin-right: 5px; }
+.apply-row .chk:hover { color: var(--txt); }
+.apply-row .chk:hover .box { border-color: rgba(255, 255, 255, 0.6); background: rgba(255, 255, 255, 0.08); }
+.apply-row .chk input { position: absolute; opacity: 0; width: 0; height: 0; }
+.apply-row .chk .box {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid rgba(255, 255, 255, 0.35);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  position: relative;
+  transition: all 0.16s ease;
+  box-sizing: border-box;
+}
+.apply-row .chk input:checked + .box {
+  background: var(--accent, #ff5f6d);
+  border-color: var(--accent, #ff5f6d);
+}
+.apply-row .chk input:checked + .box::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 4px;
+  height: 8px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
 
 /* 生成按钮 */
 #genRow { padding: 10px 14px 2px; text-align: center; }

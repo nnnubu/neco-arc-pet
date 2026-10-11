@@ -189,6 +189,14 @@ async function handleProactiveSpeak() {
   const id = Date.now();
   activeReqs.add(id);
   const req = { id, text: speakText, emotion, force: true };
+  // TTS 面板"应用到聊天"：主动搭话也跟随面板音色参数（与手动聊天一致）
+  const ttsCfg = readTtsConfig();
+  if (ttsCfg && ttsCfg.applyToChat) {
+    req.f0 = Number(ttsCfg.f0) || 0;
+    req.index_rate = ttsCfg.indexRate != null ? Number(ttsCfg.indexRate) : 0.75;
+    req.intensity = ttsCfg.intensity != null ? Number(ttsCfg.intensity) : 1;
+    req.voice = String(ttsCfg.voice || '');
+  }
   if (voiceReady && voiceProc) {
     voiceProc.stdin.write(JSON.stringify(req) + '\n');
   } else {

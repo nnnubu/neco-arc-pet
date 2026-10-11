@@ -13,7 +13,7 @@ let generating = false; // 防重入：一次只生成一段
 
 const TTS_DIR = path.join(__dirname, '..', 'voice', 'tts_output');
 const CONFIG_PATH = path.join(__dirname, '..', 'assets', 'tts-config.json');
-const DEFAULT_CONFIG = { emotion: 'neutral', f0: 0, indexRate: 0.75, intensity: 1, voice: '', applyToChat: false, applyToSing: false };
+const DEFAULT_CONFIG = { emotion: 'neutral', f0: 0, indexRate: 0.75, intensity: 1, voice: '', valence: 0, arousal: 50, applyToChat: false, applyToSing: false };
 
 function loadConfig() {
   try {
@@ -24,6 +24,8 @@ function loadConfig() {
       indexRate: c.indexRate != null ? Number(c.indexRate) : 0.75,
       intensity: c.intensity != null ? Number(c.intensity) : 1,
       voice: String(c.voice || ''),
+      valence: c.valence != null ? Number(c.valence) : 0,
+      arousal: c.arousal != null ? Number(c.arousal) : 50,
       applyToChat: !!c.applyToChat,
       applyToSing: !!c.applyToSing,
     });
@@ -39,6 +41,8 @@ function saveConfig(c) {
     indexRate: c && c.indexRate != null ? Number(c.indexRate) : 0.75,
     intensity: c && c.intensity != null ? Number(c.intensity) : 1,
     voice: String((c && c.voice) || ''),
+    valence: c && c.valence != null ? Number(c.valence) : 0,
+    arousal: c && c.arousal != null ? Number(c.arousal) : 50,
     applyToChat: !!(c && c.applyToChat),
     applyToSing: !!(c && c.applyToSing),
   });

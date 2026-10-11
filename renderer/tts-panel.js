@@ -8,14 +8,39 @@
   const f0Val = $('#f0Val');
   const idxSlider = $('#idxSlider');
   const idxVal = $('#idxVal');
-  const emotionSel = $('#emotionSel');
   const voiceSel = $('#voiceSel');
-  const intensitySlider = $('#intensitySlider');
-  const intensityVal = $('#intensityVal');
+  const valenceSlider = $('#valenceSlider');
+  const valenceVal = $('#valenceVal');
+  const arousalSlider = $('#arousalSlider');
+  const arousalVal = $('#arousalVal');
+  const emotionTag = $('#emotionTag');
+  const emotionIntensity = $('#emotionIntensity');
   const chkApplyChat = $('#chkApplyChat');
   const chkApplySing = $('#chkApplySing');
   const list = $('#historyList');
   let cfg = null;
+
+  // ── 情绪量化：Valence-Arousal 二维模型 → 映射到 emotion + intensity（CosyVoice 情绪是文本指令，
+  //    连续参数映射到最近情绪档，面板实时显示当前情绪与强度）──
+  const EMOTION_LABEL = { neutral: '平静自然', happy: '开心欢快', angry: '生气', sad: '难过', surprised: '惊讶' };
+  function mapEmotion(v, a) {
+    const vn = v / 100, an = a / 100; // v -1..1, a 0..1
+    const c01 = (x) => Math.max(0.1, Math.min(1, x));
+    if (an >= 0.65 && Math.abs(vn) <= 0.35) return { emotion: 'surprised', intensity: c01(an) };                 // 高活跃+中性 → 惊讶
+    if (vn >= 0.25 && an >= 0.4) return { emotion: 'happy', intensity: c01((vn + an) / 2 + 0.25) };              // 正效价+高活跃 → 开心
+    if (vn <= -0.25 && an >= 0.5) return { emotion: 'angry', intensity: c01((-vn + an) / 2 + 0.2) };             // 负效价+高活跃 → 生气
+    if (vn <= -0.25) return { emotion: 'sad', intensity: c01((-vn + (1 - an)) / 2 + 0.3) };                      // 负效价+低活跃 → 难过
+    if (vn >= 0.25) return { emotion: 'happy', intensity: c01(vn * 0.6 + 0.15) };                                // 正效价+低活跃 → 开心（弱）
+    return { emotion: 'neutral', intensity: c01(0.35 + (1 - an) * 0.45) };                                        // 中效价 → 平静
+  }
+  function currentEmotion() {
+    return mapEmotion(parseFloat(valenceSlider.value), parseFloat(arousalSlider.value));
+  }
+  function renderEmotionTag() {
+    const m = currentEmotion();
+    emotionTag.textContent = EMOTION_LABEL[m.emotion] || m.emotion;
+    emotionIntensity.textContent = '（强度 ' + Math.round(m.intensity * 100) + '%）';
+  }
 
   // 文本非空才允许生成
   txt.addEventListener('input', () => {
@@ -53,19 +78,30 @@
   }
   bindSlider(f0Slider, f0Val, (v) => (parseFloat(v) > 0 ? '+' + v : v));
   bindSlider(idxSlider, idxVal);
-  bindSlider(intensitySlider, intensityVal, (v) => Math.round(parseFloat(v) * 100) + '%');
-  emotionSel.addEventListener('change', () => saveParams());
+  // 效价/活跃度：滑动即重算情绪标签 + 保存（含映射结果）
+  function bindEmotionSlider(slider, valEl, fmt) {
+    slider.addEventListener('input', () => {
+      valEl.textContent = fmt ? fmt(slider.value) : slider.value;
+      renderEmotionTag();
+      saveParams();
+    });
+  }
+  bindEmotionSlider(valenceSlider, valenceVal);
+  bindEmotionSlider(arousalSlider, arousalVal);
   voiceSel.addEventListener('change', () => saveParams());
   chkApplyChat.addEventListener('change', () => saveParams());
   chkApplySing.addEventListener('change', () => saveParams());
 
   function saveParams() {
+    const m = currentEmotion();
     window.ttsPanelApi.save({
       f0: parseFloat(f0Slider.value),
       indexRate: parseFloat(idxSlider.value),
-      emotion: emotionSel.value,
+      emotion: m.emotion,          // 映射结果：voice_server 直接用
+      intensity: m.intensity,      // 情绪强度（量化）
+      valence: parseFloat(valenceSlider.value), // 原始量化参数（回填用）
+      arousal: parseFloat(arousalSlider.value),
       voice: voiceSel.value,
-      intensity: parseFloat(intensitySlider.value),
       applyToChat: chkApplyChat.checked,
       applyToSing: chkApplySing.checked,
     });
@@ -75,14 +111,15 @@
   btnGen.addEventListener('click', async () => {
     const t = txt.value.trim();
     if (!t) return;
+    const m = currentEmotion();
     btnGen.disabled = true;
     statusText.textContent = '正在生成语音…';
     const r = await window.ttsPanelApi.generate(t, {
       f0: parseFloat(f0Slider.value),
       indexRate: parseFloat(idxSlider.value),
-      emotion: emotionSel.value,
+      emotion: m.emotion,
       voice: voiceSel.value,
-      intensity: parseFloat(intensitySlider.value),
+      intensity: m.intensity,
     });
     if (!r || !r.ok) {
       statusText.textContent = '生成失败：' + ((r && r.error) || '未知错误');
@@ -130,9 +167,12 @@
     f0Val.textContent = cfg.f0 > 0 ? '+' + cfg.f0 : String(cfg.f0);
     idxSlider.value = cfg.indexRate;
     idxVal.textContent = cfg.indexRate;
-    intensitySlider.value = cfg.intensity;
-    intensityVal.textContent = Math.round(cfg.intensity * 100) + '%';
-    emotionSel.value = cfg.emotion;
+    // 量化参数回填（旧配置无 valence/arousal 时用默认 0/50 → 平静）
+    valenceSlider.value = cfg.valence != null ? cfg.valence : 0;
+    valenceVal.textContent = valenceSlider.value;
+    arousalSlider.value = cfg.arousal != null ? cfg.arousal : 50;
+    arousalVal.textContent = arousalSlider.value;
+    renderEmotionTag();
     voiceSel.value = cfg.voice;
     chkApplyChat.checked = !!cfg.applyToChat;
     chkApplySing.checked = !!cfg.applyToSing;

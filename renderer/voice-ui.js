@@ -49,18 +49,24 @@ window.VoiceUI = (() => {
       lyricRaf = requestAnimationFrame(loop);
       try {
         const ls = currentSingLyrics;
-        if (!ls || !ls.length || !singAudio || singAudio.paused) return;
+        if (!singAudio || singAudio.paused) return;
         const t = singAudio.currentTime;
-        let idx = 0;
-        for (let i = 0; i < ls.length; i++) {
-          if (ls[i].time <= t) idx = i; else break;
+        // 有歌词：驱动句切换 + 句内进度；无歌词（暂无歌词占位）也照常发整首进度（进度条可用）
+        if (ls && ls.length) {
+          let idx = 0;
+          for (let i = 0; i < ls.length; i++) {
+            if (ls[i].time <= t) idx = i; else break;
+          }
+          if (idx !== lastLyricIdx) {
+            lastLyricIdx = idx;
+            window.pet.lyricUpdate(idx);
+          }
+          // 每帧句内进度 → 歌词窗口卡拉OK颜色渐变（已唱/未唱分界跟随进度）+ 整首进度条
+          window.pet.lyricProgress(idx, t, singAudio.duration || 0);
+        } else {
+          // 无歌词：只发整首进度条/时间（句索引 -1，歌词窗口不更新句子）
+          window.pet.lyricProgress(-1, t, singAudio.duration || 0);
         }
-        if (idx !== lastLyricIdx) {
-          lastLyricIdx = idx;
-          window.pet.lyricUpdate(idx);
-        }
-        // 每帧句内进度 → 歌词窗口卡拉OK颜色渐变（已唱/未唱分界跟随进度）+ 整首进度条
-        window.pet.lyricProgress(idx, t, singAudio.duration || 0);
       } catch (e) {}
     };
     lyricRaf = requestAnimationFrame(loop);
