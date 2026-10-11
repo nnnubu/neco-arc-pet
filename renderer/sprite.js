@@ -33,7 +33,9 @@ window.SpriteCore = (() => {
   const ACTION_REPEATS = { thinking: 3, push: 3, star: 3, pose1: 3, hide: 3, lie: 3,
     act_84: 12, act_60: 24, act_77: 18, act_83: 18, act_85: 18, act_44: 3, act_47: 5,
     // 35/45/74/75/76/105 多循环（与 77 类似，总时长≈3 秒：36帧/12fps）
-    act_35: 4, act_45: 4, act_74: 3, act_75: 3, act_76: 2, act_105: 9 };
+    act_35: 4, act_45: 4, act_74: 3, act_75: 3, act_76: 2, act_105: 9,
+    // act_95 倒地：5 帧多循环几遍（总时长≈2 秒：5帧×4遍/12fps）
+    act_95: 4 };
   // 重复播放动作每遍之间的小停顿（ms，让循环不那么急促，但不要太明显）
   const ACTION_PAUSE_MS = { act_77: 80, act_85: 80 };
   // 循环重播的起始帧（index，0=首帧）：act_47 已裁帧为无缝循环段（原帧9-18），从头循环即可，无需跳帧
@@ -164,7 +166,7 @@ window.SpriteCore = (() => {
     act_29: { untilEnd: true, speed: 300 },
     act_38: { untilEnd: true, speed: 300 },
     act_47: { frames: [0, 8, 9], speed: 300 }, // 47 奔跑（裁帧后10帧无缝循环）：仅迈步帧(1/9/10=原9/17/18)前进、收步帧停
-    act_44: { untilFrame: 4, speed: 260 }, // 44 戴帽走动（5帧循环）：帧0-3移动、最后帧脚步收回停止位移（播完不再前进）
+    act_44: { untilEnd: true, speed: 260 }, // 44 戴帽走动（5帧循环）：原始 gif 帧率高、三只持续前进，全程匀速位移（不再按脚步走走停停）
     act_53: { untilEnd: true, speed: 280, reverse: true },
     // act_19/25/30/60：屏幕上方出屏太久自动掉回底部（主进程 pet-fall-back 随机选一个触发），向下掉落全程
     // act_25 帧1-5 站立准备、帧6-7 下落（直接跳帧6，2张循环）；act_30 帧1-5 准备、帧6-93 下落（直接跳帧6，下落段循环）
@@ -420,7 +422,12 @@ window.SpriteCore = (() => {
     if (name === 'act_24') { playBigInMain(name, { enlarge: false, fps: 20 }); return; }
   // 特殊大动作（48/49/43）：主窗口临时放大播放原始帧（不裁剪、不模糊）
     if (BIG_ACTIONS[name]) {
-      playBigInMain(name, { offsetX: BIG_OFFSET_X[name] || 0, offsetY: BIG_OFFSET_Y[name] || 0 });
+      // act_44：三只同行，原始 gif 帧率高（25fps），按原始帧率播放更流畅（默认 12fps 会显慢）
+      playBigInMain(name, {
+        offsetX: BIG_OFFSET_X[name] || 0,
+        offsetY: BIG_OFFSET_Y[name] || 0,
+        fps: name === 'act_44' ? 25 : undefined,
+      });
       return;
     }
     SPRITE.oneshotLeft = ACTION_REPEATS[name] || 1;
@@ -603,8 +610,8 @@ window.SpriteCore = (() => {
         app.stage.addChild(s);
         SPRITE.sprites[a.name] = s;
       }
-      // 后台预加载 48/49/43/24/91 原始帧（big_actions/），首次播放时立即就绪，避免加载延迟导致的异常帧
-      for (const bn of ['act_48', 'act_49', 'act_43', 'act_24', 'act_91']) {
+      // 后台预加载 48/49/43/24/91/44 原始帧（big_actions/），首次播放时立即就绪，避免加载延迟导致的异常帧
+      for (const bn of ['act_48', 'act_49', 'act_43', 'act_24', 'act_91', 'act_44']) {
         const ba = dynamicActionsMap[bn];
         if (!ba) continue;
         for (let i = 1; i <= ba.frames; i++) {

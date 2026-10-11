@@ -1,494 +1,494 @@
 [
- {
-  "name": "act_4",
-  "frames": 7,
-  "cn": "待机站立",
-  "cat": "pose"
- },
- {
-  "name": "act_5",
-  "frames": 6,
-  "cn": "前倾鞠躬",
-  "cat": "pose"
- },
- {
-  "name": "act_6",
-  "frames": 12,
-  "cn": "跳跃",
-  "cat": "jump"
- },
- {
-  "name": "act_7",
-  "frames": 13,
-  "cn": "倒地",
-  "cat": "ground"
- },
- {
-  "name": "act_8",
-  "frames": 15,
-  "cn": "转身",
-  "cat": "pose"
- },
- {
-  "name": "act_9",
-  "frames": 23,
-  "cn": "站立姿态",
-  "cat": "pose"
- },
- {
-  "name": "act_10",
-  "frames": 6,
-  "cn": "行走",
-  "cat": "move"
- },
- {
-  "name": "act_11",
-  "frames": 35,
-  "cn": "奔跑",
-  "cat": "move"
- },
- {
-  "name": "act_13",
-  "frames": 12,
-  "cn": "表情变化",
-  "cat": "pose"
- },
- {
-  "name": "act_14",
-  "frames": 15,
-  "cn": "肢体起伏",
-  "cat": "pose"
- },
- {
-  "name": "act_15",
-  "frames": 15,
-  "cn": "站立姿态",
-  "cat": "pose"
- },
- {
-  "name": "act_16",
-  "frames": 16,
-  "cn": "倒地",
-  "cat": "ground"
- },
- {
-  "name": "act_17",
-  "frames": 17,
-  "cn": "趴卧",
-  "cat": "ground"
- },
- {
-  "name": "act_18",
-  "frames": 30,
-  "cn": "奔跑A",
-  "cat": "move"
- },
- {
-  "name": "act_19",
-  "frames": 32,
-  "cn": "下落A",
-  "cat": "fall"
- },
- {
-  "name": "act_20",
-  "frames": 24,
-  "cn": "跑动",
-  "cat": "move"
- },
- {
-  "name": "act_21",
-  "frames": 8,
-  "cn": "踢腿",
-  "cat": "jump"
- },
- {
-  "name": "act_22",
-  "frames": 49,
-  "cn": "爬行",
-  "cat": "move"
- },
- {
-  "name": "act_23",
-  "frames": 11,
-  "cn": "趴卧常驻",
-  "cat": "ground"
- },
- {
-  "name": "act_24",
-  "frames": 41,
-  "cn": "趴卧摆动",
-  "cat": "ground"
- },
- {
-  "name": "act_25",
-  "frames": 7,
-  "cn": "下落B",
-  "cat": "fall"
- },
- {
-  "name": "act_26",
-  "frames": 5,
-  "cn": "站立舒展",
-  "cat": "show"
- },
- {
-  "name": "act_27",
-  "frames": 13,
-  "cn": "站立",
-  "cat": "pose"
- },
- {
-  "name": "act_28",
-  "frames": 7,
-  "cn": "站立",
-  "cat": "pose"
- },
- {
-  "name": "act_29",
-  "frames": 45,
-  "cn": "奔跑B",
-  "cat": "move"
- },
- {
-  "name": "act_30",
-  "frames": 93,
-  "cn": "下落C",
-  "cat": "fall"
- },
- {
-  "name": "act_31",
-  "frames": 20,
-  "cn": "站立",
-  "cat": "pose"
- },
- {
-  "name": "act_33",
-  "frames": 13,
-  "cn": "钻地",
-  "cat": "show"
- },
- {
-  "name": "act_34",
-  "frames": 12,
-  "cn": "钻出A",
-  "cat": "show"
- },
- {
-  "name": "act_35",
-  "frames": 10,
-  "cn": "循环表演A",
-  "cat": "show"
- },
- {
-  "name": "act_37",
-  "frames": 47,
-  "cn": "站立摆动",
-  "cat": "pose"
- },
- {
-  "name": "act_38",
-  "frames": 90,
-  "cn": "奔跑C",
-  "cat": "move"
- },
- {
-  "name": "act_41",
-  "frames": 13,
-  "cn": "17分割",
-  "cat": "show"
- },
- {
-  "name": "act_42",
-  "frames": 19,
-  "cn": "站立细节",
-  "cat": "pose"
- },
- {
-  "name": "act_43",
-  "frames": 55,
-  "cn": "剪影大猫",
-  "cat": "show"
- },
- {
-  "name": "act_45",
-  "frames": 10,
-  "cn": "循环表演B",
-  "cat": "show"
- },
- {
-  "name": "act_46",
-  "frames": 7,
-  "cn": "站立神态",
-  "cat": "pose"
- },
- {
-  "name": "act_47",
-  "frames": 10,
-  "cn": "冲刺跑",
-  "cat": "move"
- },
- {
-  "name": "act_48",
-  "frames": 18,
-  "cn": "上浮",
-  "cat": "show"
- },
- {
-  "name": "act_49",
-  "frames": 33,
-  "cn": "火箭升空",
-  "cat": "show"
- },
- {
-  "name": "act_53",
-  "frames": 6,
-  "cn": "退后走",
-  "cat": "move"
- },
- {
-  "name": "act_56",
-  "frames": 4,
-  "cn": "俯卧",
-  "cat": "ground"
- },
- {
-  "name": "act_57",
-  "frames": 3,
-  "cn": "俯卧爬行",
-  "cat": "move"
- },
- {
-  "name": "act_58",
-  "frames": 17,
-  "cn": "站立",
-  "cat": "pose"
- },
- {
-  "name": "act_59",
-  "frames": 47,
-  "cn": "跑动",
-  "cat": "move"
- },
- {
-  "name": "act_60",
-  "frames": 2,
-  "cn": "下落D",
-  "cat": "fall"
- },
- {
-  "name": "act_62",
-  "frames": 11,
-  "cn": "摔倒",
-  "cat": "ground"
- },
- {
-  "name": "act_63",
-  "frames": 13,
-  "cn": "翻滚",
-  "cat": "ground"
- },
- {
-  "name": "act_64",
-  "frames": 10,
-  "cn": "落地舒展",
-  "cat": "show"
- },
- {
-  "name": "act_65",
-  "frames": 2,
-  "cn": "得意A",
-  "cat": "show"
- },
- {
-  "name": "act_66",
-  "frames": 8,
-  "cn": "站立",
-  "cat": "pose"
- },
- {
-  "name": "act_67",
-  "frames": 4,
-  "cn": "站立",
-  "cat": "pose"
- },
- {
-  "name": "act_68",
-  "frames": 7,
-  "cn": "倒地A",
-  "cat": "ground"
- },
- {
-  "name": "act_69",
-  "frames": 39,
-  "cn": "倒地B",
-  "cat": "ground"
- },
- {
-  "name": "act_70",
-  "frames": 9,
-  "cn": "站立",
-  "cat": "pose"
- },
- {
-  "name": "act_71",
-  "frames": 10,
-  "cn": "跳跃",
-  "cat": "jump"
- },
- {
-  "name": "act_72",
-  "frames": 12,
-  "cn": "钻出B",
-  "cat": "show"
- },
- {
-  "name": "act_74",
-  "frames": 12,
-  "cn": "循环表演C",
-  "cat": "show"
- },
- {
-  "name": "act_75",
-  "frames": 15,
-  "cn": "循环表演D",
-  "cat": "show"
- },
- {
-  "name": "act_76",
-  "frames": 22,
-  "cn": "循环表演E",
-  "cat": "show"
- },
- {
-  "name": "act_77",
-  "frames": 2,
-  "cn": "循环表演F",
-  "cat": "show"
- },
- {
-  "name": "act_79",
-  "frames": 45,
-  "cn": "跑动",
-  "cat": "move"
- },
- {
-  "name": "act_80",
-  "frames": 22,
-  "cn": "抬手",
-  "cat": "pose"
- },
- {
-  "name": "act_81",
-  "frames": 48,
-  "cn": "持物",
-  "cat": "pose"
- },
- {
-  "name": "act_82",
-  "frames": 42,
-  "cn": "站立",
-  "cat": "pose"
- },
- {
-  "name": "act_83",
-  "frames": 2,
-  "cn": "循环表演G",
-  "cat": "show"
- },
- {
-  "name": "act_84",
-  "frames": 4,
-  "cn": "飞行",
-  "cat": "show"
- },
- {
-  "name": "act_85",
-  "frames": 2,
-  "cn": "循环表演H",
-  "cat": "show"
- },
- {
-  "name": "act_86",
-  "frames": 29,
-  "cn": "持物站立",
-  "cat": "pose"
- },
- {
-  "name": "act_89",
-  "frames": 50,
-  "cn": "手势站立",
-  "cat": "pose"
- },
- {
-  "name": "act_91",
-  "frames": 29,
-  "cn": "双人Saber",
-  "cat": "show"
- },
- {
-  "name": "act_92",
-  "frames": 11,
-  "cn": "走路A",
-  "cat": "move"
- },
- {
-  "name": "act_95",
-  "frames": 5,
-  "cn": "倒地",
-  "cat": "ground"
- },
- {
-  "name": "act_96",
-  "frames": 11,
-  "cn": "得意B",
-  "cat": "show"
- },
- {
-  "name": "act_97",
-  "frames": 6,
-  "cn": "得意C",
-  "cat": "show"
- },
- {
-  "name": "act_98",
-  "frames": 4,
-  "cn": "起身",
-  "cat": "ground"
- },
- {
-  "name": "act_99",
-  "frames": 12,
-  "cn": "走路B",
-  "cat": "move"
- },
- {
-  "name": "act_104",
-  "frames": 15,
-  "cn": "站立表情",
-  "cat": "pose"
- },
- {
-  "name": "act_105",
-  "frames": 4,
-  "cn": "循环表演I",
-  "cat": "show"
- },
- {
-  "name": "act_106",
-  "frames": 4,
-  "cn": "前倾摆动",
-  "cat": "pose"
- },
- {
-  "name": "act_111",
-  "frames": 4,
-  "cn": "得意D",
-  "cat": "show"
- },
- {
-  "name": "act_44",
-  "frames": 5,
-  "cn": "三只同行",
-  "cat": "move"
- }
+  {
+    "name": "act_4",
+    "frames": 7,
+    "cn": "待机站立",
+    "cat": "pose"
+  },
+  {
+    "name": "act_5",
+    "frames": 6,
+    "cn": "前倾鞠躬",
+    "cat": "pose"
+  },
+  {
+    "name": "act_6",
+    "frames": 12,
+    "cn": "跳跃",
+    "cat": "jump"
+  },
+  {
+    "name": "act_7",
+    "frames": 13,
+    "cn": "倒地",
+    "cat": "ground"
+  },
+  {
+    "name": "act_8",
+    "frames": 15,
+    "cn": "转身",
+    "cat": "pose"
+  },
+  {
+    "name": "act_9",
+    "frames": 23,
+    "cn": "站立姿态",
+    "cat": "pose"
+  },
+  {
+    "name": "act_10",
+    "frames": 6,
+    "cn": "行走",
+    "cat": "move"
+  },
+  {
+    "name": "act_11",
+    "frames": 35,
+    "cn": "奔跑",
+    "cat": "move"
+  },
+  {
+    "name": "act_13",
+    "frames": 12,
+    "cn": "表情变化",
+    "cat": "pose"
+  },
+  {
+    "name": "act_14",
+    "frames": 15,
+    "cn": "肢体起伏",
+    "cat": "pose"
+  },
+  {
+    "name": "act_15",
+    "frames": 15,
+    "cn": "站立姿态",
+    "cat": "pose"
+  },
+  {
+    "name": "act_16",
+    "frames": 16,
+    "cn": "倒地",
+    "cat": "ground"
+  },
+  {
+    "name": "act_17",
+    "frames": 17,
+    "cn": "趴卧",
+    "cat": "ground"
+  },
+  {
+    "name": "act_18",
+    "frames": 30,
+    "cn": "奔跑A",
+    "cat": "move"
+  },
+  {
+    "name": "act_19",
+    "frames": 32,
+    "cn": "下落A",
+    "cat": "fall"
+  },
+  {
+    "name": "act_20",
+    "frames": 24,
+    "cn": "跑动",
+    "cat": "move"
+  },
+  {
+    "name": "act_21",
+    "frames": 8,
+    "cn": "踢腿",
+    "cat": "jump"
+  },
+  {
+    "name": "act_22",
+    "frames": 49,
+    "cn": "爬行",
+    "cat": "move"
+  },
+  {
+    "name": "act_23",
+    "frames": 11,
+    "cn": "趴卧常驻",
+    "cat": "ground"
+  },
+  {
+    "name": "act_24",
+    "frames": 41,
+    "cn": "趴卧摆动",
+    "cat": "ground"
+  },
+  {
+    "name": "act_25",
+    "frames": 7,
+    "cn": "下落B",
+    "cat": "fall"
+  },
+  {
+    "name": "act_26",
+    "frames": 5,
+    "cn": "站立舒展",
+    "cat": "show"
+  },
+  {
+    "name": "act_27",
+    "frames": 13,
+    "cn": "站立",
+    "cat": "pose"
+  },
+  {
+    "name": "act_28",
+    "frames": 7,
+    "cn": "站立",
+    "cat": "pose"
+  },
+  {
+    "name": "act_29",
+    "frames": 45,
+    "cn": "奔跑B",
+    "cat": "move"
+  },
+  {
+    "name": "act_30",
+    "frames": 93,
+    "cn": "下落C",
+    "cat": "fall"
+  },
+  {
+    "name": "act_31",
+    "frames": 20,
+    "cn": "站立",
+    "cat": "pose"
+  },
+  {
+    "name": "act_33",
+    "frames": 13,
+    "cn": "钻地",
+    "cat": "show"
+  },
+  {
+    "name": "act_34",
+    "frames": 12,
+    "cn": "钻出A",
+    "cat": "show"
+  },
+  {
+    "name": "act_35",
+    "frames": 10,
+    "cn": "循环表演A",
+    "cat": "show"
+  },
+  {
+    "name": "act_37",
+    "frames": 47,
+    "cn": "站立摆动",
+    "cat": "pose"
+  },
+  {
+    "name": "act_38",
+    "frames": 90,
+    "cn": "奔跑C",
+    "cat": "move"
+  },
+  {
+    "name": "act_41",
+    "frames": 13,
+    "cn": "17分割",
+    "cat": "show"
+  },
+  {
+    "name": "act_42",
+    "frames": 19,
+    "cn": "站立细节",
+    "cat": "pose"
+  },
+  {
+    "name": "act_43",
+    "frames": 55,
+    "cn": "剪影大猫",
+    "cat": "show"
+  },
+  {
+    "name": "act_45",
+    "frames": 10,
+    "cn": "循环表演B",
+    "cat": "show"
+  },
+  {
+    "name": "act_46",
+    "frames": 7,
+    "cn": "站立神态",
+    "cat": "pose"
+  },
+  {
+    "name": "act_47",
+    "frames": 10,
+    "cn": "冲刺跑",
+    "cat": "move"
+  },
+  {
+    "name": "act_48",
+    "frames": 18,
+    "cn": "上浮",
+    "cat": "show"
+  },
+  {
+    "name": "act_49",
+    "frames": 33,
+    "cn": "火箭升空",
+    "cat": "show"
+  },
+  {
+    "name": "act_53",
+    "frames": 6,
+    "cn": "退后走",
+    "cat": "move"
+  },
+  {
+    "name": "act_56",
+    "frames": 4,
+    "cn": "俯卧",
+    "cat": "ground"
+  },
+  {
+    "name": "act_57",
+    "frames": 3,
+    "cn": "俯卧爬行",
+    "cat": "move"
+  },
+  {
+    "name": "act_58",
+    "frames": 17,
+    "cn": "站立",
+    "cat": "pose"
+  },
+  {
+    "name": "act_59",
+    "frames": 47,
+    "cn": "跑动",
+    "cat": "move"
+  },
+  {
+    "name": "act_60",
+    "frames": 2,
+    "cn": "下落D",
+    "cat": "fall"
+  },
+  {
+    "name": "act_62",
+    "frames": 11,
+    "cn": "摔倒",
+    "cat": "ground"
+  },
+  {
+    "name": "act_63",
+    "frames": 13,
+    "cn": "翻滚",
+    "cat": "ground"
+  },
+  {
+    "name": "act_64",
+    "frames": 10,
+    "cn": "落地舒展",
+    "cat": "show"
+  },
+  {
+    "name": "act_65",
+    "frames": 2,
+    "cn": "得意A",
+    "cat": "show"
+  },
+  {
+    "name": "act_66",
+    "frames": 8,
+    "cn": "站立",
+    "cat": "pose"
+  },
+  {
+    "name": "act_67",
+    "frames": 4,
+    "cn": "站立",
+    "cat": "pose"
+  },
+  {
+    "name": "act_68",
+    "frames": 7,
+    "cn": "倒地A",
+    "cat": "ground"
+  },
+  {
+    "name": "act_69",
+    "frames": 39,
+    "cn": "倒地B",
+    "cat": "ground"
+  },
+  {
+    "name": "act_70",
+    "frames": 9,
+    "cn": "站立",
+    "cat": "pose"
+  },
+  {
+    "name": "act_71",
+    "frames": 10,
+    "cn": "跳跃",
+    "cat": "jump"
+  },
+  {
+    "name": "act_72",
+    "frames": 12,
+    "cn": "钻出B",
+    "cat": "show"
+  },
+  {
+    "name": "act_74",
+    "frames": 12,
+    "cn": "循环表演C",
+    "cat": "show"
+  },
+  {
+    "name": "act_75",
+    "frames": 15,
+    "cn": "循环表演D",
+    "cat": "show"
+  },
+  {
+    "name": "act_76",
+    "frames": 22,
+    "cn": "循环表演E",
+    "cat": "show"
+  },
+  {
+    "name": "act_77",
+    "frames": 2,
+    "cn": "循环表演F",
+    "cat": "show"
+  },
+  {
+    "name": "act_79",
+    "frames": 45,
+    "cn": "跑动",
+    "cat": "move"
+  },
+  {
+    "name": "act_80",
+    "frames": 22,
+    "cn": "抬手",
+    "cat": "pose"
+  },
+  {
+    "name": "act_81",
+    "frames": 48,
+    "cn": "持物",
+    "cat": "pose"
+  },
+  {
+    "name": "act_82",
+    "frames": 42,
+    "cn": "站立",
+    "cat": "pose"
+  },
+  {
+    "name": "act_83",
+    "frames": 2,
+    "cn": "循环表演G",
+    "cat": "show"
+  },
+  {
+    "name": "act_84",
+    "frames": 4,
+    "cn": "飞行",
+    "cat": "show"
+  },
+  {
+    "name": "act_85",
+    "frames": 2,
+    "cn": "循环表演H",
+    "cat": "show"
+  },
+  {
+    "name": "act_86",
+    "frames": 29,
+    "cn": "持物站立",
+    "cat": "pose"
+  },
+  {
+    "name": "act_89",
+    "frames": 50,
+    "cn": "手势站立",
+    "cat": "pose"
+  },
+  {
+    "name": "act_91",
+    "frames": 29,
+    "cn": "双人Saber",
+    "cat": "show"
+  },
+  {
+    "name": "act_92",
+    "frames": 11,
+    "cn": "走路A",
+    "cat": "move"
+  },
+  {
+    "name": "act_95",
+    "frames": 5,
+    "cn": "倒地",
+    "cat": "ground"
+  },
+  {
+    "name": "act_96",
+    "frames": 11,
+    "cn": "得意B",
+    "cat": "show"
+  },
+  {
+    "name": "act_97",
+    "frames": 6,
+    "cn": "得意C",
+    "cat": "show"
+  },
+  {
+    "name": "act_98",
+    "frames": 4,
+    "cn": "起身",
+    "cat": "ground"
+  },
+  {
+    "name": "act_99",
+    "frames": 12,
+    "cn": "走路B",
+    "cat": "move"
+  },
+  {
+    "name": "act_104",
+    "frames": 15,
+    "cn": "站立表情",
+    "cat": "pose"
+  },
+  {
+    "name": "act_105",
+    "frames": 4,
+    "cn": "循环表演I",
+    "cat": "show"
+  },
+  {
+    "name": "act_106",
+    "frames": 4,
+    "cn": "前倾摆动",
+    "cat": "pose"
+  },
+  {
+    "name": "act_111",
+    "frames": 4,
+    "cn": "得意D",
+    "cat": "show"
+  },
+  {
+    "name": "act_44",
+    "frames": 10,
+    "cn": "三只同行",
+    "cat": "move"
+  }
 ]

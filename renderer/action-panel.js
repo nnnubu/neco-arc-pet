@@ -3,12 +3,11 @@
   const $ = (s) => document.querySelector(s);
   const allBox = $('#all-items');
 
-  // 渲染一个动作项：只显示编号（去掉中文标注与类别分组，按编号排）
+  // 渲染一个动作项：只显示编号（中文名也不需要，纯编号平铺）
   function itemEl(it) {
     const div = document.createElement('div');
     div.className = 'item';
     div.dataset.act = it.id;
-    div.title = it.label; // 悬停提示保留中文，方便识别
     const num = document.createElement('span');
     num.className = 'num';
     num.textContent = it.num || '';
