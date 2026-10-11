@@ -9,6 +9,9 @@
   const idxSlider = $('#idxSlider');
   const idxVal = $('#idxVal');
   const emotionSel = $('#emotionSel');
+  const voiceSel = $('#voiceSel');
+  const intensitySlider = $('#intensitySlider');
+  const intensityVal = $('#intensityVal');
   const list = $('#historyList');
   let cfg = null;
 
@@ -48,13 +51,17 @@
   }
   bindSlider(f0Slider, f0Val, (v) => (parseFloat(v) > 0 ? '+' + v : v));
   bindSlider(idxSlider, idxVal);
+  bindSlider(intensitySlider, intensityVal, (v) => Math.round(parseFloat(v) * 100) + '%');
   emotionSel.addEventListener('change', () => saveParams());
+  voiceSel.addEventListener('change', () => saveParams());
 
   function saveParams() {
     window.ttsPanelApi.save({
       f0: parseFloat(f0Slider.value),
       indexRate: parseFloat(idxSlider.value),
       emotion: emotionSel.value,
+      voice: voiceSel.value,
+      intensity: parseFloat(intensitySlider.value),
     });
   }
 
@@ -68,6 +75,8 @@
       f0: parseFloat(f0Slider.value),
       indexRate: parseFloat(idxSlider.value),
       emotion: emotionSel.value,
+      voice: voiceSel.value,
+      intensity: parseFloat(intensitySlider.value),
     });
     if (!r || !r.ok) {
       statusText.textContent = '生成失败：' + ((r && r.error) || '未知错误');
@@ -115,7 +124,10 @@
     f0Val.textContent = cfg.f0 > 0 ? '+' + cfg.f0 : String(cfg.f0);
     idxSlider.value = cfg.indexRate;
     idxVal.textContent = cfg.indexRate;
+    intensitySlider.value = cfg.intensity;
+    intensityVal.textContent = Math.round(cfg.intensity * 100) + '%';
     emotionSel.value = cfg.emotion;
+    voiceSel.value = cfg.voice;
     setPresetActive();
     refreshHistory();
   }

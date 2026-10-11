@@ -291,7 +291,7 @@ async function handleSpeakText(text, force) {
   }
 }
 
-// TTS 面板生成：直接文本 → 语音（不走 AI 问答），参数可调（音高偏移/索引强度/情绪），
+// TTS 面板生成：直接文本 → 语音（不走 AI 问答），参数可调（音高偏移/索引强度/情绪强度/声线），
 // 可指定 out_path 持久保存（voice_server 合成后复制到该路径）。返回 Promise<{wav,out,dur,cached}>
 function generateTts(text, params) {
   const t = String(text || '').replace(/[\uD800-\uDFFF]/g, '').trim();
@@ -304,6 +304,8 @@ function generateTts(text, params) {
     emotion: (params && params.emotion) || 'neutral',
     f0: params && params.f0 != null ? Number(params.f0) : 0,
     index_rate: params && params.indexRate != null ? Number(params.indexRate) : 0.75,
+    intensity: params && params.intensity != null ? Number(params.intensity) : 1,
+    voice: params && params.voice != null ? String(params.voice) : '',
   };
   if (params && params.outPath) req.out_path = String(params.outPath);
   return new Promise((resolve, reject) => {

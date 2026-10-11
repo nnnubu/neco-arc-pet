@@ -13,7 +13,7 @@ let generating = false; // 防重入：一次只生成一段
 
 const TTS_DIR = path.join(__dirname, '..', 'voice', 'tts_output');
 const CONFIG_PATH = path.join(__dirname, '..', 'assets', 'tts-config.json');
-const DEFAULT_CONFIG = { emotion: 'neutral', f0: 0, indexRate: 0.75 };
+const DEFAULT_CONFIG = { emotion: 'neutral', f0: 0, indexRate: 0.75, intensity: 1, voice: '' };
 
 function loadConfig() {
   try {
@@ -22,6 +22,8 @@ function loadConfig() {
       emotion: c.emotion || 'neutral',
       f0: c.f0 != null ? Number(c.f0) : 0,
       indexRate: c.indexRate != null ? Number(c.indexRate) : 0.75,
+      intensity: c.intensity != null ? Number(c.intensity) : 1,
+      voice: String(c.voice || ''),
     });
   } catch (e) {
     return JSON.parse(JSON.stringify(DEFAULT_CONFIG));
@@ -33,6 +35,8 @@ function saveConfig(c) {
     emotion: (c && c.emotion) || 'neutral',
     f0: c && c.f0 != null ? Number(c.f0) : 0,
     indexRate: c && c.indexRate != null ? Number(c.indexRate) : 0.75,
+    intensity: c && c.intensity != null ? Number(c.intensity) : 1,
+    voice: String((c && c.voice) || ''),
   });
   try {
     fs.mkdirSync(path.dirname(CONFIG_PATH), { recursive: true });
@@ -163,13 +167,15 @@ function registerTtsPanelIpc() {
     const emotion = (params && params.emotion) || cfg.emotion;
     const f0 = params && params.f0 != null ? Number(params.f0) : cfg.f0;
     const indexRate = params && params.indexRate != null ? Number(params.indexRate) : cfg.indexRate;
+    const intensity = params && params.intensity != null ? Number(params.intensity) : cfg.intensity;
+    const voice = params && params.voice != null ? String(params.voice) : cfg.voice;
     try { fs.mkdirSync(TTS_DIR, { recursive: true }); } catch (e) {}
     const stamp = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14);
     const base = safeName(t);
     const outPath = path.join(TTS_DIR, `${stamp}_${base}.wav`);
     generating = true;
     try {
-      const r = await generateTts(t, { emotion, f0, indexRate, outPath });
+      const r = await generateTts(t, { emotion, f0, indexRate, intensity, voice, outPath });
       // 保存文本（历史播放时重建歌词）；生成失败时 r.out 可能仍为缓存路径，但一般已复制成功
       const finalPath = r.out || outPath;
       try { fs.writeFileSync(finalPath.replace(/\.wav$/i, '.txt'), t, 'utf8'); } catch (e) {}

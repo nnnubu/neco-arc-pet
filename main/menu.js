@@ -3,7 +3,7 @@ const { ipcMain, BrowserWindow, screen, shell } = require('electron');
 const fs = require('fs');
 const path = require('path');
 const { getWin } = require('./window');
-const { scanSingHistory, getLyricsByTitle } = require('./lyric');
+const { getLyricsByTitle } = require('./lyric');
 const { showSingPanel } = require('./sing-panel');
 const { showChat } = require('./chat');
 const { broadcast } = require('./sing');
@@ -88,7 +88,7 @@ function buildMenuData() {
       .map((a) => ({ id: a.name, num: a.name.slice(4), label: a.cn || '动作' }));
     return { cat: c.cat, title: c.title, items };
   });
-  return { fixed: FIXED_ITEMS, groups, config: loadConfig(), singHistory: scanSingHistory() };
+  return { fixed: FIXED_ITEMS, groups, config: loadConfig() };
 }
 
 function closeMenu() {

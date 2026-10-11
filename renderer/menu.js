@@ -1,20 +1,7 @@
 // 猫姬桌宠 - 自绘右键菜单逻辑：动作面板入口 + 设置模块（随机播放参数），点击功能项回传选择
 (function () {
   const $ = (s) => document.querySelector(s);
-  const secSing = $('#sec-sing');
   let cfg = { randomAction: { enabled: true, intervalSec: 15 } };
-
-  // 渲染一个功能项
-  function funcEl(it) {
-    const div = document.createElement('div');
-    div.className = 'item func';
-    div.dataset.act = it.id;
-    const fname = document.createElement('span');
-    fname.className = 'fname';
-    fname.textContent = it.label;
-    div.appendChild(fname);
-    return div;
-  }
 
   // 设置模块 UI 更新
   function renderCfg() {
@@ -59,12 +46,6 @@
   // 接收主进程菜单数据并渲染
   window.menuApi.onData((data) => {
     if (data.config) cfg = Object.assign({}, cfg, data.config);
-    // 翻唱历史：每首歌一个可点击项（点击 → pick('sing:歌名')），并显示数量
-    const hist = data.singHistory || [];
-    $('#sing-count').textContent = hist.length;
-    for (const h of hist) {
-      secSing.appendChild(funcEl({ id: 'sing:' + h.name, label: h.name }));
-    }
     renderCfg();
     bindCfg();
     bindClick();

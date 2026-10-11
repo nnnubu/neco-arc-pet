@@ -225,11 +225,33 @@ def _normalize_key_text(text):
     return "".join(out).strip()
 
 
-def cache_path(text, emotion, f0=0, index_rate=0.75):
+def cache_path(text, emotion, f0=0, index_rate=0.75, intensity=1.0, voice=''):
     """文本+情绪+音色参数 → 缓存文件路径（内容寻址：相同文本+情绪+参数命中同一文件；
-    f0/index_rate 影响变声结果，必须进 key，否则不同参数串缓存）"""
-    key = f"{_normalize_key_text(text)}\x00{emotion}\x00{f0}\x00{index_rate}".encode("utf-8")
+    f0/index_rate/intensity/voice 影响变声结果，必须进 key，否则不同参数串缓存）"""
+    key = f"{_normalize_key_text(text)}\x00{emotion}\x00{f0}\x00{index_rate}\x00{intensity}\x00{voice}".encode("utf-8")
     return os.path.join(CACHE_DIR, hashlib.md5(key).hexdigest() + ".wav")
+
+
+def _effective_cfg(emotion, voice_override='', intensity=1.0):
+    """情绪配置 → 实际生效配置：声线可覆盖；情绪强度量化（0~1）→
+    desc 加程度词 + post_gain 线性缩放（低强度=情绪更收敛，变声后增益更小）"""
+    cfg = dict(EMOTION_CFG.get(emotion, EMOTION_CFG['neutral']))
+    if voice_override:
+        cfg['voice'] = str(voice_override).strip()
+    try:
+        iv = float(intensity)
+    except (TypeError, ValueError):
+        iv = 1.0
+    if not (0 < iv <= 1):
+        iv = 1.0
+    if iv >= 0.99:
+        return cfg
+    # 程度词：低强度情绪更"淡"
+    word = '一点点' if iv < 0.4 else ('略微' if iv < 0.85 else '')
+    if word:
+        cfg['desc'] = f"{word}{cfg['desc']}"
+    cfg['post_gain'] = int(round(cfg['post_gain'] * iv))
+    return cfg
 
 
 def trim_cache():
@@ -242,16 +264,19 @@ def trim_cache():
             break
 
 
-def synth(text, emotion, out_path, f0=0, index_rate=0.75):
+def synth(text, emotion, out_path, f0=0, index_rate=0.75, intensity=1.0, voice=''):
     """兼容入口：整段纯 TTS 合成（无口癖拼接时使用）"""
-    _synth_tts(text, emotion, out_path, apply_post_gain=True, f0=f0, index_rate=index_rate)
+    _synth_tts(text, emotion, out_path, apply_post_gain=True, f0=f0, index_rate=index_rate,
+               intensity=intensity, voice=voice)
 
 
-def _synth_tts(text, emotion, out_path, apply_post_gain=True, f0=0, index_rate=0.75):
+def _synth_tts(text, emotion, out_path, apply_post_gain=True, f0=0, index_rate=0.75,
+               intensity=1.0, voice=''):
     """加锁合成（CosyVoice 情绪源 → RVC 变声），写 to out_path；
     RVC 输出 40000Hz 统一转标准 44100Hz 16bit，再按情绪表后处理增益。
-    f0=变声音高偏移（半音），index_rate=索引强度（0~1，越高越贴模型音色）"""
-    cfg = EMOTION_CFG.get(emotion, EMOTION_CFG['neutral'])
+    f0=变声音高偏移（半音），index_rate=索引强度（0~1，越高越贴模型音色），
+    intensity=情绪强度（0~1，低=情绪收敛），voice=声线覆盖（空=随情绪默认）"""
+    cfg = _effective_cfg(emotion, voice, intensity)
     with _synth_lock:
         src = os.path.join(CACHE_DIR, '_cosy_src.wav')
         _cosy_synth(text, cfg['voice'], cfg['desc'], cfg['gain'], src)
@@ -512,18 +537,20 @@ def _export_out(cp, out_path):
         pass  # 保存失败不阻断主链路（面板仍可用缓存路径播放）
 
 
-def _synth_meow_parts(parts, full_text, emotion, out_path, f0=0, index_rate=0.75):
+def _synth_meow_parts(parts, full_text, emotion, out_path, f0=0, index_rate=0.75,
+                      intensity=1.0, voice=''):
     """口癖拼接合成：逐段 TTS 合成 text 片段（不单独加情绪增益），
     与原版口癖音频拼接成整句后统一施加情绪增益。临时段文件用完即删。"""
     import numpy as np
-    cfg = EMOTION_CFG.get(emotion, EMOTION_CFG['neutral'])
+    cfg = _effective_cfg(emotion, voice, intensity)
     text_idxs = [i for i, (k, _) in enumerate(parts) if k == 'text']
     seg_paths = {}
     try:
         for i in text_idxs:
             seg = parts[i][1]
             tmp = os.path.join(CACHE_DIR, f'_meow_seg_{i}.wav')
-            _synth_tts(seg, emotion, tmp, apply_post_gain=False, f0=f0, index_rate=index_rate)
+            _synth_tts(seg, emotion, tmp, apply_post_gain=False, f0=f0, index_rate=index_rate,
+                       intensity=intensity, voice=voice)
             seg_paths[i] = tmp
         # 拼接结果整体应用情绪后处理增益（生气变响等，与纯 TTS 一致）
         _assemble_meow(parts, [seg_paths[i] for i in text_idxs], out_path)
@@ -584,6 +611,15 @@ def main():
                 index_rate = 0.75
             if not (0 <= index_rate <= 1):
                 index_rate = 0.75
+            # 情绪强度（0~1，TTS 面板滑杆；低=情绪收敛，desc 加程度词+post_gain 缩放）
+            try:
+                intensity = float(req.get("intensity", 1.0) or 1.0)
+            except (TypeError, ValueError):
+                intensity = 1.0
+            if not (0 < intensity <= 1):
+                intensity = 1.0
+            # 声线覆盖（TTS 面板可选手动声线；空=随情绪默认）
+            voice_override = str(req.get("voice") or "").strip()
             # 可选持久保存路径（TTS 面板）：合成结果复制到该路径（缓存仍保留，供再次命中）
             out_path = str(req.get("out_path") or "").strip()
             # 句末"喵！"类顿读修复：感叹号降级为句号（缓存 key 前处理，避免复用旧坏缓存）
@@ -591,7 +627,8 @@ def main():
             # 口癖替换：文本含 Burenyuu!/Nya! 等 → 拆段合成后与原版音频拼接
             meow_parts = split_meow_clips(text)
             # 口癖拼接走独立缓存 key（前缀标记），旧"纯 TTS 念怪叫"缓存不会命中
-            cp = cache_path(('\x01meowmix\x02' + text) if meow_parts else text, emotion, f0, index_rate)
+            cp = cache_path(('\x01meowmix\x02' + text) if meow_parts else text,
+                            emotion, f0, index_rate, intensity, voice_override)
             force = bool(req.get("force"))
             # 缓存命中（非 force 重试）：直接返回，不再合成
             if not force and os.path.exists(cp):
@@ -616,9 +653,10 @@ def main():
                 for attempt in range(2):
                     try:
                         if meow_parts:
-                            _synth_meow_parts(meow_parts, text, emotion, cp, f0, index_rate)
+                            _synth_meow_parts(meow_parts, text, emotion, cp, f0, index_rate,
+                                              intensity, voice_override)
                         else:
-                            synth(text, emotion, cp, f0, index_rate)
+                            synth(text, emotion, cp, f0, index_rate, intensity, voice_override)
                         last_err = None
                         break
                     except Exception as e:

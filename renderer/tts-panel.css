@@ -167,7 +167,7 @@ html, body {
   transition: transform 0.12s var(--ease);
 }
 .param-row input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
-#emotionSel {
+#emotionSel, #voiceSel {
   flex: 1;
   padding: 5px 8px;
   border: 1px solid var(--line-strong);
@@ -179,8 +179,8 @@ html, body {
   outline: none;
   cursor: pointer;
 }
-#emotionSel:focus { border-color: rgba(255, 95, 109, 0.6); }
-#emotionSel option { background: #191b2b; color: var(--txt); }
+#emotionSel:focus, #voiceSel:focus { border-color: rgba(255, 95, 109, 0.6); }
+#emotionSel option, #voiceSel option { background: #191b2b; color: var(--txt); }
 
 /* 生成按钮 */
 #genRow { padding: 10px 14px 2px; text-align: center; }
