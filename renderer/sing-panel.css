@@ -105,7 +105,7 @@ html, body {
   display: none;
 }
 
-/* 歌词文件选项（checkbox 统一样式：自定义方框+对勾，跨面板一致） */
+/* 歌词文件选项（品牌勾选：玻璃质感 + 渐变填充，融入面板设计体系） */
 #lrcRow {
   margin: 10px 14px 2px;
 }
@@ -120,33 +120,44 @@ html, body {
   transition: color 0.16s var(--ease);
 }
 .chk:hover { color: #fff; }
-.chk:hover .box { border-color: rgba(255, 255, 255, 0.6); background: rgba(255, 255, 255, 0.08); }
+.chk:hover .box {
+  border-color: rgba(255, 255, 255, 0.4);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+}
 .chk input { position: absolute; opacity: 0; width: 0; height: 0; }
 .chk .box {
   flex: none;
-  width: 14px;
-  height: 14px;
-  border: 1.5px solid rgba(255, 255, 255, 0.35);
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.05);
+  width: 16px;
+  height: 16px;
+  border-radius: 5px;
+  border: 1px solid var(--line-strong);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.02));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 2px 8px rgba(0, 0, 0, 0.35);
   position: relative;
-  transition: all 0.16s var(--ease);
+  transition: all 0.18s var(--ease);
   box-sizing: border-box;
 }
-.chk input:checked + .box {
-  background: var(--brand1);
-  border-color: var(--brand1);
-}
-.chk input:checked + .box::after {
+.chk .box::after {
   content: '';
   position: absolute;
-  left: 4px;
-  top: 1px;
+  left: 5px;
+  top: 2px;
   width: 4px;
   height: 8px;
   border: solid #fff;
   border-width: 0 2px 2px 0;
-  transform: rotate(45deg);
+  transform: rotate(45deg) scale(0);
+  opacity: 0;
+  transition: transform 0.16s var(--ease), opacity 0.12s var(--ease);
+}
+.chk input:checked + .box {
+  background: linear-gradient(180deg, var(--brand1), var(--brand2));
+  border-color: rgba(255, 255, 255, 0.28);
+  box-shadow: 0 0 14px rgba(255, 95, 109, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+.chk input:checked + .box::after {
+  transform: rotate(45deg) scale(1);
+  opacity: 1;
 }
 .chk-note { font-size: 11px; color: rgba(255, 255, 255, 0.45); margin-left: 4px; }
 #lrcZone.drop {

@@ -125,12 +125,13 @@ function showTtsPanel() {
     panelWin.focus();
     return;
   }
-  const W = 420, H = 640;
+  const W = 420, H = 760; // 情绪量化（效价/活跃度）后内容变多，760 高保证历史列表完整可见
   panelWin = new BrowserWindow({
     width: W, height: H,
     frame: false, transparent: true, alwaysOnTop: true,
     skipTaskbar: true, resizable: false, hasShadow: false,
     fullscreenable: false,
+    show: true, // 创建后立即显示（避免菜单点击后"没反应"的感知）
     webPreferences: {
       preload: path.join(__dirname, 'tts-panel-preload.js'),
       contextIsolation: true,
@@ -140,6 +141,13 @@ function showTtsPanel() {
   });
   panelWin.loadFile(path.join(__dirname, '..', 'renderer', 'tts-panel.html'));
   panelWin.on('closed', () => { panelWin = null; });
+  // 加载完成后再次显示并聚焦（transparent 窗口加载中全透明不可见，不聚焦会像"没打开"→ 点两次）
+  panelWin.webContents.once('did-finish-load', () => {
+    if (panelWin && !panelWin.isDestroyed()) {
+      panelWin.show();
+      panelWin.focus();
+    }
+  });
 }
 
 function registerTtsPanelIpc() {

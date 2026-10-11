@@ -53,6 +53,7 @@ function showSingPanel() {
     alwaysOnTop: true,
     skipTaskbar: false,
     fullscreenable: false,
+    show: true, // 创建后立即显示（避免菜单点击后"没反应"的感知）
     webPreferences: {
       preload: path.join(__dirname, 'sing-panel-preload.js'),
       contextIsolation: true,
@@ -62,6 +63,13 @@ function showSingPanel() {
   });
   panelWin.loadFile(path.join(__dirname, '..', 'renderer', 'sing-panel.html'));
   panelWin.on('closed', () => { panelWin = null; });
+  // 加载完成后再次显示并聚焦（防止首次创建后窗口未完成加载时用户重复点击）
+  panelWin.webContents.once('did-finish-load', () => {
+    if (panelWin && !panelWin.isDestroyed()) {
+      panelWin.show();
+      panelWin.focus();
+    }
+  });
 }
 
 function closeSingPanel() {

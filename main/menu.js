@@ -125,6 +125,8 @@ function showMenu() {
   menuWin.loadFile(path.join(__dirname, '..', 'renderer', 'menu.html'));
   menuWin.webContents.on('did-finish-load', () => {
     menuWin.webContents.send('menu-data', data);
+    // 加载完成后聚焦菜单窗口：若菜单未激活，第一次点击菜单项会被"激活窗口"吞掉（click 不派发）→ 面板要点两次
+    if (menuWin && !menuWin.isDestroyed()) menuWin.focus();
   });
   menuWin.on('blur', () => closeMenu());
 }
