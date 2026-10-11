@@ -196,10 +196,8 @@ window.SpriteCore = (() => {
   // 注：act_69/thinking 的抖动已通过"帧脚对齐重绘"修复（循环主体脚部统一固定、身体摆动保留），
   // 不能再做中心补偿（会把身体摆动压平、导致脚跟着动）
   const CENTER_COMP_ACTIONS = { act_22: ACT22_CENTER_COMP };
-  // 需逐帧垂直中心补偿的动作（消除帧间 ±2px 上下起伏导致的"上下抖动"）：
-  // act_95 倒地趴卧 5 帧：帧 bbox 中心 Y = 160/159.5/158/158.5/158，统一补偿到中心 160
-  // （值 = 目标中心 160 - 该帧中心；正=精灵下移、负=上移，保持脚部贴合地面）
-  const CENTER_Y_COMP_ACTIONS = { act_95: [0, 0.5, 2, 1.5, 2] };
+  // 需逐帧垂直中心补偿的动作——当前无（act_95 帧底已全部对齐 y=211，加补偿反而破坏脚底基准引入抖动）
+  const CENTER_Y_COMP_ACTIONS = {};
 
   // 随机乱跑状态（待机时偶尔自己走动/乱跑）：null 或 { dir, remaining, run }
   let roam = null;
