@@ -19,9 +19,32 @@ window.Controls = (() => {
   let downPos = null;  // 按下位置
   let dragging = false;
 
+  // 鼠标穿透状态：鼠标不在角色像素上时窗口忽略鼠标事件（点击穿透到下层窗口/桌面），
+  // 不再被透明窗口矩形整块拦截（点桌宠附近不会被误判成拖拽）
+  let mouseIgnored = false;
+
+  // 判断鼠标（窗口内坐标）是否在角色像素上并切换穿透。
+  // 数据源是主进程 40ms 轮询的 mouse-pos（全局光标，不受窗口忽略鼠标影响）——
+  // 即使穿透开启，鼠标移回角色时仍能及时恢复接收，点击/拖拽/菜单照常可用
+  function updateMousePass(p) {
+    if (dragging) {
+      // 拖拽中必须保持接收鼠标：穿透会让 mouseup 丢失（窗口收不到鼠标事件），拖拽无法结束
+      if (mouseIgnored) { mouseIgnored = false; window.pet.setIgnoreMouse(false); }
+      return;
+    }
+    if (!p) return;
+    const hit = sprite.hitTest(p.mx - p.wx, p.my - p.wy);
+    const wantIgnore = !hit;
+    if (wantIgnore !== mouseIgnored) {
+      mouseIgnored = wantIgnore;
+      window.pet.setIgnoreMouse(wantIgnore);
+    }
+  }
+
   function init(shared_, sprite_) {
     shared = shared_;
     sprite = sprite_;
+    window.pet.onMousePos(updateMousePass); // 鼠标穿透：透明区域不拦截鼠标（index.js 另有写入 shared.lastMouse 供其他模块用）
 
     document.addEventListener('mousedown', (e) => {
       downAt = Date.now();

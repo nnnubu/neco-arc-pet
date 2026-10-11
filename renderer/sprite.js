@@ -195,7 +195,13 @@ window.SpriteCore = (() => {
   // 需逐帧中心补偿的动作统一映射（消除帧间 ±0.5px 整数舍入交替导致的左右微抖）
   // 注：act_69/thinking 的抖动已通过"帧脚对齐重绘"修复（循环主体脚部统一固定、身体摆动保留），
   // 不能再做中心补偿（会把身体摆动压平、导致脚跟着动）
-  const CENTER_COMP_ACTIONS = { act_22: ACT22_CENTER_COMP };
+  // act_81/89/59 逐帧水平补偿：项目帧制作时把原始 gif 的水平偏移放大（89 原始 0.6px→项目 2.4px；
+  // 59 原始 0.5px→项目 3.5px；81 原始 4.4px→项目 3.2px 且相位错乱），播放时左右微抖。
+  // 逐帧把内容质心对齐回第一帧质心（与 act_95 顶部对齐同思路：主体稳定、肢体摆动保留）
+  const ACT81_CENTER_COMP = [0.0, -2.89, -1.23, -3.18, -2.89, -1.23, -3.18, -2.89, -1.23, -3.18, -2.89, -1.23, -3.18, -2.89, -1.23, -3.18, -2.89, -1.23, -3.18, -2.89, -1.23, -3.18, -2.89, -1.23, -3.18, -2.89, -1.23, -3.18, -2.89, -1.23, -3.18, -2.89, -1.23, -3.18, -2.89, -1.23, -3.18, -2.89, -1.23, -3.18, -2.89, -1.23, -3.18, -2.89, -1.23, -3.18, -2.24, -1.88];
+  const ACT89_CENTER_COMP = [0.0, 1.01, 1.75, 2.36, 0.72, 0.83, 1.75, 2.36, 0.72, 0.83, 1.75, 2.36, 0.72, 0.83, 1.75, 2.36, 0.72, 0.83, 1.75, 2.36, 0.72, 0.83, 1.75, 2.36, 0.72, 0.83, 1.75, 2.36, 0.72, 0.83, 1.75, 2.36, 0.72, 0.83, 1.75, 2.36, 0.72, 0.83, 1.75, 2.36, 0.72, 0.83, 1.75, 2.36, 0.72, 0.83, 1.75, 2.36, 0.72, 0.83];
+  const ACT59_CENTER_COMP = [0.0, 3.51, 1.68, 3.51, 1.68, 3.51, 1.68, 3.51, 1.68, 3.51, 1.68, 3.51, 1.68, 3.51, 1.68, 3.51, 1.68, 3.51, 1.68, 3.51, 1.68, 3.51, 1.68, 3.51, 1.68, 3.51, 1.68, 3.51, 1.68, 3.51, 1.68, 3.51, 1.68, 3.51, 1.68, 3.51, 1.68, 3.51, 1.68, 3.51, 1.68, 3.51, 1.68, 3.51, 1.68, 3.93, 1.16];
+  const CENTER_COMP_ACTIONS = { act_22: ACT22_CENTER_COMP, act_81: ACT81_CENTER_COMP, act_89: ACT89_CENTER_COMP, act_59: ACT59_CENTER_COMP };
   // 需逐帧垂直中心补偿的动作——当前无（act_95 帧底已全部对齐 y=211，加补偿反而破坏脚底基准引入抖动）
   const CENTER_Y_COMP_ACTIONS = {};
 
@@ -239,6 +245,10 @@ window.SpriteCore = (() => {
   let shared = null; // { keys, petScale, maxScale }
   const rand = (lo, hi) => lo + Math.random() * (hi - lo);
 
+  // 动作帧 alpha 包围盒（preload getFrameBBox 注入）：{ 动作名: { 帧号(1-based): [l,t,r,b] } }
+  // 用于鼠标命中检测（透明区域鼠标穿透：不在角色像素上 → 窗口忽略鼠标，点击穿透到下层）
+  let frameBBox = null;
+
   // 特殊大动作（48/49）主窗口播放状态：bigSprite=原始帧精灵；bigSaved=播放前窗口/缩放
   let bigSprite = null; // { w, h, scale }
   let bigSaved = null;
@@ -266,6 +276,7 @@ window.SpriteCore = (() => {
       texs.push(await PIXI.Assets.load(`../assets/sprite/big_actions/${name}/${i}.png`));
     }
     const s = new PIXI.AnimatedSprite(texs);
+    s._frameFiles = Array.from({ length: dyn.frames }, (_, i) => i + 1); // 1..frames（bbox 查询用）
     s.anchor.set(0.5, 1);
     s.animationSpeed = (opts.fps || SPRITE.FPS) / 60;
     for (const t of texs) t.baseTexture.scaleMode = PIXI.SCALE_MODES.NEAREST;
@@ -517,6 +528,8 @@ window.SpriteCore = (() => {
   }
 
   async function initSprite() {
+    // 加载动作帧 alpha 包围盒（命中检测用；失败则穿透功能禁用，不影响其他功能）
+    try { frameBBox = await window.pet.getFrameBBox(); } catch (e) { frameBBox = null; }
     app.stage.removeChildren();
     // 逐组加载帧纹理（走路/跑步跳过首尾帧，循环衔接更自然）
     for (const g of SPRITE.groups) {
@@ -530,6 +543,7 @@ window.SpriteCore = (() => {
         texs.push(await PIXI.Assets.load(`../assets/sprite/animations/${g}/${f}.png`));
       }
       const s = new PIXI.AnimatedSprite(texs);
+      s._frameFiles = useFrames; // 纹理数组索引 → 文件名（命中检测 bbox 查询用）
       s.anchor.set(0.5, 1); // 脚底中心
       s.animationSpeed = SPRITE.FPS / 60; // 统一 12fps（与原始动作一致）
       s.visible = false;
@@ -569,6 +583,7 @@ window.SpriteCore = (() => {
           texs.push(await PIXI.Assets.load(`../assets/sprite/animations/${a.name}/${i}.png`));
         }
         const s = new PIXI.AnimatedSprite(texs);
+        s._frameFiles = Array.from({ length: a.frames }, (_, i) => i + 1); // 1..frames（bbox 查询用）
         s.anchor.set(0.5, 1);
         s.animationSpeed = SPRITE.FPS / 60;
         s.visible = false;
@@ -742,12 +757,19 @@ window.SpriteCore = (() => {
       }
       showStanding();
     } else if (SPRITE.state === 'oneshot' && SPRITE.current) {
-      // 逐帧中心补偿（act_22/act_69 等）：消除原始帧 ±0.5px 整数舍入交替导致的左右微抖
+      // 逐帧中心补偿（act_22/act_81/act_89/act_59 等）：消除原始帧 ±0.5px 整数舍入交替导致的左右微抖
       // 补偿量需乘以当前缩放 scale.x（翻转时为负——补偿自动反向），缩放后的桌宠补偿才精确
+      // 基准 = window.innerWidth/2 + 翻转偏移（与 spriteShow 一致）：朝左播放保留 FLIP_OFFSET 整体偏移，避免补偿覆盖丢失
       const compTable = CENTER_COMP_ACTIONS[SPRITE.currentName];
       if (compTable) {
         const c = compTable[SPRITE.current.currentFrame];
-        if (c !== undefined) SPRITE.current.x = window.innerWidth / 2 + c * SPRITE.current.scale.x;
+        if (c !== undefined) {
+          const sc = Math.abs(SPRITE.current.scale.x);
+          const flipOff = SPRITE.current.scale.x < 0
+            ? (FLIP_OFFSET[SPRITE.currentName] || 0) * (FLIP_OFFSET_K[SPRITE.currentName] || 1) * sc
+            : 0;
+          SPRITE.current.x = window.innerWidth / 2 + flipOff + c * SPRITE.current.scale.x;
+        }
       }
       // 逐帧垂直中心补偿（act_95 等）：消除帧间上下起伏导致的上下抖动（保持脚部贴地）
       const yCompTable = CENTER_Y_COMP_ACTIONS[SPRITE.currentName];
@@ -841,5 +863,29 @@ window.SpriteCore = (() => {
     get state() { return SPRITE.state; },
     get facing() { return SPRITE.facing; },
     get currentName() { return SPRITE.currentName; },
+    // 鼠标命中检测：窗口内坐标 (px,py) 是否落在当前精灵帧的角色像素包围盒内
+    // 用于透明区域鼠标穿透（不在角色像素上 → 主进程 setIgnoreMouseEvents 忽略鼠标，点击穿透到下层）
+    hitTest(px, py) {
+      const s = bigSprite || SPRITE.current;
+      if (!s || !s.visible) return false; // 无精灵/隐藏（钻地等）→ 不可点
+      if (!frameBBox) return true; // bbox 数据加载失败 → 兜底视为可点（禁用穿透，不改变原有交互）
+      const bbMap = frameBBox[SPRITE.currentName];
+      if (!bbMap) return false;
+      const files = s._frameFiles;
+      const fno = files ? files[s.currentFrame] : s.currentFrame + 1; // 文件名（1-based）
+      const bb = bbMap[fno];
+      if (!bb) return false;
+      const tex = s.texture;
+      const tw = tex.width, th = tex.height;
+      const sx = Math.abs(s.scale.x), sy = Math.abs(s.scale.y);
+      if (sx <= 0 || sy <= 0) return false;
+      // 精灵 anchor(0.5,1)：x 为纹理中心、y 为纹理底部 → 纹理左上角窗口坐标
+      const left = s.position.x - (tw / 2) * sx;
+      const top = s.position.y - th * sy;
+      let tx = (px - left) / sx;
+      if (s.scale.x < 0) tx = tw - tx; // 水平翻转时镜像纹理 x
+      const ty = (py - top) / sy;
+      return tx >= bb[0] && tx <= bb[2] && ty >= bb[1] && ty <= bb[3];
+    },
   };
 })();

@@ -24,6 +24,10 @@ contextBridge.exposeInMainWorld('pet', {
   getMaxScale: () => ipcRenderer.invoke('pet-get-max-scale'),
   showMenu: () => ipcRenderer.send('show-context-menu'),
   getActions: () => ipcRenderer.invoke('get-actions'),
+  // 鼠标穿透控制：透明区域不拦截鼠标（true=忽略鼠标事件穿透到下层，false=恢复接收）
+  setIgnoreMouse: (ignore) => ipcRenderer.send('pet-ignore-mouse', ignore),
+  // 动作帧 alpha 包围盒（角色像素命中判断用）
+  getFrameBBox: () => ipcRenderer.invoke('get-frame-bbox'),
   // 用户配置（随机表演开关/间隔等，菜单「设置」中调整，持久化到 assets/user-config.json）
   getConfig: () => ipcRenderer.invoke('get-config'),
   onConfigChanged: (cb) => ipcRenderer.on('config-changed', (_e, c) => cb(c)),

@@ -343,6 +343,22 @@ function registerWindowIpc() {
   // 调试：渲染层日志转发
   ipcMain.on('debug-log', (_e, msg) => console.log('[renderer]', msg));
 
+  // 鼠标穿透：渲染层判断鼠标是否在角色像素上，不在时窗口忽略鼠标事件（点击穿透到下层窗口/桌面），
+  // 避免"透明窗口矩形整块拦截鼠标、点桌宠附近被误判拖拽"；鼠标回到角色上时恢复接收
+  ipcMain.on('pet-ignore-mouse', (_e, ignore) => {
+    if (!win || win.isDestroyed()) return;
+    win.setIgnoreMouseEvents(!!ignore, { forward: true });
+  });
+
+  // 渲染层获取动作帧 alpha 包围盒（角色像素范围判断用）：读 JSON 返回对象
+  ipcMain.handle('get-frame-bbox', () => {
+    try {
+      return JSON.parse(require('fs').readFileSync(path.join(__dirname, '..', 'assets', 'sprite', 'frame_bbox.json'), 'utf-8'));
+    } catch (e) {
+      return null;
+    }
+  });
+
   // 调试：渲染层请求截图，保存为 debug-<name>.png
   ipcMain.on('debug-shot', async (_e, name) => {
     if (!win || win.isDestroyed()) return;
