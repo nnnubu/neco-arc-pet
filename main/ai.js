@@ -252,6 +252,9 @@ async function askAI(userText, opts = {}) {
   if (knowledgeNote) messages.push({ role: 'system', content: knowledgeNote });
   if (searchNote) messages.push({ role: 'system', content: searchNote });
   messages.push({ role: 'user', content: String(userText) });
+  // 推理类模型适配：Qwen3 / GLM-Z1 / DeepSeek-R1 等默认开思考（输出思维链），
+  // 经硅基流动顶层参数 enable_thinking 关闭，让桌宠只输出台词（关闭思考后 temperature 等采样参数照常可用）
+  const isReasoning = /qwen3|glm[-_]?z1|deepseek[-_]?r|kimi[-_]?k|thinking/i.test(aiConfig.model);
   const payload = {
     model: aiConfig.model,
     messages,
@@ -260,6 +263,7 @@ async function askAI(userText, opts = {}) {
     repetition_penalty: 1.2, // 抑制重复：口头禅/金句复读惩罚（1.2 兼顾多样性与稳定性）
     stream: !!onToken,
   };
+  if (isReasoning) payload.enable_thinking = false;
   let lastErr = null;
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
