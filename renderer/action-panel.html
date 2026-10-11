@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>猫姬动作</title>
+  <link rel="stylesheet" href="action-panel.css">
+</head>
+<body>
+  <!-- 自绘标题栏：可拖动 + 最小化/关闭 -->
+  <div id="titlebar">
+    <span class="t">✦ 猫姬动作</span>
+    <div id="tbBtns">
+      <button id="btnMin" title="最小化">—</button>
+      <button id="btnClose" title="关闭">×</button>
+    </div>
+  </div>
+
+  <div id="scroller">
+    <!-- 常用动作（顶级平铺） -->
+    <div class="sec-title">常用动作</div>
+    <div id="sec-fixed" class="items"></div>
+
+    <!-- 全部动作按类别分组 -->
+    <div id="groups"></div>
+  </div>
+
+  <script src="action-panel.js"></script>
+</body>
+</html>

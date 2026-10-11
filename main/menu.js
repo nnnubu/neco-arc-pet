@@ -7,6 +7,7 @@ const { scanSingHistory, getLyricsByTitle } = require('./lyric');
 const { showSingPanel } = require('./sing-panel');
 const { showChat } = require('./chat');
 const { broadcast } = require('./sing');
+const { showActionPanel } = require('./action-panel');
 
 let menuWin = null;
 
@@ -162,6 +163,9 @@ function registerMenuIpc() {
     } else if (action === 'SPEAK') {
       // 「说句话…」：打开对话窗口（独立窗口，不遮桌宠）
       showChat();
+    } else if (action === 'ACTION_PANEL') {
+      // 「动作面板」：独立常驻窗口（点击动作不关闭，可连续测试）
+      showActionPanel();
     } else if (action === 'AI_CONFIG') {
       // 「AI 设置」：独立面板（密钥/模型/接口/提示词 配置化）
       require('./ai-config').showAiConfig();
@@ -207,4 +211,4 @@ function registerMenuIpc() {
   });
 }
 
-module.exports = { registerMenuIpc };
+module.exports = { registerMenuIpc, buildMenuData };
