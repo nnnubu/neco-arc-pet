@@ -87,8 +87,26 @@ function registerChatIpc() {
     return next;
   });
 
-  // 清空回答缓存（对话窗 🗑️）：清 voice/ai_cache.json，返回清理条数
-  ipcMain.handle('chat-cache-clear', () => require('./ai').clearAiCache());
+  // 清空缓存（对话窗 🗑️）：清 LLM 回答缓存（assets/ai_cache.json）+ 语音合成缓存（voice/cache/*.wav），返回各自清理条数
+  ipcMain.handle('chat-cache-clear', () => {
+    const ai = require('./ai').clearAiCache();
+    let wav = 0;
+    try {
+      const { getVoiceRoot } = require('./paths');
+      const voiceRoot = getVoiceRoot();
+      if (voiceRoot) {
+        const cacheDir = require('path').join(voiceRoot, 'cache');
+        if (require('fs').existsSync(cacheDir)) {
+          for (const f of require('fs').readdirSync(cacheDir)) {
+            if (f.toLowerCase().endsWith('.wav')) {
+              try { require('fs').unlinkSync(require('path').join(cacheDir, f)); wav++; } catch (e) {}
+            }
+          }
+        }
+      }
+    } catch (e) { console.log('[chat] 清空语音缓存失败:', e.message); }
+    return { ai, wav };
+  });
 
   // 静音模式（对话窗按钮）：arc 的 AI 语音/随机发声静音，翻唱音乐不受影响
   ipcMain.handle('chat-mute-state', () => !!getAiConfig().muteVoice);

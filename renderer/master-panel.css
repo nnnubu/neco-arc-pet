@@ -48,6 +48,27 @@ html, body {
   -webkit-app-region: drag; /* 顶部可拖动窗口 */
   border-bottom: 1px solid var(--line);
 }
+/* 语音升级图标按钮：标题栏右侧（基础包无语音包时显示） */
+#navHead #btnUpgrade {
+  -webkit-app-region: no-drag;
+  margin-left: auto;
+  width: 30px;
+  height: 30px;
+  flex: none;
+  border: none;
+  border-radius: 9px;
+  background: rgba(255, 208, 77, 0.12);
+  color: #ffd04d;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s var(--ease), transform 0.1s var(--ease);
+}
+#navHead #btnUpgrade:hover {
+  background: rgba(255, 208, 77, 0.28);
+}
+#navHead #btnUpgrade:active { transform: scale(0.88); }
+#navHead #btnUpgrade:disabled { opacity: 0.5; cursor: default; }
 #navHead .logo {
   font-size: 17px;
   background: linear-gradient(180deg, var(--brand1), var(--brand2));
@@ -138,16 +159,6 @@ html, body {
   color: #fff;
   box-shadow: 0 2px 10px rgba(217, 58, 66, 0.4);
 }
-#navFoot #btnUpgrade {
-  color: #ffd04d;
-  font-size: 12px;
-  letter-spacing: 1px;
-}
-#navFoot #btnUpgrade:hover {
-  background: rgba(255, 208, 77, 0.15);
-  color: #ffd04d;
-}
-#navFoot #btnUpgrade:disabled { opacity: 0.55; cursor: default; }
 #navFoot #upgradeMsg {
   flex: none;
   width: 100%;

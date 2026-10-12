@@ -29,7 +29,8 @@ window.addEventListener('i18n-change', refreshMaxBtn);
 const upgradeBtn = document.getElementById('btnUpgrade');
 const upgradeMsg = document.getElementById('upgradeMsg');
 function applyVoiceUI(hasVoice) {
-  document.querySelectorAll('.nav-item[data-voice]').forEach((b) => { b.hidden = !!hasVoice; });
+  // 有语音包 → 显示 翻唱/语音合成；无语音包（基础包）→ 隐藏并显示升级按钮
+  document.querySelectorAll('.nav-item[data-voice]').forEach((b) => { b.hidden = !hasVoice; });
   upgradeBtn.hidden = !!hasVoice;
   upgradeMsg.hidden = true;
 }

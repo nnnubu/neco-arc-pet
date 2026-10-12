@@ -89,10 +89,12 @@
     setCacheUI(next);
   });
 
-  // ── 清空回答缓存（🗑️）：一键清空，状态行提示清理条数 ──
+  // ── 清空缓存（🗑️）：清 LLM 回答缓存 + 语音合成缓存，状态行提示各自清理条数 ──
   $('#btnCacheClear').addEventListener('click', async () => {
-    const n = await window.chatApi.cacheClear();
-    setStatus(typeof n === 'number' ? tFmt('statusClearedN', { n }) : t('statusCleared'));
+    const r = await window.chatApi.cacheClear();
+    if (r && typeof r === 'object') setStatus(tFmt('statusClearedBoth', { ai: r.ai, wav: r.wav }));
+    else if (typeof r === 'number') setStatus(tFmt('statusClearedN', { n: r }));
+    else setStatus(t('statusCleared'));
     setTimeout(() => setStatus(''), 2500);
   });
 
