@@ -32,7 +32,11 @@
         "from": "assets",
         "to": "assets",
         "filter": [
-          "**/*"
+          "arc-knowledge/**",
+          "icons/**",
+          "sprite/**",
+          "vendor/**",
+          "voice-clips/**"
         ]
       }
     ],
@@ -43,14 +47,14 @@
     "win": {
       "target": [
         {
-          "target": "portable",
+          "target": "dir",
           "arch": [
             "x64"
           ]
         }
       ],
       "icon": "assets/icons/arc.ico",
-      "artifactName": "NecoArc-Pet-Portable-${version}.${ext}"
+      "artifactName": "NecoArc-Pet-${version}.${ext}"
     }
   }
 }
