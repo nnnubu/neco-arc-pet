@@ -30,7 +30,8 @@ const upgradeBtn = document.getElementById('btnUpgrade');
 const upgradeMsg = document.getElementById('upgradeMsg');
 function applyVoiceUI(hasVoice) {
   // 有语音包 → 显示 翻唱/语音合成；无语音包（基础包）→ 隐藏并显示升级按钮
-  document.querySelectorAll('.nav-item[data-voice]').forEach((b) => { b.hidden = !hasVoice; });
+  // 注意：不能用 hidden 属性——.nav-item 有显式 display:flex 会覆盖 hidden，必须用 inline style
+  document.querySelectorAll('.nav-item[data-voice]').forEach((b) => { b.style.display = hasVoice ? '' : 'none'; });
   upgradeBtn.hidden = !!hasVoice;
   upgradeMsg.hidden = true;
 }

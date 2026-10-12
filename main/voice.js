@@ -161,11 +161,12 @@ function buildProactivePrompt(cfg) {
 }
 
 // 主动搭话：以"主动指令"问 AI（force 绕过问答缓存，每次都生成新台词）→ 走标准合成播放
-async function handleProactiveSpeak() {
+async function handleProactiveSpeak(force = false) {
   const win = getWin();
-  if (!win || win.isDestroyed()) return;
+  if (!win || win.isDestroyed()) return false;
   const cfg = getAiConfig();
-  if (!cfg.proactiveEnabled) return;
+  // 定时触发遵守开关；手动点"立即说一句"（force）忽略开关，便于验收
+  if (!force && !cfg.proactiveEnabled) return false;
   broadcast('speak-state', { state: 'ai' }); // 思考中…
   let reply;
   try {
@@ -176,11 +177,11 @@ async function handleProactiveSpeak() {
   } catch (e) {
     console.error('[proactive] 主动搭话 AI 失败:', e.message);
     broadcast('speak-state', { state: 'error', error: '主动说话失败: ' + e.message });
-    return;
+    return false;
   }
   if (!reply) {
     broadcast('speak-state', { state: 'error', error: '主动说话没有回复' });
-    return;
+    return false;
   }
   const { emotion, text: speakText } = parseEmotion(reply);
   console.log(`[proactive] 情绪=${emotion} 文本=${speakText}`);
@@ -189,10 +190,10 @@ async function handleProactiveSpeak() {
   if (proactiveHistory.length > 12) proactiveHistory.shift();
   if (!win.isDestroyed()) broadcast('ai-reply', { text: speakText });
   // 翻唱播放中/静音模式：只出文字不播语音（手动点"立即说一句"也走这里；静音不影响翻唱音乐）
-  if (singPlaying || getAiConfig().muteVoice) { broadcast('speak-state', { state: 'done' }); return; }
+  if (singPlaying || getAiConfig().muteVoice) { broadcast('speak-state', { state: 'done' }); return true; }
   broadcast('speak-state', { state: 'generating' });
   // 无语音扩展包：只出文本不合成
-  if (!resolveVoiceEnv()) { broadcast('speak-state', { state: 'done' }); return; }
+  if (!resolveVoiceEnv()) { broadcast('speak-state', { state: 'done' }); return true; }
   ensureVoiceServer();
   const id = Date.now();
   activeReqs.add(id);
@@ -212,6 +213,7 @@ async function handleProactiveSpeak() {
   } else {
     voiceQueue.push(req); // 模型仍在加载，排队等 READY
   }
+  return true; // 已生成文本并进入合成链路（合成结果由异步回调反馈到气泡）
 }
 
 function ensureVoiceServer() {

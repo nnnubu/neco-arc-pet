@@ -44,12 +44,13 @@ function registerAiConfigIpc() {
     }
   });
 
-  // 立即主动说一句（面板"立即说一句"测试按钮；配置未开也触发，便于验收）
-  ipcMain.handle('ai-config-proactive-now', () => {
+  // 立即主动说一句（面板"立即说一句"测试按钮；force 忽略开关，便于验收）
+  ipcMain.handle('ai-config-proactive-now', async () => {
     try {
       const { handleProactiveSpeak } = require('./voice');
-      handleProactiveSpeak();
-      return { ok: true };
+      const ok = await handleProactiveSpeak(true);
+      if (ok) return { ok: true };
+      return { ok: false, error: '主动说话未成功（请检查密钥/模型配置或桌宠状态）' };
     } catch (err) {
       return { ok: false, error: err.message };
     }
