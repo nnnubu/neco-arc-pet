@@ -50,6 +50,27 @@ window.addEventListener('drop', (e) => {
   window.masterApi.openUpgradeWin();
   window.masterApi.upgradeVoiceWithPath(p);
 });
+
+// ── 开发者工具（仅开发版显示）：一键生成基础包 / 语音扩展包，状态区实时显示进度 ──
+const devTools = document.getElementById('devTools');
+const devStatus = document.getElementById('devStatus');
+const btnDevBasic = document.getElementById('btnDevBasic');
+const btnDevVoice = document.getElementById('btnDevVoice');
+function devState(txt, cls) {
+  devStatus.textContent = txt;
+  devStatus.className = 'dev-status' + (cls ? ' ' + cls : '');
+  if (cls === 'busy') { btnDevBasic.disabled = true; btnDevVoice.disabled = true; }
+  else { btnDevBasic.disabled = false; btnDevVoice.disabled = false; }
+}
+window.masterApi.isDev().then((dev) => { if (dev) devTools.hidden = false; });
+btnDevBasic.addEventListener('click', () => { devState('正在构建基础包（约 1~3 分钟）…', 'busy'); window.masterApi.devBuild('basic'); });
+btnDevVoice.addEventListener('click', () => { devState('正在打包语音扩展包（约 3.8GB，需几分钟）…', 'busy'); window.masterApi.devBuild('voice'); });
+window.masterApi.onDevBuild((s) => {
+  if (!s || !s.t) return;
+  if (/完成|✓/.test(s.t)) devState(s.t, 'ok');
+  else if (/失败|✗/.test(s.t)) devState(s.t, 'err');
+  else devState(s.t, 'busy');
+});
 // 退出桌宠：主进程走退出动画链路（播完由桌宠渲染层发 quit 真正退出）
 document.getElementById('btnQuit').addEventListener('click', () => window.masterApi.quit());
 

@@ -94,6 +94,42 @@ html, body {
   padding: 12px 10px;
   overflow-y: auto;
 }
+/* 开发者工具：仅开发版显示（一键生成发布包） */
+#devTools {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 10px 12px 4px;
+  border-top: 1px solid var(--line);
+}
+#devTools[hidden] { display: none; }
+.dev-row { display: flex; gap: 6px; }
+.dev-row button {
+  flex: 1;
+  height: 28px;
+  border: none;
+  border-radius: 8px;
+  background: rgba(64, 150, 255, 0.14);
+  color: #a8cfff;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: background 0.15s var(--ease), color 0.15s var(--ease), transform 0.1s var(--ease);
+  -webkit-app-region: no-drag;
+}
+.dev-row button:hover { background: rgba(64, 150, 255, 0.28); color: #fff; }
+.dev-row button:active { transform: scale(0.95); }
+.dev-row button:disabled { opacity: 0.55; cursor: default; transform: none; }
+.dev-status {
+  min-height: 14px;
+  font-size: 10.5px;
+  line-height: 1.5;
+  color: var(--txt2);
+  word-break: break-all;
+}
+.dev-status.ok { color: #6fdc9a; }
+.dev-status.err { color: #ff9a9a; }
 .nav-item {
   display: flex;
   align-items: center;

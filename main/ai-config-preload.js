@@ -8,10 +8,6 @@ contextBridge.exposeInMainWorld('aiConfigApi', {
   proactiveNow: () => ipcRenderer.invoke('ai-config-proactive-now'),
   minimize: () => ipcRenderer.send('ai-config-minimize'),
   close: () => ipcRenderer.send('ai-config-close'),
-  // 开发者工具（仅开发版）：一键生成发布包
-  isDev: () => ipcRenderer.invoke('app-is-dev'),
-  devBuild: (kind) => ipcRenderer.send('dev-build', kind),
-  onDevBuild: (cb) => ipcRenderer.on('dev-build-progress', (_e, s) => cb(s)),
 });
 contextBridge.exposeInMainWorld('necoI18n', {
   get: () => ipcRenderer.invoke('i18n-get'),

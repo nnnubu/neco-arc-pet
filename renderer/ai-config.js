@@ -122,13 +122,4 @@
   // 语言切换后同步下拉（其他窗口广播回来也会触发）
   window.addEventListener('i18n-change', syncLangSelect);
   window.NECO_I18N.init().then(syncLangSelect);
-
-  // 开发者工具（仅开发版 electron.exe . 显示）：一键生成发布包
-  window.aiConfigApi.isDev().then((dev) => {
-    if (!dev) return;
-    document.getElementById('devTools').hidden = false;
-  });
-  document.getElementById('btnDevBasic').addEventListener('click', () => { setMsg('正在构建基础包…'); window.aiConfigApi.devBuild('basic'); });
-  document.getElementById('btnDevVoice').addEventListener('click', () => { setMsg('正在打包语音扩展包…'); window.aiConfigApi.devBuild('voice'); });
-  window.aiConfigApi.onDevBuild((s) => { if (s && s.t) setMsg(s.t); });
 })();
