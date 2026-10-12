@@ -4,6 +4,7 @@ const { BrowserWindow, ipcMain, screen, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { getWin } = require('./window');
+const { getVoiceRoot, resolveVoiceEnv } = require('./paths');
 // getSingPanelWin 在 sing-panel.js（本模块被 sing.js 引用，sing-panel 也被 sing.js 引用；
 // 为避免加载期循环依赖，这里不顶层 require，sing-state 回调里运行时 require——届时模块已完整）
 function getSingPanelWin() {
@@ -183,7 +184,7 @@ function showLyricWindow(lyrics, title) {
 
 // ── 扫描翻唱历史（voice/sing_output 子目录 → 歌名 + 完整版/人声轨路径）──
 function scanSingHistory() {
-  const dir = path.join(__dirname, '..', 'voice', 'sing_output');
+  const dir = path.join(getVoiceRoot(), 'sing_output');
   try {
     if (!fs.existsSync(dir)) return [];
     return fs.readdirSync(dir, { withFileTypes: true })

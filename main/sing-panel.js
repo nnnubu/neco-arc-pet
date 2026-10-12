@@ -7,6 +7,7 @@ const fs = require('fs');
 const { getWin } = require('./window');
 const { scanSingHistory, getLyricsByTitle } = require('./lyric');
 const { openModule, wrapView, hideMaster, minimizeMaster, getMasterWin } = require('./master-panel');
+const { getVoiceRoot } = require('./paths');
 // 注意：不在这里顶层解构 ./sing 的 startSing —— sing.js 与本模块互相 require（sing.js 顶层引 getSingPanelWin），
 // 顶层解构会拿到未完成的空导出；改为回调运行时 require（届时模块已完整加载）
 
@@ -121,7 +122,7 @@ function registerSingPanelIpc() {
   ipcMain.on('sing-panel-play', (_e, name) => {
     const w = getWin();
     if (!w || w.isDestroyed()) return;
-    const dir = path.join(__dirname, '..', 'voice', 'sing_output', String(name || ''));
+    const dir = path.join(getVoiceRoot(), 'sing_output', String(name || ''));
     try {
       const full = fs.readdirSync(dir).find((f) => f.endsWith('_猫姬翻唱.wav'));
       if (!full) return;
@@ -159,12 +160,17 @@ function registerSingPanelIpc() {
 
   // 面板「打开翻唱文件夹」
   ipcMain.on('sing-panel-dir', () => {
-    const dir = path.join(__dirname, '..', 'voice', 'sing_output');
+    const dir = path.join(getVoiceRoot(), 'sing_output');
     if (fs.existsSync(dir)) shell.openPath(dir);
   });
 
   // 面板查询历史
   ipcMain.handle('sing-panel-history', () => scanSingHistory());
+  // 语音引擎状态：无语音扩展包时面板显示安装引导
+  ipcMain.handle('sing-panel-engine', () => {
+    const { resolveVoiceEnv, NO_VOICE_MSG } = require('./paths');
+    return { voiceEngine: !!resolveVoiceEnv(), noVoiceMsg: NO_VOICE_MSG };
+  });
   // ── 桌面歌词颜色（配置化，默认当前亮黄 #ffd04d）：读写 tts-config.json（运行时 require 防循环依赖）──
   ipcMain.handle('sing-panel-get-lyric-color', () => {
     try { return require('./tts-panel').loadConfig().lyricColor; } catch (e) { return '#ffd04d'; }

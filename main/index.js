@@ -3,6 +3,7 @@
 const { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage } = require('electron');
 const path = require('path');
 const { createWindow, registerWindowIpc } = require('./window');
+const { getAssetRoot } = require('./paths');
 const { registerMenuIpc } = require('./menu');
 const { registerVoiceIpc } = require('./voice');
 const { registerSingIpc } = require('./sing');
@@ -29,6 +30,8 @@ process.on('unhandledRejection', (e) => {
 });
 
 app.whenReady().then(() => {
+  // 渲染层获取资源根目录（打包态=resources/assets，开发态=项目根/assets）：素材/配置统一由此解析
+  ipcMain.handle('get-asset-root', () => getAssetRoot());
   createWindow();
   registerWindowIpc();
   registerMenuIpc();
@@ -63,7 +66,7 @@ function setupTray() {
   try {
     // 托盘图标：arc 头部透明图标（32px 源图，Windows 按 DPI 自动选用 16/32），比全身帧缩 16px 更清晰
     const icon = nativeImage.createFromPath(
-      path.join(__dirname, '..', 'assets', 'icons', 'arc-head-32.png')
+      path.join(getAssetRoot(), 'icons', 'arc-head-32.png')
     );
     if (icon.isEmpty()) throw new Error('托盘图标加载为空');
     tray = new Tray(icon);

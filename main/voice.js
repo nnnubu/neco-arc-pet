@@ -7,9 +7,10 @@ const { spawn } = require('child_process');
 const { getWin } = require('./window');
 const { getChatWin, recordMsg } = require('./chat');
 const { askAI, getAiConfig } = require('./ai');
+const { getAssetRoot, resolveVoiceEnv, getVoiceRoot, NO_VOICE_MSG } = require('./paths');
 
-// TTS 面板参数（voice/../assets/tts-config.json）：聊天/翻唱"应用到…"开关由此读
-const TTS_CONFIG_PATH = path.join(__dirname, '..', 'assets', 'tts-config.json');
+// TTS 面板参数（assets/tts-config.json）：聊天/翻唱"应用到…"开关由此读
+const TTS_CONFIG_PATH = path.join(getAssetRoot(), 'tts-config.json');
 function readTtsConfig() {
   try {
     const c = JSON.parse(fs.readFileSync(TTS_CONFIG_PATH, 'utf8'));
@@ -91,7 +92,8 @@ const proactiveHistory = [];
 let singPlaying = false;
 
 // ── 随机发声：偶尔用本地语音素材（assets/voice-clips/*.wav）主动叫一声 ──
-const CLIP_DIR = path.join(__dirname, '..', 'assets', 'voice-clips');
+// 素材播放不依赖语音引擎（渲染层直接播 wav），基础包无语音扩展包也可用
+const CLIP_DIR = path.join(getAssetRoot(), 'voice-clips');
 let voiceClips = [];
 let voiceTimer = null;
 // 聊天语音是否正在播放（渲染层上报 voice-playing/voice-done）：
@@ -189,6 +191,8 @@ async function handleProactiveSpeak() {
   // 翻唱播放中/静音模式：只出文字不播语音（手动点"立即说一句"也走这里；静音不影响翻唱音乐）
   if (singPlaying || getAiConfig().muteVoice) { broadcast('speak-state', { state: 'done' }); return; }
   broadcast('speak-state', { state: 'generating' });
+  // 无语音扩展包：只出文本不合成
+  if (!resolveVoiceEnv()) { broadcast('speak-state', { state: 'done' }); return; }
   ensureVoiceServer();
   const id = Date.now();
   activeReqs.add(id);
@@ -212,13 +216,19 @@ async function handleProactiveSpeak() {
 
 function ensureVoiceServer() {
   if (voiceProc) return;
-  const py = path.join(__dirname, '..', 'voice-env310', 'Scripts', 'python.exe');
-  const script = path.join(__dirname, '..', 'voice', 'voice_server.py');
+  // 语音引擎探测（语音扩展包解压到程序根目录）：找不到 → 广播 no-voice，功能降级（聊天仍出文本）
+  const env = resolveVoiceEnv();
+  if (!env) {
+    broadcast('speak-state', { state: 'no-voice', error: NO_VOICE_MSG });
+    return;
+  }
+  const py = env.py;
+  const script = path.join(env.voiceDir, 'voice_server.py');
   // stderr 重定向到日志文件：GPU 版加载时日志量大（faiss/RMVPE 等），
   // 若走 stdout 管道且消费不及时会填满 Windows 管道缓冲，把 Python 进程卡死
-  const logFile = fs.openSync(path.join(__dirname, '..', 'voice', 'voice_server.log'), 'a');
+  const logFile = fs.openSync(path.join(env.voiceDir, 'voice_server.log'), 'a');
   // windowsHide: true 防止 python.exe 弹出黑色控制台窗口（抢焦点会触发输入框失焦自动关闭）
-  voiceProc = spawn(py, [script], { cwd: path.join(__dirname, '..', 'voice'), stdio: ['pipe', 'pipe', logFile], windowsHide: true });
+  voiceProc = spawn(py, [script], { cwd: env.voiceDir, stdio: ['pipe', 'pipe', logFile], windowsHide: true });
   voiceReady = false;
   let buf = '';
   voiceProc.stdout.on('data', (chunk) => {
@@ -309,6 +319,8 @@ async function handleSpeakText(text, force) {
   if (singPlaying || getAiConfig().muteVoice) { broadcast('speak-state', { state: 'done' }); return; }
   // 合成回复语音（CosyVoice 情绪源 → RVC 变声 → 缓存；情绪进缓存 key）
   broadcast('speak-state', { state: 'generating' });
+  // 无语音扩展包：只出文本不合成（基础包降级，不报错打扰用户聊天）
+  if (!resolveVoiceEnv()) { broadcast('speak-state', { state: 'done' }); return; }
   ensureVoiceServer();
   const id = Date.now();
   activeReqs.add(id);
@@ -336,6 +348,8 @@ async function handleSpeakText(text, force) {
 function generateTts(text, params) {
   const t = String(text || '').replace(/[\uD800-\uDFFF]/g, '').trim();
   if (!t) return Promise.reject(new Error('文本为空'));
+  // 无语音扩展包：直接拒绝并给安装引导（TTS 面板显示该错误）
+  if (!resolveVoiceEnv()) return Promise.reject(new Error(NO_VOICE_MSG));
   ensureVoiceServer();
   const id = 'tts-' + Date.now() + '-' + Math.floor(Math.random() * 1e6);
   const req = {

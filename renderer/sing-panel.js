@@ -205,5 +205,15 @@
     window.singPanelApi.setLyricColor('#ffd04d');
   });
 
+  // ── 无语音扩展包：顶部横幅引导 + 禁用开始翻唱（安装语音包后重启解锁）──
+  window.singPanelApi.getEngine().then((r) => {
+    const banner = $('#noVoiceBanner');
+    if (r && !r.voiceEngine && banner) {
+      banner.textContent = '⚠ ' + (r.noVoiceMsg || '未安装语音扩展包，翻唱不可用');
+      banner.classList.remove('hidden');
+      $('#btnStart').disabled = true;
+    }
+  });
+
   refreshHistory();
 })();

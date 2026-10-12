@@ -9,11 +9,12 @@ const { getWin } = require('./window');
 const { generateTts } = require('./voice');
 const { broadcast } = require('./sing');
 const { openModule, hideMaster, minimizeMaster, getViewWebContents } = require('./master-panel');
+const { getAssetRoot, getVoiceRoot, resolveVoiceEnv, NO_VOICE_MSG } = require('./paths');
 
 let generating = false; // 防重入：一次只生成一段
 
-const TTS_DIR = path.join(__dirname, '..', 'voice', 'tts_output');
-const CONFIG_PATH = path.join(__dirname, '..', 'assets', 'tts-config.json');
+const TTS_DIR = path.join(getVoiceRoot(), 'tts_output');
+const CONFIG_PATH = path.join(getAssetRoot(), 'tts-config.json');
 const DEFAULT_CONFIG = { emotion: 'neutral', f0: 0, indexRate: 0.75, intensity: 1, voice: '', valence: 0, arousal: 50, applyToChat: false, applyToSing: false, meowClips: true, bubbleFontSize: 16, bubbleColor: '#ffd166', lyricColor: '#ffd04d' };
 
 function loadConfig() {
@@ -177,10 +178,10 @@ function registerTtsPanelIpc() {
     if (wc && !wc.isDestroyed()) wc.send('sing-panel-state', s);
   });
 
-  // 面板打开：回填配置 + 历史
+  // 面板打开：回填配置 + 历史 + 语音引擎状态（无语音包时渲染层显示安装引导）
   ipcMain.handle('tts-panel-load', () => {
     try { fs.mkdirSync(TTS_DIR, { recursive: true }); } catch (e) {}
-    return { config: loadConfig(), history: scanTtsHistory() };
+    return { config: loadConfig(), history: scanTtsHistory(), voiceEngine: !!resolveVoiceEnv(), noVoiceMsg: NO_VOICE_MSG };
   });
 
   // 保存参数配置（切换即生效）

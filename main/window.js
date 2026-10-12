@@ -1,6 +1,7 @@
 // 主进程 - 窗口模块：创建透明置顶窗口、位置管理、拖拽、走动、缩放、鼠标轮询
 const { BrowserWindow, ipcMain, screen } = require('electron');
 const path = require('path');
+const { getAssetRoot } = require('./paths');
 
 // 桌宠基准窗口尺寸 = 1.0 倍（像素帧 218x260 的 2 倍显示：436x520，含少量边距）
 // 初始即最小：0.5 倍 = 220x265
@@ -29,7 +30,7 @@ function createWindow() {
     skipTaskbar: true,
     fullscreenable: false,
     backgroundColor: '#00000000',
-    icon: path.join(__dirname, '..', 'assets', 'icons', 'arc.ico'), // 窗口/任务栏显示 arc 图标（替代 electron 默认）
+    icon: path.join(getAssetRoot(), 'icons', 'arc.ico'), // 窗口/任务栏显示 arc 图标（替代 electron 默认）
     webPreferences: {
       preload: path.join(__dirname, '..', 'preload.js'),
       contextIsolation: true,
@@ -354,7 +355,7 @@ function registerWindowIpc() {
   // 渲染层获取动作帧 alpha 包围盒（角色像素范围判断用）：读 JSON 返回对象
   ipcMain.handle('get-frame-bbox', () => {
     try {
-      return JSON.parse(require('fs').readFileSync(path.join(__dirname, '..', 'assets', 'sprite', 'frame_bbox.json'), 'utf-8'));
+      return JSON.parse(require('fs').readFileSync(path.join(getAssetRoot(), 'sprite', 'frame_bbox.json'), 'utf-8'));
     } catch (e) {
       return null;
     }

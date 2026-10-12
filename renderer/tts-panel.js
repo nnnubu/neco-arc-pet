@@ -265,6 +265,13 @@
   // ── 初始化：载入配置 + 历史 ──
   async function init() {
     const data = await window.ttsPanelApi.load();
+    // 无语音扩展包：顶部横幅引导（安装语音扩展包后重启解锁）
+    const banner = $('#noVoiceBanner');
+    if (!data.voiceEngine && banner) {
+      banner.textContent = '⚠ ' + (data.noVoiceMsg || '未安装语音扩展包，语音合成不可用');
+      banner.classList.remove('hidden');
+      btnGen.disabled = true;
+    }
     cfg = data.config;
     f0Slider.value = cfg.f0;
     f0Val.textContent = cfg.f0 > 0 ? '+' + cfg.f0 : String(cfg.f0);

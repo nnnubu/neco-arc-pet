@@ -7,12 +7,14 @@ const fs = require('fs');
 const path = require('path');
 const https = require('https');
 const http = require('http');
+const { getAssetRoot } = require('./paths');
 
-const KB_DIR = path.join(__dirname, '..', 'assets', 'arc-knowledge');
+const KB_DIR = path.join(getAssetRoot(), 'arc-knowledge');
 const MAX_HITS = 3;            // 最多注入块数
 const MAX_BLOCK_CHARS = 320;   // 每块注入截断长度（控制 token）
 const EMB_MODEL = 'BAAI/bge-m3';              // SiliconFlow embedding 模型
-const EMB_CACHE_PATH = path.join(__dirname, '..', 'voice', 'cache', 'kb_embeddings.json');
+// 嵌入缓存放 assets（基础包无 voice 目录也要能写）；assets 在打包态=resources/assets 可写
+const EMB_CACHE_PATH = path.join(getAssetRoot(), 'kb_embeddings.json');
 const EMB_TIMEOUT_MS = 15000;
 
 let blocksCache = null; // 启动时加载一次，重启刷新（资料库静态，无需热更新）

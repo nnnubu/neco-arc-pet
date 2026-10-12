@@ -9,6 +9,8 @@
  *   applyPetScale()    应用缩放（窗口 resize 后底部中心对齐）
  */
 window.SpriteCore = (() => {
+  // 资源根目录（打包态=resources/assets）：素材路径动态化，开发态回退 ../assets
+  let ASSET_ROOT = '../assets';
   const SPRITE = {
     groups: ['standing', 'standing_left', 'walking_left', 'walking_right', 'running', 'backflip', 'kick', 'thinking', 'wine', 'wine_2',
       'smug', 'tongue', 'push', 'star', 'pose1', 'hide', 'pout', 'lie', 'turn_left', 'turn_right'],
@@ -273,7 +275,7 @@ window.SpriteCore = (() => {
     if (!dyn) { spriteBackToIdle(); return; }
     const texs = [];
     for (let i = 1; i <= dyn.frames; i++) {
-      texs.push(await PIXI.Assets.load(`../assets/sprite/big_actions/${name}/${i}.png`));
+      texs.push(await PIXI.Assets.load(`${ASSET_ROOT}/sprite/big_actions/${name}/${i}.png`));
     }
     const s = new PIXI.AnimatedSprite(texs);
     s._frameFiles = Array.from({ length: dyn.frames }, (_, i) => i + 1); // 1..frames（bbox 查询用）
@@ -528,6 +530,8 @@ window.SpriteCore = (() => {
   }
 
   async function initSprite() {
+    // 资源根目录（打包态=resources/assets）：素材路径动态化，开发态回退 ../assets
+    try { ASSET_ROOT = (await window.pet.getAssetRoot()) || ASSET_ROOT; } catch (e) {}
     // 加载动作帧 alpha 包围盒（命中检测用；失败则穿透功能禁用，不影响其他功能）
     try { frameBBox = await window.pet.getFrameBBox(); } catch (e) { frameBBox = null; }
     app.stage.removeChildren();
@@ -540,7 +544,7 @@ window.SpriteCore = (() => {
         return f;
       })();
       for (const f of useFrames) {
-        texs.push(await PIXI.Assets.load(`../assets/sprite/animations/${g}/${f}.png`));
+        texs.push(await PIXI.Assets.load(`${ASSET_ROOT}/sprite/animations/${g}/${f}.png`));
       }
       const s = new PIXI.AnimatedSprite(texs);
       s._frameFiles = useFrames; // 纹理数组索引 → 文件名（命中检测 bbox 查询用）
@@ -580,7 +584,7 @@ window.SpriteCore = (() => {
         if (BIG_ACTIONS[a.name]) continue;
         const texs = [];
         for (let i = 1; i <= a.frames; i++) {
-          texs.push(await PIXI.Assets.load(`../assets/sprite/animations/${a.name}/${i}.png`));
+          texs.push(await PIXI.Assets.load(`${ASSET_ROOT}/sprite/animations/${a.name}/${i}.png`));
         }
         const s = new PIXI.AnimatedSprite(texs);
         s._frameFiles = Array.from({ length: a.frames }, (_, i) => i + 1); // 1..frames（bbox 查询用）
@@ -634,7 +638,7 @@ window.SpriteCore = (() => {
         const ba = dynamicActionsMap[bn];
         if (!ba) continue;
         for (let i = 1; i <= ba.frames; i++) {
-          PIXI.Assets.load(`../assets/sprite/big_actions/${bn}/${i}.png`).catch(() => {});
+          PIXI.Assets.load(`${ASSET_ROOT}/sprite/big_actions/${bn}/${i}.png`).catch(() => {});
         }
       }
     } catch (e) {

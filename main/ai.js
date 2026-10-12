@@ -5,6 +5,7 @@
 //   3. 内置默认值
 const fs = require('fs');
 const path = require('path');
+const { getAssetRoot } = require('./paths');
 
 // ── .env 读取（手写解析，不依赖第三方库）──
 function loadEnv() {
@@ -49,7 +50,7 @@ const DEFAULT_SYSTEM_PROMPT = [
 const PROACTIVE_DEFAULT_PROMPT = '以猫姬（Neco Arc）身份主动找人类搭一句话：从猫姬自己的世界观里挑话题开口——例如猫王国“伟大猫咪村”的日常、真祖爱尔奎特/月姬世界里的趣事、猫咪村伙伴（知得留老师、其他猫变种）的小故事、炫耀自己的招式/必杀技、或对人类世界的喵式吐槽；简短一句（15~40字），直接输出台词不要解释、不要提问刚才聊过的事。';
 
 // ── 运行期 AI 配置（内存动态，面板保存即更新）──
-const AI_CONFIG_PATH = path.join(__dirname, '..', 'assets', 'ai-config.json');
+const AI_CONFIG_PATH = path.join(getAssetRoot(), 'ai-config.json');
 
 function loadAiConfigFile() {
   try { return JSON.parse(fs.readFileSync(AI_CONFIG_PATH, 'utf8')); } catch { return {}; }
@@ -126,8 +127,8 @@ function updateAiConfig(cfg) {
 function defaultSystemPrompt() { return DEFAULT_SYSTEM_PROMPT; }
 
 // ── AI 问答缓存（同问同答：同一问题返回同一回答，语音缓存也可命中）──
-// 存 voice/ai_cache.json（不提交 git）；key 规范化后与语音缓存口径一致
-const CACHE_PATH = path.join(__dirname, '..', 'voice', 'ai_cache.json');
+// 存 assets/ai_cache.json（不提交 git；放 assets 而非 voice——基础包无语音目录也要能写缓存）
+const CACHE_PATH = path.join(getAssetRoot(), 'ai_cache.json');
 const CACHE_MAX = 200;
 
 function loadAiCache() {

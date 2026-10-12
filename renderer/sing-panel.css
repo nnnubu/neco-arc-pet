@@ -440,3 +440,16 @@ body { display: flex; flex-direction: column; height: 100vh; }
 .hitem .play:hover { background: rgba(255, 95, 109, 0.65); box-shadow: 0 0 12px rgba(255, 95, 109, 0.4); }
 .hitem .play:active { transform: scale(0.88); }
 .hempty { color: var(--txt3); text-align: center; padding: 12px 0; }
+
+/* 无语音扩展包引导横幅 */
+.nv-banner {
+  margin: 8px 12px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: rgba(255, 107, 107, 0.14);
+  border: 1px solid rgba(255, 107, 107, 0.45);
+  color: #ffd9d9;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.nv-banner.hidden { display: none; }

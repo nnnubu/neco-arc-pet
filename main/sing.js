@@ -9,6 +9,7 @@ const { getWin } = require('./window');
 const { getLyrics, parseLrc } = require('./lyric');
 const { getSingPanelWin, consumePanelLrc } = require('./sing-panel');
 const { getChatWin } = require('./chat');
+const { resolveVoiceEnv, NO_VOICE_MSG } = require('./paths');
 
 let singProc = null; // 防重入：一次只翻唱一首
 
@@ -31,8 +32,11 @@ function startSing(songPath) {
   if (!fs.existsSync(p)) { broadcast('sing-error', '找不到文件: ' + p); return; }
   if (singProc) { broadcast('sing-error', '正在翻唱中，请稍候再试'); return; }
 
-  const py = path.join(__dirname, '..', 'voice-env310', 'Scripts', 'python.exe');
-  const script = path.join(__dirname, '..', 'voice', 'sing.py');
+  // 语音引擎探测：语音扩展包解压到程序根目录后自动可用；无引擎则给出安装引导
+  const env = resolveVoiceEnv();
+  if (!env) { broadcast('sing-error', NO_VOICE_MSG); return; }
+  const py = env.py;
+  const script = path.join(env.voiceDir, 'sing.py');
   // TTS 面板"应用到翻唱"：音高偏移/音色贴合传给 sing.py（情绪/声线是 CosyVoice 源头参数，
   // 翻唱直接 RVC 变声不适用，只有 f0/index_rate 生效）
   const args = [script, p];
@@ -45,9 +49,9 @@ function startSing(songPath) {
     }
   } catch (e) {}
   // stderr 进日志文件（GPU 加载日志量大，管道消费不及时会卡死进程）
-  const logFile = fs.openSync(path.join(__dirname, '..', 'voice', 'sing.log'), 'a');
+  const logFile = fs.openSync(path.join(env.voiceDir, 'sing.log'), 'a');
   // windowsHide: true 防止 python 弹出黑框抢焦点
-  singProc = spawn(py, args, { cwd: path.join(__dirname, '..', 'voice'), stdio: ['ignore', 'pipe', logFile], windowsHide: true });
+  singProc = spawn(py, args, { cwd: env.voiceDir, stdio: ['ignore', 'pipe', logFile], windowsHide: true });
 
   let buf = '';
   singProc.stdout.on('data', (chunk) => {

@@ -40,6 +40,13 @@ assets/ai-config.json
 # AI 问答缓存
 voice/ai_cache.json
 
+# AI 问答缓存迁移（基础包无 voice 目录，缓存放 assets；运行时派生不入库）
+assets/ai_cache.json
+assets/kb_embeddings.json
+
+# TTS 面板配置（本地保留不入库）
+assets/tts-config.json
+
 # 翻唱产物（大体积 wav，物理保留不入库）
 voice/sing_output/
 _调试文件/

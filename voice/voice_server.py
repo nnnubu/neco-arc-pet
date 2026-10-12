@@ -67,7 +67,10 @@ COSY_MODEL = 'FunAudioLLM/CosyVoice2-0.5B'
 
 
 def _load_api_key():
-    """从项目根 .env 读取 LLM_API_KEY（SiliconFlow，TTS 与 LLM 共用）"""
+    """读取 LLM_API_KEY（SiliconFlow，TTS 与 LLM 共用）。来源优先级：
+    1. 程序根 .env 的 LLM_API_KEY（开发态/旧配置）
+    2. assets/ai-config.json 的 apiKey（总面板 AI 设置保存的密钥；打包态无 .env 时兜底）
+    """
     env_path = os.path.join(os.path.dirname(BASE_DIR), '.env')
     try:
         with open(env_path, encoding='utf-8') as f:
@@ -77,6 +80,21 @@ def _load_api_key():
                     return line.split('=', 1)[1].strip().strip('"').strip("'")
     except Exception:
         pass
+    # 打包态兜底：读 assets/ai-config.json（与 main/ai.js 同一配置文件）
+    # 开发态/语音包在程序根：程序根/assets；便携打包态：程序根/resources/assets
+    for ai_cfg in (
+        os.path.join(os.path.dirname(BASE_DIR), 'assets', 'ai-config.json'),
+        os.path.join(os.path.dirname(BASE_DIR), 'resources', 'assets', 'ai-config.json'),
+    ):
+        try:
+            with open(ai_cfg, encoding='utf-8') as f:
+                import json
+                data = json.load(f)
+                key = data.get('apiKey') or ''
+                if str(key).strip():
+                    return str(key).strip()
+        except Exception:
+            pass
     return ''
 
 

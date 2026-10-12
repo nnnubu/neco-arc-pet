@@ -10,6 +10,8 @@ contextBridge.exposeInMainWorld('singPanelApi', {
   minimize: () => ipcRenderer.send('sing-panel-minimize'),
   close: () => ipcRenderer.send('sing-panel-close'),
   getHistory: () => ipcRenderer.invoke('sing-panel-history'),
+  // 语音引擎状态（无语音扩展包时面板显示安装引导）
+  getEngine: () => ipcRenderer.invoke('sing-panel-engine'),
   // 拖拽文件取真实路径：sandbox 渲染进程里 File.path 不可用，必须走 webUtils.getPathForFile
   getPathForFile: (file) => (file ? webUtils.getPathForFile(file) : ''),
   // 歌词文件：点击选择 / 拖拽上报（song=当前播放歌名，用于绑定；空路径 = 清空）

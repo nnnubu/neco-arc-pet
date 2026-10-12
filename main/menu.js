@@ -8,9 +8,10 @@ const { getWin } = require('./window');
 const { getLyricsByTitle } = require('./lyric');
 const { broadcast } = require('./sing');
 const { openModule } = require('./master-panel');
+const { getAssetRoot, getVoiceRoot } = require('./paths');
 
 // 用户配置文件（随机播放等参数，用户可在菜单「设置」中调整，持久化）
-const CONFIG_PATH = path.join(__dirname, '..', 'assets', 'user-config.json');
+const CONFIG_PATH = path.join(getAssetRoot(), 'user-config.json');
 // 随机动作间隔：区间 [minSec, maxSec] 秒内随机取值（原 intervalSec 固定值迁移兼容）
 const DEFAULT_CONFIG = { randomAction: { enabled: true, intervalMin: 10, intervalMax: 30, intervalSec: 15 } };
 
@@ -41,7 +42,7 @@ function saveConfig(c) {
 // 读取迁移动作注册表（assets/sprite/actions.json，含 cn 中文名 / cat 类别）
 function loadActions() {
   try {
-    const p = path.join(__dirname, '..', 'assets', 'sprite', 'actions.json');
+    const p = path.join(getAssetRoot(), 'sprite', 'actions.json');
     return JSON.parse(fs.readFileSync(p, 'utf8'));
   } catch (e) {
     return [];
@@ -94,7 +95,7 @@ function registerMenuIpc() {
   ipcMain.handle('get-actions', () => {
     const acts = loadActions();
     try {
-      fs.appendFileSync(path.join(__dirname, '..', 'voice', 'actions.log'),
+      fs.appendFileSync(path.join(getVoiceRoot(), 'actions.log'),
         `${new Date().toISOString()} get-actions: ${acts.length} 个动作\n`);
     } catch {}
     return acts;
@@ -113,7 +114,7 @@ function registerMenuIpc() {
       }, 12000);
     } else if (action === 'SING_DIR') {
       // 「打开翻唱文件夹」：资源管理器打开 voice/sing_output
-      const dir = path.join(__dirname, '..', 'voice', 'sing_output');
+      const dir = path.join(getVoiceRoot(), 'sing_output');
       if (fs.existsSync(dir)) shell.openPath(dir);
     } else if (action === 'MASTER') {
       // 「总面板」：统一入口，默认对话模块
@@ -136,7 +137,7 @@ function registerMenuIpc() {
     } else if (typeof action === 'string' && action.startsWith('sing:')) {
       // 菜单「翻唱历史」点击某首歌：立即播放（无歌词也能播），歌词搜到后异步补发
       const name = action.slice(5);
-      const dir = path.join(__dirname, '..', 'voice', 'sing_output', name);
+      const dir = path.join(getVoiceRoot(), 'sing_output', name);
       try {
         const full = fs.readdirSync(dir).find((f) => f.endsWith('_猫姬翻唱.wav'));
         if (full) {

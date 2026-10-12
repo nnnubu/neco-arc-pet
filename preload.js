@@ -80,6 +80,8 @@ contextBridge.exposeInMainWorld('pet', {
   openSingDir: (dir) => ipcRenderer.send('open-sing-dir', dir),
   // 打开对话窗口（右键菜单「说句话…」→ 主进程）
   openChat: () => ipcRenderer.send('chat-open'),
+  // 资源根目录（打包态=resources/assets，开发态=项目根/assets）：渲染层素材/配置统一由此解析
+  getAssetRoot: () => ipcRenderer.invoke('get-asset-root'),
   // 独立气泡窗口：透明置顶穿透，跟随桌宠左/右侧显示对话文字（不遮 arc）
   bubbleShow: (text, facing) => ipcRenderer.send('bubble-show', String(text || ''), facing >= 0 ? 1 : -1),
   bubbleHide: () => ipcRenderer.send('bubble-hide'),
