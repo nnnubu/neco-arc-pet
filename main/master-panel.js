@@ -412,14 +412,27 @@ function startVoiceUpgrade(zipPath) {
       broadcastUpgrade({ state: 'unpacking', done, total, stage });
     }, 400);
     console.log('[voice-upgrade] 解压语音扩展包 ->', appRoot, '(zip 条目', total, ')');
-    execFile('tar', ['-xf', zipPath, '-C', appRoot], { windowsHide: true, timeout: 15 * 60 * 1000 }, (err) => {
+    // 低优先级解压：4GB 级 zip（2.5 万+ 文件）解压很吃磁盘/CPU，start /low 降低对其他进程的影响
+    // tar 是 Windows 10+ 自带，支持 zip
+    const child = spawn('cmd', ['/c', 'start', '', '/low', '/wait', 'tar', '-xf', zipPath, '-C', appRoot], { windowsHide: true });
+    const killTmr = setTimeout(() => { try { child.kill(); } catch (e) {} }, 15 * 60 * 1000);
+    child.on('error', (err) => {
+      clearTimeout(killTmr);
       upgrading = false;
       if (upgradePoll) { clearInterval(upgradePoll); upgradePoll = null; }
-      broadcastUpgrade({ state: err ? 'error' : 'done', error: err ? String(err.message) : '' });
-      if (err) {
-        console.error('[voice-upgrade] 解压失败:', err.message);
+      broadcastUpgrade({ state: 'error', error: String(err.message) });
+      console.error('[voice-upgrade] 解压启动失败:', err.message);
+    });
+    child.on('close', (code) => {
+      clearTimeout(killTmr);
+      upgrading = false;
+      if (upgradePoll) { clearInterval(upgradePoll); upgradePoll = null; }
+      if (code !== 0) {
+        broadcastUpgrade({ state: 'error', error: 'tar 解压退出码 ' + code });
+        console.error('[voice-upgrade] 解压失败: 退出码', code);
         return;
       }
+      broadcastUpgrade({ state: 'done' });
       // 自动重启：重启后探测到语音包，侧边栏出现翻唱/语音合成
       const { app } = require('electron');
       setTimeout(() => { app.relaunch(); app.exit(0); }, 800);

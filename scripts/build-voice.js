@@ -30,8 +30,19 @@ for (const d of ['voice', 'voice-env310']) {
   if (!fs.existsSync(path.join(root, d))) fail(`✗ 缺少 ${d}\\ 目录——语音扩展包需在已装语音引擎的开发目录生成`, 10);
 }
 
-log('正在打包语音扩展包（voice + voice-env310，约 3.8GB，需几分钟）…', 30);
-try { sh(`tar -a -c -f "${zip}" voice voice-env310`); } catch (e) { fail('✗ 打包失败：' + String(e.message).split('\n')[0], 30); }
+// 打包排除：用户作品（翻唱/语音合成输出）与运行时缓存/日志不进语音扩展包，
+// 否则会把开发者的个人作品发给所有用户，且白白增大包体
+const EXCLUDES = [
+  'voice/sing_output',  // 翻唱输出（用户作品）
+  'voice/tts_output',   // 语音合成输出（用户作品）
+  'voice/cache',        // 运行时缓存
+  'voice/tmp', 'voice/output', 'voice/__pycache__',
+  'voice/*.log', 'voice/ai_cache.json', 'voice/actions.log',
+];
+const exArgs = EXCLUDES.map((p) => `--exclude="${p}"`).join(' ');
+
+log('正在打包语音扩展包（voice 引擎 + voice-env310，已排除翻唱/语音输出与缓存，约 4GB，需几分钟）…', 30);
+try { sh(`tar -a -c ${exArgs} -f "${zip}" voice voice-env310`); } catch (e) { fail('✗ 打包失败：' + String(e.message).split('\n')[0], 30); }
 
 const sizeMB = Math.round(fs.statSync(zip).size / 1048576);
 log(`✓ 完成：NecoArc-语音扩展包.zip ${sizeMB} MB → 发布包目录`, 100);
