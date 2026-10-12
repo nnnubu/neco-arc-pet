@@ -172,3 +172,54 @@ body {
 }
 .up-uninstall-busy[hidden] { display: none; }
 .spin.small { width: 22px; height: 22px; border-width: 2px; }
+/* 自绘确认模态（统一深色玻璃风格） */
+.up-modal {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 11, 18, 0.62);
+  backdrop-filter: blur(3px);
+  z-index: 50;
+}
+.up-modal[hidden] { display: none; }
+.up-modal-box {
+  width: 340px;
+  max-width: calc(100% - 32px);
+  padding: 20px 18px 16px;
+  border-radius: 14px;
+  background: linear-gradient(170deg, #1f2233, #171926);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.45);
+  text-align: center;
+}
+.up-modal-txt {
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--txt);
+  margin-bottom: 16px;
+}
+.up-modal-btns { display: flex; justify-content: center; gap: 10px; }
+.up-modal-ok, .up-modal-cancel {
+  min-width: 88px;
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: background 0.16s var(--ease), border-color 0.16s var(--ease), transform 0.12s var(--ease);
+}
+.up-modal-ok {
+  color: #ffb0b6;
+  background: rgba(255, 95, 109, 0.16);
+  border: 1px solid rgba(255, 95, 109, 0.42);
+}
+.up-modal-ok:hover { background: rgba(255, 95, 109, 0.28); border-color: rgba(255, 95, 109, 0.62); }
+.up-modal-cancel {
+  color: var(--txt2);
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+.up-modal-cancel:hover { background: rgba(255, 255, 255, 0.14); }
+.up-modal-ok:active, .up-modal-cancel:active { transform: scale(0.96); }

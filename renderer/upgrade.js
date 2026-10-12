@@ -1,6 +1,8 @@
 // 语音升级小窗：选框（点击选择/拖拽 zip）→ 安装进度条 + 分阶段文案 → 完成自动重启
 (function () {
   const { t } = window.NECO_I18N;
+  // 必须显式 init 拉取语言表——否则 state.dict 一直为空，t() 全部返回键名
+  window.NECO_I18N.init();
   const upDrop = document.getElementById('upDrop');
   const upDropIc = document.getElementById('upDropIc');
   const upDropHint = document.getElementById('upDropHint');
@@ -25,6 +27,15 @@
   function applyTitle() {
     upTitle.textContent = mode === 'manage' ? t('upgradeTitleInstalled') : t('upgradeTitle');
   }
+  // 阶段/状态文案：记录当前 stage，语言表就绪或切换时重刷（dict 未就绪时 t() 会返回键名）
+  let stageTxt = '';
+  function applyStage() {
+    if (stageTxt) upStage.textContent = stageTxt;
+  }
+  function setStage(keyOrText) {
+    stageTxt = t(keyOrText);
+    upStage.textContent = stageTxt;
+  }
   // 打开时按语音包状态切换界面：无语音=安装引导；有语音=卸载管理（互斥）
   window.masterApi.getVoiceStatus().then((s) => {
     mode = s && s.hasVoice ? 'manage' : 'install';
@@ -34,21 +45,35 @@
     upErr.hidden = true;
     applyTitle();
   });
-  window.addEventListener('i18n-change', applyTitle);
+  window.addEventListener('i18n-change', () => { applyTitle(); applyStage(); });
 
-  // 卸载：二次确认（会删引擎与环境，保留已生成作品）→ 主进程删除并自动重启
-  btnUninstall.addEventListener('click', () => {
+  // 自绘确认模态（不用原生 window.confirm——样式无法统一）
+  const upModal = document.getElementById('upModal');
+  const upModalTxt = document.getElementById('upModalTxt');
+  const upModalOk = document.getElementById('upModalOk');
+  const upModalCancel = document.getElementById('upModalCancel');
+  function askUninstall() {
+    upModalTxt.textContent = t('upgradeUninstallConfirm');
+    upModal.hidden = false;
+  }
+  upModalOk.addEventListener('click', () => {
     if (uninstalling) return;
-    if (!window.confirm(t('upgradeUninstallConfirm'))) return;
+    upModal.hidden = true;
     uninstalling = true;
     btnUninstall.hidden = true;
     upUninstallBusy.hidden = false;
     upUninstallTxt.textContent = t('upgradeUninstalling');
     window.masterApi.uninstallVoice();
   });
+  upModalCancel.addEventListener('click', () => { upModal.hidden = true; });
+  // 卸载按钮：先弹自绘确认
+  btnUninstall.addEventListener('click', () => {
+    if (uninstalling) return;
+    askUninstall();
+  });
 
   function setBusy(pct) {
-    // 选框转为"安装中"状态（转圈 + 百分比；拿不到分母时显示 …）
+    // 选框整体转为"安装中"状态（转圈 + 百分比），并禁用点击（不能用 hidden——display:flex 会覆盖）
     upDrop.style.pointerEvents = 'none';
     upDrop.classList.add('busy');
     upDropIc.hidden = true;
@@ -59,16 +84,6 @@
   function setPct(pct) {
     // 底部进度条旁的数字百分比（与选框同步）
     upPct.textContent = (pct != null ? Math.round(pct) + '%' : '');
-  }
-
-  function setBusy(pct) {
-    // 选框整体转为"安装中"状态（转圈 + 百分比），并禁用点击（不能用 hidden——display:flex 会覆盖）
-    upDrop.style.pointerEvents = 'none';
-    upDrop.classList.add('busy');
-    upDropIc.hidden = true;
-    upDropHint.hidden = true;
-    upDropBusy.hidden = false;
-    upDropPct.textContent = (pct != null ? Math.round(pct) + '%' : '…');
   }
   function resetDrop() {
     upDrop.style.pointerEvents = '';
@@ -98,24 +113,24 @@
         setPct(null);
       }
       const map = { 1: t('upgradeStage1'), 2: t('upgradeStage2'), 3: t('upgradeStage3') };
-      upStage.textContent = map[s.stage || 1] || '';
+      setStage(map[s.stage || 1] || '');
     } else if (s.state === 'done') {
       upFill.style.width = '100%';
       upFill.classList.remove('indet');
-      upStage.textContent = t('upgradeStageDone');
+      setStage('upgradeStageDone');
       setBusy(100);
       setPct(100);
     } else if (s.state === 'uninstalling') {
       // 卸载中：进度条转不确定动画，禁用选框
       upProgress.hidden = false;
       upFill.classList.add('indet');
-      upStage.textContent = t('upgradeUninstalling');
+      setStage('upgradeUninstalling');
       upInstalled.hidden = true;
       setBusy(null);
       setPct(null);
     } else if (s.state === 'uninstalled') {
       upFill.classList.remove('indet');
-      upStage.textContent = t('upgradeUninstalled');
+      setStage('upgradeUninstalled');
       setBusy(100);
       setPct(100);
     } else if (s.state === 'error') {

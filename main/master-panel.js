@@ -413,8 +413,9 @@ function startVoiceUpgrade(zipPath) {
     }, 400);
     console.log('[voice-upgrade] 解压语音扩展包 ->', appRoot, '(zip 条目', total, ')');
     // 低优先级解压：4GB 级 zip（2.5 万+ 文件）解压很吃磁盘/CPU，start /low 降低对其他进程的影响
+    // /b 不新建控制台窗口 + windowsHide 隐藏 cmd 本身，避免弹出命令窗口
     // tar 是 Windows 10+ 自带，支持 zip
-    const child = spawn('cmd', ['/c', 'start', '', '/low', '/wait', 'tar', '-xf', zipPath, '-C', appRoot], { windowsHide: true });
+    const child = spawn('cmd', ['/c', 'start', '', '/b', '/low', '/wait', 'tar', '-xf', zipPath, '-C', appRoot], { windowsHide: true });
     const killTmr = setTimeout(() => { try { child.kill(); } catch (e) {} }, 15 * 60 * 1000);
     child.on('error', (err) => {
       clearTimeout(killTmr);
