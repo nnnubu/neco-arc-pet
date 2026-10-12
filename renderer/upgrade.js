@@ -145,7 +145,7 @@
         btnUninstall.hidden = false;
         upUninstallBusy.hidden = true;
       }
-      const why = s.error === 'invalid' ? t('upgradeInvalid') : (s.error === 'already' ? t('upgradeAlready') : (s.error === 'not-installed' ? t('upgradeNotInstalled') : String(s.error || '')));
+      const why = s.error === 'invalid' ? t('upgradeInvalid') : (s.error === 'already' ? t('upgradeAlready') : (s.error === 'not-installed' ? t('upgradeNotInstalled') : (s.error === 'locked' ? t('upgradeUninstallLocked') : String(s.error || ''))));
       upErr.textContent = t('upgradeFail') + why;
     }
   });

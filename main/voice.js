@@ -298,6 +298,24 @@ function restartVoiceServer() {
   ensureVoiceServer();
 }
 
+// 停止语音服务并等待进程真正退出（卸载语音包前必须调用——python.exe 正在运行会锁住
+// voice-env310 目录导致删除失败 EPERM）。resolve 后进程已退出或超时（3s）兜底。
+function stopVoiceServer() {
+  return new Promise((resolve) => {
+    const p = voiceProc;
+    if (!p) { resolve(); return; }
+    let done = false;
+    const t = setTimeout(() => { done = true; resolve(); }, 3000);
+    p.once('exit', () => {
+      if (done) return;
+      clearTimeout(t); voiceProc = null; voiceReady = false; resolve();
+    });
+    try { p.kill(); } catch (e) {
+      clearTimeout(t); voiceProc = null; voiceReady = false; resolve();
+    }
+  });
+}
+
 function flushVoiceQueue() {
   while (voiceQueue.length) {
     const req = voiceQueue.shift();
@@ -415,4 +433,4 @@ function registerVoiceIpc() {
   restartVoiceTimer();
 }
 
-module.exports = { registerVoiceIpc, handleSpeakText, handleProactiveSpeak, restartProactiveTimer, restartVoiceTimer, generateTts, readTtsConfig, restartVoiceServer };
+module.exports = { registerVoiceIpc, handleSpeakText, handleProactiveSpeak, restartProactiveTimer, restartVoiceTimer, generateTts, readTtsConfig, restartVoiceServer, stopVoiceServer };

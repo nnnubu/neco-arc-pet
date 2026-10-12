@@ -445,7 +445,7 @@ function startVoiceUpgrade(zipPath) {
 // 卸载语音扩展包（发行版/开发版通用）：删 voice-env310 整个目录 + voice 目录内除作品子目录外的内容
 // 作品子目录（sing_output/tts_output）保留，避免用户已生成的翻唱/语音文件丢失；完成后自动重启回到基础包态
 let uninstalling = false;
-function startVoiceUninstall() {
+async function startVoiceUninstall() {
   if (uninstalling) return false;
   const env = resolveVoiceEnv();
   if (!env) { broadcastUpgrade({ state: 'error', error: 'not-installed' }); return false; }
@@ -454,28 +454,36 @@ function startVoiceUninstall() {
   const { app } = require('electron');
   const appRoot = env.appRoot;
   const keep = new Set(['sing_output', 'tts_output']);
-  setTimeout(() => {
-    try {
-      // 1) 删 Python 环境（大目录，异步删除避免卡 UI）
-      fs.rmSync(path.join(appRoot, 'voice-env310'), { recursive: true, force: true });
-      // 2) 删 voice 目录内除作品子目录外的引擎文件/目录（voice_server.py、models、cache、日志等）
-      const voiceDir = path.join(appRoot, 'voice');
-      if (fs.existsSync(voiceDir)) {
-        for (const e of fs.readdirSync(voiceDir, { withFileTypes: true })) {
-          if (keep.has(e.name)) continue;
-          fs.rmSync(path.join(voiceDir, e.name), { recursive: true, force: true });
-        }
+  try {
+    // 1) 先停语音服务与翻唱进程——voice-env310 的 python.exe 正在运行会锁住目录，
+    //    直接删除必然 EPERM（Permission denied），且错误消息里的路径还会出现编码乱码
+    const voice = require('./voice');
+    const sing = require('./sing');
+    await voice.stopVoiceServer();
+    await sing.stopSing();
+    await new Promise((r) => setTimeout(r, 600)); // 等句柄彻底释放
+    // 2) 删 Python 环境（大目录，用异步删除避免同步阻塞主进程 UI）
+    await fs.promises.rm(path.join(appRoot, 'voice-env310'), { recursive: true, force: true });
+    // 3) 删 voice 目录内除作品子目录外的引擎文件/目录（voice_server.py、models、cache、日志等）
+    const voiceDir = path.join(appRoot, 'voice');
+    if (fs.existsSync(voiceDir)) {
+      for (const e of await fs.promises.readdir(voiceDir, { withFileTypes: true })) {
+        if (keep.has(e.name)) continue;
+        await fs.promises.rm(path.join(voiceDir, e.name), { recursive: true, force: true });
       }
-      uninstalling = false;
-      broadcastUpgrade({ state: 'uninstalled' });
-      console.log('[voice-uninstall] 已卸载语音扩展包:', appRoot);
-      setTimeout(() => { app.relaunch(); app.exit(0); }, 800);
-    } catch (e) {
-      uninstalling = false;
-      console.error('[voice-uninstall] 卸载失败:', e.message);
-      broadcastUpgrade({ state: 'error', error: e.message });
     }
-  }, 300);
+    uninstalling = false;
+    broadcastUpgrade({ state: 'uninstalled' });
+    console.log('[voice-uninstall] 已卸载语音扩展包:', appRoot);
+    setTimeout(() => { app.relaunch(); app.exit(0); }, 800);
+  } catch (e) {
+    uninstalling = false;
+    console.error('[voice-uninstall] 卸载失败:', e.message);
+    // EPERM/EBUSY：文件被占用（还有进程没退干净）——给友好提示，不展示可能乱码的原始路径
+    const m = String(e.message || '');
+    const locked = /EPERM|EBUSY|EACCES/.test(m);
+    broadcastUpgrade({ state: 'error', error: locked ? 'locked' : m });
+  }
   return true;
 }
 

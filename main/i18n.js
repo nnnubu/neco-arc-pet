@@ -191,7 +191,7 @@ const DICT = {
     upgradeConfirmYes: '确认卸载',
     upgradeUninstallConfirm: '将删除语音引擎与运行环境，已生成的翻唱/语音文件会保留；卸载后需重启桌宠。确定继续吗？',
     upgradeUninstalling: '正在卸载…完成将自动重启', upgradeUninstalled: '卸载完成，正在重启桌宠…',
-    upgradeNotInstalled: '未安装语音扩展包',
+    upgradeNotInstalled: '未安装语音扩展包', upgradeUninstallLocked: '卸载失败：语音引擎文件被占用。请稍候片刻后重试（确保没有正在进行的语音/翻唱任务）。',
   },
   en: {
     masterTitle: 'Neco Arc Console',
@@ -368,7 +368,7 @@ const DICT = {
     upgradeConfirmYes: 'Uninstall',
     upgradeUninstallConfirm: 'This will remove the voice engine and runtime; your generated cover / TTS files will be kept. The app will restart. Continue?',
     upgradeUninstalling: 'Uninstalling… app will restart when done', upgradeUninstalled: 'Uninstalled! Restarting app…',
-    upgradeNotInstalled: 'Voice pack not installed',
+    upgradeNotInstalled: 'Voice pack not installed', upgradeUninstallLocked: 'Uninstall failed: voice engine files are in use. Please wait a moment and retry (make sure no voice / cover task is running).',
   },
 };
 

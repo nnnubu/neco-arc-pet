@@ -114,4 +114,16 @@ function registerSingIpc() {
   ipcMain.on('sing-song', (_e, songPath) => startSing(songPath));
 }
 
-module.exports = { registerSingIpc, startSing, broadcast };
+// 停止正在进行的翻唱进程（卸载语音包前调用，避免 voice-env310 文件被占用）
+function stopSing() {
+  return new Promise((resolve) => {
+    const p = singProc;
+    if (!p) { resolve(); return; }
+    let done = false;
+    const t = setTimeout(() => { done = true; resolve(); }, 3000);
+    p.once('exit', () => { if (!done) { clearTimeout(t); singProc = null; resolve(); } });
+    try { p.kill(); } catch (e) { clearTimeout(t); singProc = null; resolve(); }
+  });
+}
+
+module.exports = { registerSingIpc, startSing, broadcast, stopSing };
