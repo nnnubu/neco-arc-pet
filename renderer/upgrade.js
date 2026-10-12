@@ -94,6 +94,7 @@
   }
 
   document.getElementById('btnClose').addEventListener('click', () => window.masterApi.closeUpgradeWin());
+  document.getElementById('btnMin').addEventListener('click', () => window.masterApi.minUpgradeWin());
 
   window.masterApi.onVoiceUpgrade((s) => {
     if (!s) return;

@@ -244,6 +244,8 @@ function registerMasterPanelIpc() {
 ipcMain.handle('app-is-dev', () => !app.isPackaged);
 ipcMain.on('dev-build', (_e, kind) => startDevBuild(String(kind || '')));
 ipcMain.on('build-win-close', () => { if (buildWin && !buildWin.isDestroyed()) buildWin.close(); });
+ipcMain.on('build-win-min', () => { if (buildWin && !buildWin.isDestroyed()) buildWin.minimize(); });
+ipcMain.on('upgrade-win-min', () => { if (upgradeWin && !upgradeWin.isDestroyed()) upgradeWin.minimize(); });
 }
 
 // 打包状态（顶层作用域：进度小窗标题 + 失败日志摘要）
@@ -302,14 +304,14 @@ function ensureBuildWin() {
   const bw = masterWin && !masterWin.isDestroyed() ? masterWin.getBounds() : null;
   buildWin = new BrowserWindow({
     width: 500,
-    height: 400,
+    height: 240,
     x: bw ? Math.round(bw.x + (bw.width - 500) / 2) : undefined,
-    y: bw ? Math.round(bw.y + (bw.height - 400) / 2) : undefined,
+    y: bw ? Math.round(bw.y + (bw.height - 240) / 2) : undefined,
     frame: false,
     transparent: false,
     backgroundColor: '#12131f',
     resizable: false,
-    minimizable: false,
+    minimizable: true,
     maximizable: false,
     fullscreenable: false,
     skipTaskbar: false,
@@ -340,7 +342,7 @@ function ensureUpgradeWin() {
     transparent: false,
     backgroundColor: '#12131f',
     resizable: false,
-    minimizable: false,
+    minimizable: true,
     maximizable: false,
     fullscreenable: false,
     skipTaskbar: false,

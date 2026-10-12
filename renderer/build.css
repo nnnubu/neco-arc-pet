@@ -22,6 +22,7 @@ body {
 .bd { display: flex; flex-direction: column; height: 100%; padding: 16px 18px; }
 
 #bdHead {
+  -webkit-app-region: drag;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -36,7 +37,8 @@ body {
   background-clip: text;
   -webkit-text-fill-color: transparent;
 }
-#bdClose {
+.bd-btns { display: flex; gap: 6px; -webkit-app-region: no-drag; }
+#bdMin, #bdClose {
   width: 26px;
   height: 26px;
   border: none;
@@ -48,6 +50,7 @@ body {
   cursor: pointer;
   transition: background 0.15s var(--ease), color 0.15s var(--ease);
 }
+#bdMin:hover { background: rgba(255, 255, 255, 0.16); color: #fff; }
 #bdClose:hover { background: rgba(255, 95, 109, 0.2); color: #fff; }
 
 .bd-stage {

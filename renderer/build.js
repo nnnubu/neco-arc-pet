@@ -12,6 +12,7 @@
   window.addEventListener('i18n-change', applyTitle);
 
   document.getElementById('bdClose').addEventListener('click', () => window.masterApi.closeBuildWin());
+  document.getElementById('bdMin').addEventListener('click', () => window.masterApi.minBuildWin());
 
   window.masterApi.onDevBuild((s) => {
     if (!s || !s.t) return;

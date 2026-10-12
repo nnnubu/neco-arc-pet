@@ -9,13 +9,17 @@
   <div class="bd">
     <div id="bdHead">
       <span id="bdTitle">生成基础包</span>
-      <button id="bdClose" title="关闭" data-i18n-title="btnClose">✕</button>
+      <div class="bd-btns">
+        <button id="bdMin" title="最小化" data-i18n-title="btnMin">—</button>
+        <button id="bdClose" title="关闭" data-i18n-title="btnClose">✕</button>
+      </div>
     </div>
     <div id="bdStage" class="bd-stage">准备中…</div>
     <div class="bd-bar"><div id="bdFill"></div></div>
     <div id="bdPct" class="bd-pct">0%</div>
     <div id="bdLog" class="bd-log" hidden></div>
   </div>
+  <script src="i18n.js"></script>
   <script src="build.js"></script>
 </body>
 </html>
