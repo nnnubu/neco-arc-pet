@@ -94,33 +94,55 @@ html, body {
   padding: 12px 10px;
   overflow-y: auto;
 }
-/* 开发者工具：仅开发版显示（一键生成发布包） */
+/* 开发者工具：仅开发版显示（一键生成发布包）——与侧边栏导航/底部按钮统一语言 */
 #devTools {
   flex: none;
   display: flex;
   flex-direction: column;
   gap: 7px;
-  padding: 10px 12px 4px;
+  padding: 10px 12px 6px;
   border-top: 1px solid var(--line);
 }
 #devTools[hidden] { display: none; }
-.dev-row { display: flex; gap: 6px; }
+.dev-row { display: flex; gap: 7px; }
 .dev-row button {
   flex: 1;
-  height: 28px;
-  border: none;
-  border-radius: 8px;
-  background: rgba(64, 150, 255, 0.14);
-  color: #a8cfff;
+  height: 32px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--txt2);
   font-size: 12px;
-  letter-spacing: 0.5px;
+  font-weight: 600;
+  letter-spacing: 1px;
   cursor: pointer;
-  transition: background 0.15s var(--ease), color 0.15s var(--ease), transform 0.1s var(--ease);
+  transition: background 0.16s var(--ease), color 0.16s var(--ease), border-color 0.16s var(--ease),
+              box-shadow 0.16s var(--ease), transform 0.1s var(--ease);
   -webkit-app-region: no-drag;
 }
-.dev-row button:hover { background: rgba(64, 150, 255, 0.28); color: #fff; }
+.dev-row button:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.18);
+}
 .dev-row button:active { transform: scale(0.95); }
-.dev-row button:disabled { opacity: 0.55; cursor: default; transform: none; }
+.dev-row button:disabled {
+  opacity: 0.5;
+  cursor: default;
+  transform: none;
+  box-shadow: none;
+}
+/* 打包进行中：按钮保持可见并带上进度呼吸感 */
+.dev-row button.busy {
+  border-color: rgba(255, 208, 77, 0.45);
+  color: #ffd04d;
+  background: rgba(255, 208, 77, 0.1);
+  animation: devPulse 1.6s var(--ease) infinite;
+}
+@keyframes devPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 208, 77, 0); }
+  50% { box-shadow: 0 0 12px 0 rgba(255, 208, 77, 0.22); }
+}
 .dev-status {
   min-height: 14px;
   font-size: 10.5px;

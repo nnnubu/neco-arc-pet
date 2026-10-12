@@ -59,12 +59,22 @@ const btnDevVoice = document.getElementById('btnDevVoice');
 function devState(txt, cls) {
   devStatus.textContent = txt;
   devStatus.className = 'dev-status' + (cls ? ' ' + cls : '');
-  if (cls === 'busy') { btnDevBasic.disabled = true; btnDevVoice.disabled = true; }
-  else { btnDevBasic.disabled = false; btnDevVoice.disabled = false; }
+  const busyAll = (cls === 'busy');
+  btnDevBasic.disabled = busyAll;
+  btnDevVoice.disabled = busyAll;
+  if (!busyAll) {
+    btnDevBasic.classList.remove('busy');
+    btnDevVoice.classList.remove('busy');
+  }
+}
+function markBusy(btn) {
+  btnDevBasic.classList.remove('busy');
+  btnDevVoice.classList.remove('busy');
+  if (btn) btn.classList.add('busy');
 }
 window.masterApi.isDev().then((dev) => { if (dev) devTools.hidden = false; });
-btnDevBasic.addEventListener('click', () => { devState('正在构建基础包（约 1~3 分钟）…', 'busy'); window.masterApi.devBuild('basic'); });
-btnDevVoice.addEventListener('click', () => { devState('正在打包语音扩展包（约 3.8GB，需几分钟）…', 'busy'); window.masterApi.devBuild('voice'); });
+btnDevBasic.addEventListener('click', () => { markBusy(btnDevBasic); devState('正在构建基础包（约 1~3 分钟）…', 'busy'); window.masterApi.devBuild('basic'); });
+btnDevVoice.addEventListener('click', () => { markBusy(btnDevVoice); devState('正在打包语音扩展包（约 3.8GB，需几分钟）…', 'busy'); window.masterApi.devBuild('voice'); });
 window.masterApi.onDevBuild((s) => {
   if (!s || !s.t) return;
   if (/完成|✓/.test(s.t)) devState(s.t, 'ok');
