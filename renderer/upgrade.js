@@ -1,5 +1,6 @@
 // 语音升级小窗：选框（点击选择/拖拽 zip）→ 安装进度条 + 分阶段文案 → 完成自动重启
 (function () {
+  const { t } = window.NECO_I18N;
   const upDrop = document.getElementById('upDrop');
   const upDropIc = document.getElementById('upDropIc');
   const upDropHint = document.getElementById('upDropHint');
@@ -19,21 +20,21 @@
   let installing = false;
   let uninstalling = false;
 
-  // 打开时按语音包状态切换界面：无语音=安装引导；有语音=卸载管理
+  // 当前界面模式：install=安装引导 / manage=卸载管理（语言切换时重设标题）
+  let mode = 'install';
+  function applyTitle() {
+    upTitle.textContent = mode === 'manage' ? t('upgradeTitleInstalled') : t('upgradeTitle');
+  }
+  // 打开时按语音包状态切换界面：无语音=安装引导；有语音=卸载管理（互斥）
   window.masterApi.getVoiceStatus().then((s) => {
-    if (s && s.hasVoice) {
-      upDrop.hidden = true;
-      upProgress.hidden = true;
-      upInstalled.hidden = false;
-      upTitle.textContent = t('upgradeTitleInstalled');
-      upTitle.dataset.i18n = 'upgradeTitleInstalled';
-      upErr.hidden = true;
-    } else {
-      upInstalled.hidden = true;
-      upDrop.hidden = false;
-      upTitle.textContent = t('upgradeTitle');
-    }
+    mode = s && s.hasVoice ? 'manage' : 'install';
+    upDrop.hidden = mode !== 'install';
+    upProgress.hidden = true;
+    upInstalled.hidden = mode !== 'manage';
+    upErr.hidden = true;
+    applyTitle();
   });
+  window.addEventListener('i18n-change', applyTitle);
 
   // 卸载：二次确认（会删引擎与环境，保留已生成作品）→ 主进程删除并自动重启
   btnUninstall.addEventListener('click', () => {

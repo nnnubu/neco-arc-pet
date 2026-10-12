@@ -55,6 +55,8 @@ body {
   cursor: pointer;
   transition: border-color 0.15s var(--ease), background 0.15s var(--ease);
 }
+/* hidden 属性会被上面的显式 display:flex 覆盖，必须单独声明（同侧边栏 nav-item 的坑） */
+.up-drop[hidden] { display: none; }
 .up-drop:hover, .up-drop.drag {
   border-color: #ffd04d;
   background: rgba(255, 208, 77, 0.07);
