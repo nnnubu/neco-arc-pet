@@ -163,7 +163,10 @@ function showLyricWindow(lyrics, title) {
         sandbox: true,
       },
     });
-    lyricWin.setAlwaysOnTop(true, 'screen-saver');
+    // 层级用 floating（低于桌宠的 screen-saver）：两个窗口同为 screen-saver 时按显示先后排 Z 序，
+    // 歌词窗口后显示会压到桌宠上面，鼠标点击被歌词窗口拦截 → "arc 跑到歌词上后点不到拖不动"。
+    // floating 仍高于普通应用窗口（歌词照常可见），但桌宠永远在歌词之上，arc 始终可点可拖。
+    lyricWin.setAlwaysOnTop(true, 'floating');
     lyricWin.loadFile(path.join(__dirname, '..', 'renderer', 'lyric.html'));
     // loadFile 异步：必须等渲染层加载完成再发歌词数据，否则首帧数据丢失
     lyricWin.webContents.once('did-finish-load', () => {
