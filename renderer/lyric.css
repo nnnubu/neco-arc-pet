@@ -30,14 +30,15 @@ html, body {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-/* 句切换渐变过渡：淡出/淡入（JS 控制 opacity + transform） */
-#prev, #cur, #next {
+/* 句切换渐变过渡：淡出/淡入（JS 控制 opacity + transform）。文本区=拖动把手（cursor:move） */
+#prev, #cur, #next, #title {
   font-family: "Microsoft YaHei", sans-serif;
   white-space: nowrap;
   max-width: 94%;
   overflow: hidden;
   text-overflow: ellipsis;
   transition: opacity 0.28s ease, transform 0.28s ease;
+  cursor: move;
 }
 #prev, #next {
   font-size: 15px;

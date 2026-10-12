@@ -119,11 +119,14 @@
   });
 
   // JS 拖动歌词窗口（替代 -webkit-app-region:drag：drag 区域会吞右键/滚轮）
+  // 只有按住歌词文本/标题（拖动把手）才拖动；透明/留白区鼠标穿透到下层（不挡下层操作）
   let dragging = false;
   document.addEventListener('mousedown', (e) => {
     if (e.button !== 0) return;
     if (e.target.closest('#lyricClose')) return; // 关闭按钮不触发拖动
     if (e.target.closest('#controls')) return;   // 进度条/控制按钮不触发拖动
+    if (e.target.closest('#lyricLock')) return;  // 锁按钮不触发拖动
+    if (!(e.target.closest('#prev') || e.target.closest('#cur') || e.target.closest('#next') || e.target.closest('#title'))) return; // 仅文本/标题区可拖动
     dragging = true;
     window.lyricApi.dragStart({ sx: e.screenX, sy: e.screenY });
     e.preventDefault();
@@ -173,13 +176,13 @@
     lastMoveTarget = target;
     // 锁按钮永远可点（锁定态也能解锁）
     if (target.closest('#lyricLock')) { setIgnore(false); return; }
-    if (locked) { setIgnore(true); return; } // 锁定态：其余全部穿透
+    if (locked) { setIgnore(true); return; } // 锁定态：除锁按钮外全部穿透（不可拖不可缩放）
     // 解锁态：控件区（上一首/暂停/下一首/进度条/关闭）→ 拦截，可点击
     if (target.closest('#controls') || target.closest('#lyricClose')) { setIgnore(false); return; }
-    // 歌词文字区（prev/cur/next）→ 穿透，不挡下层
-    if (target.closest('#prev') || target.closest('#cur') || target.closest('#next')) { setIgnore(true); return; }
-    // 其余（标题/留白）→ 拦截，可拖动窗口/滚轮缩放
-    setIgnore(false);
+    // 歌词文本/标题区 → 拦截：作为拖动把手 + 滚轮缩放
+    if (target.closest('#prev') || target.closest('#cur') || target.closest('#next') || target.closest('#title')) { setIgnore(false); return; }
+    // 其余透明/留白 → 穿透到下层（点击透传，不挡下层窗口操作）
+    setIgnore(true);
   }
   function setLocked(v) {
     locked = v;
@@ -195,8 +198,8 @@
     e.stopPropagation();
     setLocked(!locked);
   });
-  // 初始默认解锁（可拖动可操作；点锁按钮进入锁定透传模式）
-  setIgnore(false);
+  // 初始默认解锁（可操作；点锁按钮进入锁定透传模式）。透明/留白区默认穿透到下层
+  setIgnore(true);
   document.addEventListener('mousemove', (e) => updateIgnore(e.target), { passive: true });
 
   function render(i) {
