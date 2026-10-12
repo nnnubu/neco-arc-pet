@@ -209,6 +209,36 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; marg
 }
 
 #btns { display: flex; gap: 7px; }
+#devTools {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+#devTools[hidden] { display: none; }
+#devTools .dev-label {
+  font-size: 11px;
+  color: var(--txt2);
+  margin-right: 2px;
+}
+#devTools button {
+  height: 24px;
+  padding: 0 10px;
+  border: none;
+  border-radius: 7px;
+  background: rgba(64, 150, 255, 0.16);
+  color: #bfdcff;
+  font-size: 11px;
+  cursor: pointer;
+  transition: background 0.15s var(--ease), color 0.15s var(--ease);
+}
+#devTools button:hover { background: rgba(64, 150, 255, 0.3); color: #fff; }
+#devTools .dev-status {
+  font-size: 11px;
+  color: var(--ok);
+  margin-left: 6px;
+  word-break: break-all;
+}
 #btns button {
   flex: 1;
   min-width: 0;

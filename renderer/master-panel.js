@@ -50,18 +50,6 @@ window.addEventListener('drop', (e) => {
   window.masterApi.openUpgradeWin();
   window.masterApi.upgradeVoiceWithPath(p);
 });
-
-// ── 开发者工具（仅开发版显示）：一键生成基础包 / 语音扩展包 ──
-window.masterApi.isDev().then((dev) => {
-  if (!dev) return;
-  document.getElementById('devTools').hidden = false;
-});
-const devStatus = document.getElementById('devStatus');
-const btnDevBasic = document.getElementById('btnDevBasic');
-const btnDevVoice = document.getElementById('btnDevVoice');
-btnDevBasic.addEventListener('click', () => { devStatus.textContent = '正在构建基础包…'; window.masterApi.devBuild('basic'); });
-btnDevVoice.addEventListener('click', () => { devStatus.textContent = '正在打包语音扩展包…'; window.masterApi.devBuild('voice'); });
-window.masterApi.onDevBuild((s) => { if (s && s.t) devStatus.textContent = s.t; });
 // 退出桌宠：主进程走退出动画链路（播完由桌宠渲染层发 quit 真正退出）
 document.getElementById('btnQuit').addEventListener('click', () => window.masterApi.quit());
 
