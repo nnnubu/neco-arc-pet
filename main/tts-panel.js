@@ -42,6 +42,8 @@ function loadConfig() {
 }
 
 function saveConfig(c) {
+  // 显示字段（气泡字号/颜色/歌词色）不在参数保存 payload 内 → 必须保留旧值，否则每次保存参数都会把它们重置回默认
+  const prev = loadConfig() || {};
   const next = Object.assign({}, DEFAULT_CONFIG, {
     emotion: (c && c.emotion) || 'neutral',
     f0: c && c.f0 != null ? Number(c.f0) : 0,
@@ -53,9 +55,9 @@ function saveConfig(c) {
     applyToChat: !!(c && c.applyToChat),
     applyToSing: !!(c && c.applyToSing),
     meowClips: c ? c.meowClips !== false : true,
-    bubbleFontSize: c && c.bubbleFontSize != null ? Number(c.bubbleFontSize) : 16,
-    bubbleColor: /^#[0-9a-fA-F]{6}$/.test(String((c && c.bubbleColor) || '')) ? String(c.bubbleColor) : '#ffd166',
-    lyricColor: /^#[0-9a-fA-F]{6}$/.test(String((c && c.lyricColor) || '')) ? String(c.lyricColor) : '#ffd04d',
+    bubbleFontSize: c && c.bubbleFontSize != null ? Number(c.bubbleFontSize) : (prev.bubbleFontSize != null ? Number(prev.bubbleFontSize) : 16),
+    bubbleColor: /^#[0-9a-fA-F]{6}$/.test(String((c && c.bubbleColor) || '')) ? String(c.bubbleColor) : (/^#[0-9a-fA-F]{6}$/.test(String(prev.bubbleColor || '')) ? String(prev.bubbleColor) : '#ffd166'),
+    lyricColor: /^#[0-9a-fA-F]{6}$/.test(String((c && c.lyricColor) || '')) ? String(c.lyricColor) : (/^#[0-9a-fA-F]{6}$/.test(String(prev.lyricColor || '')) ? String(prev.lyricColor) : '#ffd04d'),
   });
   try {
     fs.mkdirSync(path.dirname(CONFIG_PATH), { recursive: true });
