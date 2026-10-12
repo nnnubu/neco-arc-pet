@@ -41,7 +41,7 @@ function getVoiceRoot() {
   return path.join(getAppRoot(), 'voice');
 }
 
-// 无语音包时调用方用：统一提示文案
-const NO_VOICE_MSG = '未安装语音扩展包：请将语音扩展包解压到桌宠程序根目录后重启';
+// 无语音包时调用方用：统一提示文案（按界面语言动态取）
+function noVoiceMsg() { return require('./i18n').t('noVoiceMsg'); }
 
-module.exports = { getAppRoot, getAssetRoot, resolveVoiceEnv, getVoiceRoot, NO_VOICE_MSG };
+module.exports = { getAppRoot, getAssetRoot, resolveVoiceEnv, getVoiceRoot, noVoiceMsg };

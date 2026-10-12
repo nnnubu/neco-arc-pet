@@ -7,7 +7,7 @@ const { spawn } = require('child_process');
 const { getWin } = require('./window');
 const { getChatWin, recordMsg } = require('./chat');
 const { askAI, getAiConfig } = require('./ai');
-const { getAssetRoot, resolveVoiceEnv, getVoiceRoot, NO_VOICE_MSG } = require('./paths');
+const { getAssetRoot, resolveVoiceEnv, getVoiceRoot, noVoiceMsg } = require('./paths');
 
 // TTS 面板参数（assets/tts-config.json）：聊天/翻唱"应用到…"开关由此读
 const TTS_CONFIG_PATH = path.join(getAssetRoot(), 'tts-config.json');
@@ -219,7 +219,7 @@ function ensureVoiceServer() {
   // 语音引擎探测（语音扩展包解压到程序根目录）：找不到 → 广播 no-voice，功能降级（聊天仍出文本）
   const env = resolveVoiceEnv();
   if (!env) {
-    broadcast('speak-state', { state: 'no-voice', error: NO_VOICE_MSG });
+    broadcast('speak-state', { state: 'no-voice', error: noVoiceMsg() });
     return;
   }
   const py = env.py;
@@ -349,7 +349,7 @@ function generateTts(text, params) {
   const t = String(text || '').replace(/[\uD800-\uDFFF]/g, '').trim();
   if (!t) return Promise.reject(new Error('文本为空'));
   // 无语音扩展包：直接拒绝并给安装引导（TTS 面板显示该错误）
-  if (!resolveVoiceEnv()) return Promise.reject(new Error(NO_VOICE_MSG));
+  if (!resolveVoiceEnv()) return Promise.reject(new Error(noVoiceMsg()));
   ensureVoiceServer();
   const id = 'tts-' + Date.now() + '-' + Math.floor(Math.random() * 1e6);
   const req = {

@@ -1,6 +1,7 @@
 // TTS 语音面板渲染：文本 → 生成语音（参数可调）→ 历史播放
 (function () {
   const $ = (s) => document.querySelector(s);
+  const { t, tFmt } = window.NECO_I18N;
   const txt = $('#txtInput');
   const btnGen = $('#btnGen');
   const statusText = $('#statusText');
@@ -26,7 +27,8 @@
 
   // ── 情绪量化：Valence-Arousal 二维模型 → 映射到 emotion + intensity（CosyVoice 情绪是文本指令，
   //    连续参数映射到最近情绪档，面板实时显示当前情绪与强度）──
-  const EMOTION_LABEL = { neutral: '平静自然', happy: '开心欢快', angry: '生气', sad: '难过', surprised: '惊讶' };
+  // 情绪标签文案按界面语言取（emoNeutral/emoHappy/emoAngry/emoSad/emoSurprised）
+  function emotionLabel(e) { return t('emo' + e.charAt(0).toUpperCase() + e.slice(1)) || e; }
   function mapEmotion(v, a) {
     const vn = v / 100, an = a / 100; // v -1..1, a 0..1
     const c01 = (x) => Math.max(0.1, Math.min(1, x));
@@ -42,8 +44,8 @@
   }
   function renderEmotionTag() {
     const m = currentEmotion();
-    emotionTag.textContent = EMOTION_LABEL[m.emotion] || m.emotion;
-    emotionIntensity.textContent = '（强度 ' + Math.round(m.intensity * 100) + '%）';
+    emotionTag.textContent = emotionLabel(m.emotion);
+    emotionIntensity.textContent = tFmt('emoIntensity', { p: Math.round(m.intensity * 100) });
   }
 
   // 文本非空才允许生成
@@ -112,7 +114,7 @@
   const voiceBtnText = $('#voiceBtnText');
   function voiceLabel(v) {
     const opt = voiceSel.querySelector(`option[value="${CSS.escape(v)}"]`);
-    return opt ? opt.textContent : '随情绪默认';
+    return opt ? opt.textContent : t('voiceDefault');
   }
   function syncVoiceBtn() {
     voiceBtnText.textContent = voiceLabel(voiceSel.value);
@@ -161,12 +163,12 @@
 
   // ── 生成 ──
   btnGen.addEventListener('click', async () => {
-    const t = txt.value.trim();
-    if (!t) return;
+    const tv = txt.value.trim();
+    if (!tv) return;
     const m = currentEmotion();
     btnGen.disabled = true;
-    statusText.textContent = '正在生成语音…';
-    const r = await window.ttsPanelApi.generate(t, {
+    statusText.textContent = t('ttsGenning');
+    const r = await window.ttsPanelApi.generate(tv, {
       f0: parseFloat(f0Slider.value),
       indexRate: parseFloat(idxSlider.value),
       emotion: m.emotion,
@@ -174,18 +176,18 @@
       intensity: m.intensity,
     });
     if (!r || !r.ok) {
-      statusText.textContent = '生成失败：' + ((r && r.error) || '未知错误');
+      statusText.textContent = t('ttsGenFail') + ((r && r.error) || t('statusUnknown'));
       btnGen.disabled = false;
       return;
     }
-    statusText.textContent = '生成完成，正在播放喵！';
+    statusText.textContent = t('ttsGenDone');
     $('#playingName').textContent = r.name || '';
     $('#playRow').classList.remove('hidden');
     btnGen.disabled = false;
     refreshHistory();
   });
   window.ttsPanelApi.onDone((r) => {
-    statusText.textContent = '生成完成，正在播放喵！';
+    statusText.textContent = t('ttsGenDone');
     if (r && r.name) {
       $('#playingName').textContent = r.name;
       $('#playRow').classList.remove('hidden');
@@ -193,7 +195,7 @@
     refreshHistory();
   });
   window.ttsPanelApi.onError((e) => {
-    statusText.textContent = '生成失败：' + (e || '未知');
+    statusText.textContent = t('ttsGenFail') + (e || t('statusUnknown'));
     btnGen.disabled = false;
   });
 
@@ -201,7 +203,7 @@
   $('#btnToggle').addEventListener('click', () => window.ttsPanelApi.toggle());
   window.ttsPanelApi.onState((s) => {
     $('#btnToggle').textContent = s === 'playing' ? '⏸' : '▶';
-    if (s === 'ended') statusText.textContent = '播放结束';
+    if (s === 'ended') statusText.textContent = t('ttsEnded');
     if (s === 'ended') setProgress(0, 0); // 播完/未播放：进度归零
   });
 
@@ -258,7 +260,7 @@
   // 歌词重开入口（与翻唱共用桌面歌词窗口）
   $('#btnLyric').addEventListener('click', () => {
     window.ttsPanelApi.showLyric().then((ok) => {
-      if (!ok) statusText.textContent = '暂无歌词可显示';
+      if (!ok) statusText.textContent = t('lyricNoLyric');
     });
   });
 
@@ -299,7 +301,7 @@
       const hist = data.history || [];
       list.innerHTML = '';
       if (!hist.length) {
-        list.innerHTML = '<div class="hempty">还没有生成记录</div>';
+        list.innerHTML = '<div class="hempty">' + t('ttsHistoryEmpty') + '</div>';
         return;
       }
       for (const h of hist) {
@@ -311,16 +313,16 @@
         const play = document.createElement('button');
         play.className = 'play';
         play.textContent = '▶';
-        play.title = '播放';
+        play.title = t('ttsPlay');
         play.addEventListener('click', async (e) => {
           e.stopPropagation();
           const r = await window.ttsPanelApi.play(h.name);
           if (r && r.ok) {
             $('#playingName').textContent = h.name;
             $('#playRow').classList.remove('hidden');
-            statusText.textContent = '正在播放…';
+            statusText.textContent = t('ttsPlaying');
           } else {
-            statusText.textContent = '播放失败：' + ((r && r.error) || '未知');
+            statusText.textContent = t('ttsPlayFail') + ((r && r.error) || t('statusUnknown'));
           }
         });
         row.appendChild(nm);
@@ -330,10 +332,23 @@
     });
   }
 
+  // 语言切换：情绪标签/声线按钮文字/历史列表刷新（data-i18n 自动应用）
+  window.addEventListener('i18n-change', () => {
+    renderEmotionTag();
+    syncVoiceBtn();
+    refreshHistory();
+    const banner = $('#noVoiceBanner');
+    if (banner && !banner.classList.contains('hidden')) {
+      window.ttsPanelApi.load().then((d) => {
+        if (d && d.noVoiceMsg) banner.textContent = '⚠ ' + d.noVoiceMsg;
+      });
+    }
+  });
+
   // 标题栏按钮
   $('#btnMin').addEventListener('click', () => window.ttsPanelApi.minimize());
   $('#btnClose').addEventListener('click', () => window.ttsPanelApi.close());
   $('#btnDir').addEventListener('click', () => window.ttsPanelApi.openDir());
 
-  init();
+  window.NECO_I18N.init().then(() => init());
 })();

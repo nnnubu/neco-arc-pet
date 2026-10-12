@@ -168,8 +168,8 @@ function registerSingPanelIpc() {
   ipcMain.handle('sing-panel-history', () => scanSingHistory());
   // 语音引擎状态：无语音扩展包时面板显示安装引导
   ipcMain.handle('sing-panel-engine', () => {
-    const { resolveVoiceEnv, NO_VOICE_MSG } = require('./paths');
-    return { voiceEngine: !!resolveVoiceEnv(), noVoiceMsg: NO_VOICE_MSG };
+    const { resolveVoiceEnv, noVoiceMsg } = require('./paths');
+    return { voiceEngine: !!resolveVoiceEnv(), noVoiceMsg: noVoiceMsg() };
   });
   // ── 桌面歌词颜色（配置化，默认当前亮黄 #ffd04d）：读写 tts-config.json（运行时 require 防循环依赖）──
   ipcMain.handle('sing-panel-get-lyric-color', () => {

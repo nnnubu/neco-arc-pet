@@ -9,7 +9,7 @@ const { getWin } = require('./window');
 const { generateTts } = require('./voice');
 const { broadcast } = require('./sing');
 const { openModule, hideMaster, minimizeMaster, getViewWebContents } = require('./master-panel');
-const { getAssetRoot, getVoiceRoot, resolveVoiceEnv, NO_VOICE_MSG } = require('./paths');
+const { getAssetRoot, getVoiceRoot, resolveVoiceEnv, noVoiceMsg } = require('./paths');
 
 let generating = false; // 防重入：一次只生成一段
 
@@ -181,7 +181,7 @@ function registerTtsPanelIpc() {
   // 面板打开：回填配置 + 历史 + 语音引擎状态（无语音包时渲染层显示安装引导）
   ipcMain.handle('tts-panel-load', () => {
     try { fs.mkdirSync(TTS_DIR, { recursive: true }); } catch (e) {}
-    return { config: loadConfig(), history: scanTtsHistory(), voiceEngine: !!resolveVoiceEnv(), noVoiceMsg: NO_VOICE_MSG };
+    return { config: loadConfig(), history: scanTtsHistory(), voiceEngine: !!resolveVoiceEnv(), noVoiceMsg: noVoiceMsg() };
   });
 
   // 保存参数配置（切换即生效）

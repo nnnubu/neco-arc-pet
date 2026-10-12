@@ -1,6 +1,7 @@
 // 翻唱面板渲染：拖拽/选择音频 → 开始翻唱 → 步骤进度 → 播放控制 + 历史列表
 (function () {
   const $ = (s) => document.querySelector(s);
+  const { t } = window.NECO_I18N;
   const drop = $('#dropZone');
   const picked = $('#picked');
   const btnStart = $('#btnStart');
@@ -30,7 +31,7 @@
   function selectFile(p) {
     currentFile = p;
     picked.style.display = 'block';
-    picked.textContent = '已选择：' + p;
+    picked.textContent = t('singPicked') + p;
     btnStart.disabled = false;
     statusText.textContent = '';
     resetSteps();
@@ -40,7 +41,7 @@
   btnStart.addEventListener('click', () => {
     if (!currentFile) return;
     window.singPanelApi.startSing(currentFile);
-    statusText.textContent = '已提交，正在处理…';
+    statusText.textContent = t('singSubmitted');
     btnStart.disabled = true; // 处理中禁止重复点击（一次只翻唱一首）
   });
 
@@ -52,7 +53,7 @@
     $('#barFill').style.width = '0%';
   }
   window.singPanelApi.onProgress((s) => {
-    statusText.textContent = { separate: '正在分离人声…', convert: '正在变声成喵声…', mix: '正在混音…' }[s.stage] || '翻唱中…';
+    statusText.textContent = { separate: t('singStageSep'), convert: t('singStageCvt'), mix: t('singStageMix') }[s.stage] || t('singStageRun');
     if (s.stage === 'separate') mark('sep', 'on');
     if (s.stage === 'convert') { mark('sep', 'done'); mark('cvt', 'on'); $('#barFill').style.width = '45%'; }
     if (s.stage === 'mix') { mark('cvt', 'done'); mark('mix', 'on'); $('#barFill').style.width = '80%'; }
@@ -63,7 +64,7 @@
   window.singPanelApi.onDone((r) => {
     mark('mix', 'done');
     $('#barFill').style.width = '100%';
-    statusText.textContent = '翻唱完成，正在播放喵！';
+    statusText.textContent = t('singDone');
     btnStart.disabled = false; // 处理结束：允许再翻唱下一首
     playingName = r.full ? String(r.full).split(/[\\/]/).pop() : '';
     $('#playingName').textContent = playingName;
@@ -71,7 +72,7 @@
     refreshHistory();
   });
   window.singPanelApi.onError((e) => {
-    statusText.textContent = '翻唱失败：' + (e || '未知');
+    statusText.textContent = t('singFail') + (e || t('statusUnknown'));
     btnStart.disabled = false;
     resetSteps();
   });
@@ -89,13 +90,13 @@
   });
   window.singPanelApi.onState((s) => {
     $('#btnToggle').textContent = s === 'playing' ? '⏸' : '▶';
-    if (s === 'ended') statusText.textContent = '播放结束';
+    if (s === 'ended') statusText.textContent = t('singEnded');
   });
 
   // ── 桌面歌词重开入口（歌词窗口被关闭后可再次打开）──
   $('#btnLyric').addEventListener('click', () => {
     window.singPanelApi.showLyric().then((ok) => {
-      if (!ok) statusText.textContent = '暂无歌词可显示';
+      if (!ok) statusText.textContent = t('lyricNoLyric');
     });
   });
 
@@ -126,7 +127,7 @@
   lrcZone.addEventListener('click', () => {
     window.singPanelApi.pickLrc(currentSong()).then((r) => {
       if (r && r.ok) showLrc(r);
-      else if (r && r.error) statusText.textContent = '歌词文件读取失败：' + r.error;
+      else if (r && r.error) statusText.textContent = t('singLrcFail') + r.error;
     });
   });
   lrcZone.addEventListener('dragover', (e) => { e.preventDefault(); });
@@ -137,7 +138,7 @@
     const p = window.singPanelApi.getPathForFile(f);
     window.singPanelApi.setLrcFile(p, currentSong()).then((r) => {
       if (r && r.ok) showLrc(r);
-      else if (r && r.error) statusText.textContent = '歌词文件读取失败：' + r.error;
+      else if (r && r.error) statusText.textContent = t('singLrcFail') + r.error;
     });
   });
 
@@ -146,7 +147,7 @@
     if (!r || !r.name) return;
     $('#playingName').textContent = r.name;
     $('#playRow').classList.remove('hidden');
-    statusText.textContent = '正在播放…';
+    statusText.textContent = t('singPlaying');
   });
 
   // 歌词文件被自动清空（切歌到未绑定歌曲时）：同步取消勾选 + 隐藏选框
@@ -162,7 +163,7 @@
     window.singPanelApi.getHistory().then((hist) => {
       list.innerHTML = '';
       if (!hist || !hist.length) {
-        list.innerHTML = '<div class="hempty">还没有翻唱记录</div>';
+        list.innerHTML = '<div class="hempty">' + t('singHistoryEmpty') + '</div>';
         return;
       }
       for (const h of hist) {
@@ -174,13 +175,13 @@
         const play = document.createElement('button');
         play.className = 'play';
         play.textContent = '▶';
-        play.title = '播放';
+        play.title = t('singPlay');
         play.addEventListener('click', (e) => {
           e.stopPropagation();
           window.singPanelApi.play(h.name);
           $('#playingName').textContent = h.name;
           $('#playRow').classList.remove('hidden');
-          statusText.textContent = '正在播放…';
+          statusText.textContent = t('singPlaying');
         });
         row.appendChild(nm);
         row.appendChild(play);
@@ -206,14 +207,23 @@
   });
 
   // ── 无语音扩展包：顶部横幅引导 + 禁用开始翻唱（安装语音包后重启解锁）──
-  window.singPanelApi.getEngine().then((r) => {
-    const banner = $('#noVoiceBanner');
-    if (r && !r.voiceEngine && banner) {
-      banner.textContent = '⚠ ' + (r.noVoiceMsg || '未安装语音扩展包，翻唱不可用');
-      banner.classList.remove('hidden');
-      $('#btnStart').disabled = true;
-    }
-  });
+  function refreshNoVoiceBanner() {
+    window.singPanelApi.getEngine().then((r) => {
+      const banner = $('#noVoiceBanner');
+      if (r && !r.voiceEngine && banner) {
+        banner.textContent = '⚠ ' + (r.noVoiceMsg || t('noVoiceMsg'));
+        banner.classList.remove('hidden');
+        $('#btnStart').disabled = true;
+      }
+    });
+  }
+  refreshNoVoiceBanner();
 
+  // 语言切换：历史列表/横幅刷新（data-i18n 自动应用）
+  window.addEventListener('i18n-change', () => {
+    refreshHistory();
+    refreshNoVoiceBanner();
+  });
+  window.NECO_I18N.init();
   refreshHistory();
 })();

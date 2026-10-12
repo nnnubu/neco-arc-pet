@@ -21,3 +21,7 @@ contextBridge.exposeInMainWorld('ttsPanelApi', {
   // 进度条拖动 seek
   seek: (t) => ipcRenderer.send('tts-seek', t),
 });
+contextBridge.exposeInMainWorld('necoI18n', {
+  get: () => ipcRenderer.invoke('i18n-get'),
+  on: (cb) => ipcRenderer.on('i18n-change', (_e, lang) => cb(lang)),
+});

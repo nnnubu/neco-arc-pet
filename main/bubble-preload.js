@@ -5,3 +5,7 @@ contextBridge.exposeInMainWorld('bubbleApi', {
   onFadeOut: (cb) => ipcRenderer.on('bubble-fadeout', () => cb()),
   resizeContent: (h) => ipcRenderer.send('bubble-resize', h),
 });
+contextBridge.exposeInMainWorld('necoI18n', {
+  get: () => ipcRenderer.invoke('i18n-get'),
+  on: (cb) => ipcRenderer.on('i18n-change', (_e, lang) => cb(lang)),
+});

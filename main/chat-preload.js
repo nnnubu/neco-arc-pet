@@ -31,3 +31,7 @@ contextBridge.exposeInMainWorld('chatApi', {
   onSingPlay: (cb) => ipcRenderer.on('sing-play', (_e, r) => cb(r)),
   onSingState: (cb) => ipcRenderer.on('sing-state', (_e, s) => cb(s)),
 });
+contextBridge.exposeInMainWorld('necoI18n', {
+  get: () => ipcRenderer.invoke('i18n-get'),
+  on: (cb) => ipcRenderer.on('i18n-change', (_e, lang) => cb(lang)),
+});

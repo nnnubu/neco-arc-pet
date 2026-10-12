@@ -57,7 +57,7 @@ function registerAiConfigIpc() {
   ipcMain.handle('ai-config-test', async (_e, cfg) => {
     const { askAI } = require('./ai');
     const { apiKey, baseUrl, model, systemPrompt, temperature, maxTokens } = cfg || {};
-    if (!apiKey || !baseUrl || !model) return { ok: false, error: '请先填写密钥、接口地址和模型' };
+    if (!apiKey || !baseUrl || !model) return { ok: false, error: require('./i18n').t('msgNoAll') };
     // 临时用表单值测试：备份恢复
     const saved = getAiConfig();
     try {

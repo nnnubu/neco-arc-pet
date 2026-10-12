@@ -8,10 +8,10 @@
 <body>
   <!-- 自绘标题栏：可拖动 + 最小化/关闭 -->
   <div id="titlebar">
-    <span class="t">♪ 猫姬翻唱</span>
+    <span class="t" data-i18n="singTitle">♪ 猫姬翻唱</span>
     <div id="tbBtns">
-      <button id="btnMin" title="最小化">—</button>
-      <button id="btnClose" title="关闭">×</button>
+      <button id="btnMin" title="最小化" data-i18n-title="btnMin">—</button>
+      <button id="btnClose" title="关闭" data-i18n-title="btnClose">×</button>
     </div>
   </div>
 
@@ -19,61 +19,62 @@
   <div id="noVoiceBanner" class="nv-banner hidden"></div>
 
   <!-- 拖拽区：拖音频进来 或 点击选择 -->
-  <div id="dropZone" class="drop" title="拖拽音频文件到这里，或点击选择">
-    <div id="dropHint">拖拽音频文件到这里<br>或点击选择文件</div>
+  <div id="dropZone" class="drop" title="拖拽音频文件到这里，或点击选择" data-i18n-title="singDropTitle">
+    <div id="dropHint" data-i18n="singDropHint">拖拽音频文件到这里<br>或点击选择文件</div>
     <div id="picked"></div>
   </div>
 
   <!-- 歌词文件：勾选"使用歌词文件"后才显示歌词选框（不勾选则自动联网搜索歌词） -->
   <div id="lrcRow">
-    <label class="chk"><input type="checkbox" id="chkLrc"><span class="box"></span>使用歌词文件<span class="chk-note">（不勾选则自动联网搜索歌词）</span></label>
-    <div id="lrcZone" class="drop hidden" title="拖拽歌词文件（.lrc/.txt）到这里，或点击选择">
-      <div id="lrcHint">拖拽歌词文件（.lrc）到这里<br>或点击选择</div>
+    <label class="chk"><input type="checkbox" id="chkLrc"><span class="box"></span><span data-i18n="singUseLrc">使用歌词文件</span><span class="chk-note" data-i18n="singUseLrcNote">（不勾选则自动联网搜索歌词）</span></label>
+    <div id="lrcZone" class="drop hidden" title="拖拽歌词文件（.lrc/.txt）到这里，或点击选择" data-i18n-title="singLrcTitle">
+      <div id="lrcHint" data-i18n="singLrcHint">拖拽歌词文件（.lrc）到这里<br>或点击选择</div>
       <div id="lrcPicked"></div>
     </div>
   </div>
 
   <!-- 开始翻唱 -->
   <div id="startRow">
-    <button id="btnStart" disabled>开始翻唱</button>
+    <button id="btnStart" disabled data-i18n="singStart">开始翻唱</button>
   </div>
 
   <!-- 进度步骤 -->
   <div id="progress">
-    <div class="step" id="st-sep">分离人声</div>
-    <div class="step" id="st-cvt">变声喵声</div>
-    <div class="step" id="st-mix">混音完成</div>
+    <div class="step" id="st-sep" data-i18n="stepSep">分离人声</div>
+    <div class="step" id="st-cvt" data-i18n="stepCvt">变声喵声</div>
+    <div class="step" id="st-mix" data-i18n="stepMix">混音完成</div>
   </div>
   <div id="progressBar"><div id="barFill"></div></div>
   <div id="statusText"></div>
 
   <!-- 播放控制 -->
   <div id="playRow" class="hidden">
-    <button id="btnToggle" title="播放 / 暂停">⏸</button>
+    <button id="btnToggle" title="播放 / 暂停" data-i18n-title="singToggle">⏸</button>
     <span id="playingName"></span>
-    <button id="btnLyric" title="显示桌面歌词">♪</button>
+    <button id="btnLyric" title="显示桌面歌词" data-i18n-title="singLyric">♪</button>
   </div>
   <!-- 音量控制（始终可见） -->
   <div id="volRow">
-    <span id="volIcon" title="翻唱音量">🔊</span>
-    <input id="volSlider" type="range" min="0" max="100" step="1" value="80" title="翻唱音量">
+    <span id="volIcon" title="翻唱音量" data-i18n-title="singVolume">🔊</span>
+    <input id="volSlider" type="range" min="0" max="100" step="1" value="80" title="翻唱音量" data-i18n-title="singVolume">
     <span id="volVal">80%</span>
   </div>
 
   <!-- 显示设置：桌面歌词文本颜色（默认当前亮黄 #ffd04d，选色盘 + 一键恢复默认） -->
   <div id="lyricColorRow">
-    <span class="lcLabel">歌词颜色</span>
-    <input id="lyricColor" type="color" value="#ffd04d" title="桌面歌词文本主色">
-    <button id="btnLyricColorReset" class="mini-btn" title="恢复默认颜色（#ffd04d）">↺</button>
+    <span class="lcLabel" data-i18n="lyricColorLabel">歌词颜色</span>
+    <input id="lyricColor" type="color" value="#ffd04d" title="桌面歌词文本主色" data-i18n-title="lyricColorPick">
+    <button id="btnLyricColorReset" class="mini-btn" title="恢复默认颜色（#ffd04d）" data-i18n-title="lyricColorReset">↺</button>
   </div>
 
   <!-- 历史 -->
   <div id="historyHead">
-    <span>已翻唱</span>
-    <button id="btnDir" title="打开翻唱文件夹">📂</button>
+    <span data-i18n="singHistory">已翻唱</span>
+    <button id="btnDir" title="打开翻唱文件夹" data-i18n-title="singDir">📂</button>
   </div>
   <div id="historyList"></div>
 
+  <script src="i18n.js"></script>
   <script src="sing-panel.js"></script>
 </body>
 </html>

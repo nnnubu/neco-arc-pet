@@ -1,11 +1,21 @@
-// AI 设置面板渲染：表单回填 / 保存 / 测试连接 / 恢复默认
+// AI 设置面板渲染：表单回填 / 保存 / 测试连接 / 恢复默认 / 界面语言切换
 (function () {
   const $ = (s) => document.querySelector(s);
+  const { t } = window.NECO_I18N;
   const msg = $('#msg');
   function setMsg(text, isErr) {
     msg.textContent = text || '';
     msg.className = isErr ? 'error' : '';
   }
+
+  // 界面语言：当前语言回填下拉；切换 → 主进程保存并广播所有窗口
+  function syncLangSelect() {
+    $('#inLang').value = window.NECO_I18N.lang === 'en' ? 'en' : 'zh';
+  }
+  $('#inLang').addEventListener('change', () => {
+    setMsg('');
+    window.necoI18n.setLang($('#inLang').value);
+  });
 
   function readForm() {
     return {
@@ -65,27 +75,27 @@
   // 保存
   $('#btnSave').addEventListener('click', async () => {
     const cfg = readForm();
-    if (!cfg.model) { setMsg('请填写模型名称', true); return; }
-    if (!cfg.baseUrl) { setMsg('请填写接口地址', true); return; }
+    if (!cfg.model) { setMsg(t('msgNoModel'), true); return; }
+    if (!cfg.baseUrl) { setMsg(t('msgNoBase'), true); return; }
     $('#btnSave').disabled = true;
     const r = await window.aiConfigApi.save(cfg);
     $('#btnSave').disabled = false;
-    if (r && r.ok) setMsg('已保存并生效喵！');
-    else setMsg('保存失败：' + (r && r.error), true);
+    if (r && r.ok) setMsg(t('msgSaved'));
+    else setMsg(t('msgSaveFail') + (r && r.error), true);
   });
 
   // 测试连接：用当前表单值发一条消息（不写入配置）
   $('#btnTest').addEventListener('click', async () => {
     const cfg = readForm();
-    if (!cfg.apiKey) { setMsg('请先填写 API 密钥', true); return; }
+    if (!cfg.apiKey) { setMsg(t('msgNoKey'), true); return; }
     $('#btnTest').disabled = true;
-    $('#btnTest').textContent = '测试中…';
+    $('#btnTest').textContent = t('btnTesting');
     setMsg('');
     const r = await window.aiConfigApi.test(cfg);
     $('#btnTest').disabled = false;
-    $('#btnTest').textContent = '测试连接';
-    if (r && r.ok) setMsg('连接成功，猫姬回复：' + r.reply);
-    else setMsg('连接失败：' + (r && r.error), true);
+    $('#btnTest').textContent = t('btnTest');
+    if (r && r.ok) setMsg(t('msgConnOk') + r.reply);
+    else setMsg(t('msgConnFail') + (r && r.error), true);
   });
 
   // 立即主动说一句：无需等定时，直接触发（配置未开启也可用于验收）
@@ -94,18 +104,22 @@
     setMsg('');
     const r = await window.aiConfigApi.proactiveNow();
     $('#btnProactiveNow').disabled = false;
-    if (r && r.ok) setMsg('已让猫姬开口喵（看桌宠气泡/听声音）');
-    else setMsg('触发失败：' + (r && r.error), true);
+    if (r && r.ok) setMsg(t('msgProactiveDone'));
+    else setMsg(t('msgProactiveFail') + (r && r.error), true);
   });
 
   // 恢复默认提示词
   $('#btnDefault').addEventListener('click', async () => {
     const d = await window.aiConfigApi.defaultPrompt();
     $('#inPrompt').value = d || '';
-    setMsg('提示词已恢复为猫姬默认人设');
+    setMsg(t('msgDefaultRestored'));
   });
 
   // 标题栏按钮
   $('#btnMin').addEventListener('click', () => window.aiConfigApi.minimize());
   $('#btnClose').addEventListener('click', () => window.aiConfigApi.close());
+
+  // 语言切换后同步下拉（其他窗口广播回来也会触发）
+  window.addEventListener('i18n-change', syncLangSelect);
+  window.NECO_I18N.init().then(syncLangSelect);
 })();

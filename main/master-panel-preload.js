@@ -9,3 +9,7 @@ contextBridge.exposeInMainWorld('masterApi', {
   onActive: (cb) => ipcRenderer.on('master-active', (_e, name) => cb(name)),
   onMaxState: (cb) => ipcRenderer.on('master-max-state', (_e, maxed) => cb(!!maxed)),
 });
+contextBridge.exposeInMainWorld('necoI18n', {
+  get: () => ipcRenderer.invoke('i18n-get'),
+  on: (cb) => ipcRenderer.on('i18n-change', (_e, lang) => cb(lang)),
+});

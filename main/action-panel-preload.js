@@ -12,3 +12,7 @@ contextBridge.exposeInMainWorld('actionPanelApi', {
   minimize: () => ipcRenderer.send('action-panel-minimize'),
   close: () => ipcRenderer.send('action-panel-close'),
 });
+contextBridge.exposeInMainWorld('necoI18n', {
+  get: () => ipcRenderer.invoke('i18n-get'),
+  on: (cb) => ipcRenderer.on('i18n-change', (_e, lang) => cb(lang)),
+});

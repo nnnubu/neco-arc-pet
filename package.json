@@ -1,18 +1,56 @@
 {
   "name": "neco-arc-pet",
   "version": "1.0.0",
-  "description": "",
+  "description": "Neco Arc 猫姬桌宠（便携基础包，语音扩展包可选）",
   "main": "main/index.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "dist": "electron-builder --win portable"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "dependencies": {
+  "devDependencies": {
     "electron": "^44.5.1",
-    "live2dcubismcore": "^1.0.2",
-    "pixi-live2d-display": "^0.4.0",
-    "pixi.js": "^7.4.3"
+    "electron-builder": "^26.15.3"
+  },
+  "build": {
+    "appId": "com.necoarc.pet",
+    "productName": "NecoArc Pet",
+    "directories": {
+      "output": "dist",
+      "buildResources": "assets/icons"
+    },
+    "files": [
+      "main/**",
+      "renderer/**",
+      "preload.js",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "assets",
+        "to": "assets",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "asar": true,
+    "npmRebuild": false,
+    "compression": "maximum",
+    "electronDist": "node_modules/electron/dist",
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "assets/icons/arc.ico",
+      "artifactName": "NecoArc-Pet-Portable-${version}.${ext}"
+    }
   }
 }

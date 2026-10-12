@@ -10,12 +10,12 @@
     <!-- 自绘标题栏：可拖动 + 右侧按钮 -->
     <div id="titlebar">
       <span class="dot"></span>
-      <span id="titleText">猫姬对话</span>
+      <span id="titleText" data-i18n="chatTitle">猫姬对话</span>
       <div id="tbBtns">
-        <button id="tbMute" title="静音：arc 不说话（翻唱音乐不受影响）">🔊</button>
-        <button id="tbMin" title="最小化">—</button>
-        <button id="tbSing" title="打开翻唱面板">♪</button>
-        <button id="tbClose" title="关闭">×</button>
+        <button id="tbMute" title="静音：arc 不说话（翻唱音乐不受影响）" data-i18n-title="tbMuteOff">🔊</button>
+        <button id="tbMin" title="最小化" data-i18n-title="btnMin">—</button>
+        <button id="tbSing" title="打开翻唱面板" data-i18n-title="singOpenTitle">♪</button>
+        <button id="tbClose" title="关闭" data-i18n-title="btnClose">×</button>
       </div>
     </div>
 
@@ -33,13 +33,14 @@
 
     <!-- 输入行：联网搜索开关 + 输入框 + 发送 + 回答缓存开关 + 清空缓存 -->
     <div id="inputRow">
-      <button id="btnSearch" title="联网搜索（回答最新/实时信息时自动搜索增强）">🌐</button>
-      <input id="chatInput" type="text" placeholder="说点什么喵…" maxlength="200" />
-      <button id="btnSend">发送</button>
-      <button id="btnCache" title="缓存：开=同问同答直接返回，关=每次重新生成">💾</button>
-      <button id="btnCacheClear" title="清空回答缓存">🗑️</button>
+      <button id="btnSearch" title="联网搜索（回答最新/实时信息时自动搜索增强）" data-i18n-title="searchTitleOff">🌐</button>
+      <input id="chatInput" type="text" placeholder="说点什么喵…" maxlength="200" data-i18n-ph="chatPlaceholder" />
+      <button id="btnSend" data-i18n="btnSend">发送</button>
+      <button id="btnCache" title="缓存：开=同问同答直接返回，关=每次重新生成" data-i18n-title="cacheTitleOn">💾</button>
+      <button id="btnCacheClear" title="清空回答缓存" data-i18n-title="cacheClearTitle">🗑️</button>
     </div>
   </div>
+  <script src="i18n.js"></script>
   <script src="chat.js"></script>
 </body>
 </html>

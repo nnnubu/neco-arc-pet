@@ -54,6 +54,11 @@ function getViewWebContents(name) {
   return v && v.view ? v.view.webContents : null;
 }
 
+// 全部模块 view 的 webContents（i18n 广播用）
+function getAllViewContents() {
+  return Object.keys(views).map((k) => (views[k].view ? views[k].view.webContents : null)).filter(Boolean);
+}
+
 // 包装对象：与旧 BrowserWindow 引用的最小兼容（webContents + isDestroyed）
 function wrapView(name) {
   return {
@@ -218,6 +223,7 @@ module.exports = {
   minimizeMaster,
   getMasterWin,
   getViewWebContents,
+  getAllViewContents,
   wrapView,
   registerMasterPanelIpc,
   requestQuit,

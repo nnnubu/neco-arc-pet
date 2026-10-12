@@ -3,6 +3,7 @@
  * 桌宠窗负责音频播放与透明文字逐字，本窗口只做对话交互显示 */
 (function () {
   const $ = (s) => document.querySelector(s);
+  const { t, tFmt } = window.NECO_I18N;
   const msgs = $('#chatMsgs');
   const statusEl = $('#chatStatus');
   const input = $('#chatInput');
@@ -37,7 +38,7 @@
     d.className = 'msg ' + (role === 'me' ? 'me' : 'pet');
     const r = document.createElement('span');
     r.className = 'role';
-    r.textContent = role === 'me' ? '你' : '猫姬';
+    r.textContent = role === 'me' ? t('roleMe') : t('rolePet');
     const body = document.createElement('span');
     body.textContent = text;
     d.appendChild(r);
@@ -54,7 +55,7 @@
     if (!t) return;
     addMsg('me', t);
     input.value = '';
-    setStatus(cacheEnabled ? '喵…思考中' : '喵…正在重新生成（已绕过缓存）');
+    setStatus(cacheEnabled ? window.NECO_I18N.t('statusThinking') : window.NECO_I18N.t('statusNoCache'));
     window.chatApi.sendText(t, !cacheEnabled);
   }
   $('#btnSend').addEventListener('click', () => send());
@@ -66,7 +67,7 @@
   const btnSearch = $('#btnSearch');
   function setSearchUI(on) {
     btnSearch.classList.toggle('on', !!on);
-    btnSearch.title = on ? '联网搜索：开（最新/实时问题自动搜索）' : '联网搜索：关（点击开启）';
+    btnSearch.title = on ? t('searchTitleOn') : t('searchTitleOff');
   }
   window.chatApi.searchState().then(setSearchUI);
   btnSearch.addEventListener('click', async () => {
@@ -80,7 +81,7 @@
   function setCacheUI(on) {
     cacheEnabled = !!on;
     btnCache.classList.toggle('on', cacheEnabled);
-    btnCache.title = cacheEnabled ? '缓存：开（同问同答直接返回，点击关闭）' : '缓存：关（每次重新生成，点击开启）';
+    btnCache.title = cacheEnabled ? t('cacheTitleOn') : t('cacheTitleOff');
   }
   window.chatApi.cacheState().then(setCacheUI);
   btnCache.addEventListener('click', async () => {
@@ -91,7 +92,7 @@
   // ── 清空回答缓存（🗑️）：一键清空，状态行提示清理条数 ──
   $('#btnCacheClear').addEventListener('click', async () => {
     const n = await window.chatApi.cacheClear();
-    setStatus('已清空回答缓存' + (typeof n === 'number' ? `（${n} 条）` : '') + '喵');
+    setStatus(typeof n === 'number' ? tFmt('statusClearedN', { n }) : t('statusCleared'));
     setTimeout(() => setStatus(''), 2500);
   });
 
@@ -100,7 +101,7 @@
   function setMuteUI(m) {
     btnMute.textContent = m ? '🔇' : '🔊';
     btnMute.classList.toggle('on', !!m);
-    btnMute.title = m ? '静音中：arc 不说话（翻唱不受影响）' : '静音：点击让 arc 不说话（翻唱不受影响）';
+    btnMute.title = m ? t('tbMuteOn') : t('tbMuteOff');
   }
   window.chatApi.muteState().then(setMuteUI);
   btnMute.addEventListener('click', async () => {
@@ -113,16 +114,16 @@
     if (!s) return;
     if (s.state === 'ai') {
       // 提问开始：立即创建猫姬回复气泡（后续流式 token 累积写入；之前 lastPetMsg 为 null 导致回复不显示）
-      setStatus('喵…思考中');
+      setStatus(t('statusThinking'));
       replyText = '';
       addMsg('pet', '');
       lastPetMsg.lastChild.textContent = '';
     }
-    else if (s.state === 'generating') { setStatus('生成语音中…'); }
+    else if (s.state === 'generating') { setStatus(t('statusGenerating')); }
     else if (s.state === 'done') { setStatus(''); }
     else if (s.state === 'error') {
-      setStatus('出错了：' + (s.error || '未知'), true);
-      addMsg('pet', '出错了喵：' + (s.error || '未知'));
+      setStatus(t('statusError') + (s.error || t('statusUnknown')), true);
+      addMsg('pet', t('statusError') + (s.error || t('statusUnknown')));
     }
   });
 
@@ -141,26 +142,26 @@
   // ── 翻唱：进度 / 完成 / 错误 / 播放 ──
   window.chatApi.onSingProgress((s) => {
     if (!s) return;
-    setStatus({ separate: '正在分离人声…', convert: '正在变声成喵声…', mix: '正在混音…' }[s.stage] || '翻唱中…');
+    setStatus({ separate: t('statusSeparate'), convert: t('statusConvert'), mix: t('statusMix') }[s.stage] || t('statusSinging'));
   });
   window.chatApi.onSingDone((r) => {
-    setStatus('翻唱完成喵！');
+    setStatus(t('statusSingDone'));
     const full = String((r && r.full) || '').replace(/\\/g, '/');
     const vocal = String((r && r.vocal) || '').replace(/\\/g, '/');
-    addMsg('pet', '唱好啦喵！\n完整版：' + full + '\n人声轨：' + vocal);
+    addMsg('pet', tFmt('msgSingDone', { full, vocal }));
     if (r && r.full) {
-      setPlayingName(String(r.name || '').replace(/\\/g, '/').split('/').pop() || '翻唱');
+      setPlayingName(String(r.name || '').replace(/\\/g, '/').split('/').pop() || t('fallbackSingName'));
       setPlayingUI(true); // 乐观：翻唱完成会自动播放
     }
   });
   window.chatApi.onSingError((e) => {
-    setStatus('翻唱失败：' + String(e || '未知'), true);
-    addMsg('pet', '翻唱失败喵：' + String(e || '未知'));
+    setStatus(t('statusSingFail') + String(e || t('statusUnknown')), true);
+    addMsg('pet', t('msgSingFail') + String(e || t('statusUnknown')));
   });
   // 菜单历史 / 翻唱面板历史：开始播放某首歌
   window.chatApi.onSingPlay((r) => {
     if (!r || !r.full) return;
-    setStatus('播放翻唱…');
+    setStatus(t('statusPlayingSing'));
     const nm = String(r.name || '');
     setPlayingName(nm);
     setPlayingUI(true); // 乐观：收到播放指令即视为播放中（即使 sing-state 广播延迟/丢失，按钮也先显示 ⏸）
@@ -170,8 +171,8 @@
   window.chatApi.onSingState((s) => {
     if (!s) return;
     if (s === 'playing') { setPlayingUI(true); setStatus(''); }
-    else if (s === 'paused') { setPlayingUI(false); setStatus('已暂停'); }
-    else if (s === 'ended') { setPlayingUI(false); setStatus('播放结束'); np.classList.add('hidden'); }
+    else if (s === 'paused') { setPlayingUI(false); setStatus(t('statusPaused')); }
+    else if (s === 'ended') { setPlayingUI(false); setStatus(t('statusEnded')); np.classList.add('hidden'); }
   });
 
   // ── 翻唱面板入口 / 最小化 / 关闭（播放控制统一在翻唱面板）──
@@ -188,4 +189,12 @@
     if (!Array.isArray(list)) return;
     for (const m of list) addMsg(m.role === 'me' ? 'me' : 'pet', m.text);
   });
+
+  // 语言切换后刷新所有 title（NECO_I18N 自动处理 data-i18n；动态按钮 title 需手动）
+  window.addEventListener('i18n-change', () => {
+    setSearchUI(btnSearch.classList.contains('on'));
+    setCacheUI(cacheEnabled);
+    setMuteUI(btnMute.classList.contains('on'));
+  });
+  window.NECO_I18N.init();
 })();

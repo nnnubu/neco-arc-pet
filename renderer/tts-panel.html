@@ -8,10 +8,10 @@
 <body>
   <!-- 自绘标题栏：可拖动 + 最小化/关闭 -->
   <div id="titlebar">
-    <span class="t">🎙 猫姬语音</span>
+    <span class="t" data-i18n="ttsTitle">🎙 猫姬语音</span>
     <div id="tbBtns">
-      <button id="btnMin" title="最小化">—</button>
-      <button id="btnClose" title="关闭">×</button>
+      <button id="btnMin" title="最小化" data-i18n-title="btnMin">—</button>
+      <button id="btnClose" title="关闭" data-i18n-title="btnClose">×</button>
     </div>
   </div>
 
@@ -21,121 +21,121 @@
     <div id="noVoiceBanner" class="nv-banner hidden"></div>
     <!-- 文本输入：弹性占满剩余高度，消除输入区下方空白 -->
     <div id="inputSec">
-      <div class="sec-title">朗读文本</div>
-      <textarea id="txtInput" placeholder="输入想让猫姬朗读的文本…" spellcheck="false"></textarea>
+      <div class="sec-title" data-i18n="ttsSecText">朗读文本</div>
+      <textarea id="txtInput" placeholder="输入想让猫姬朗读的文本…" spellcheck="false" data-i18n-ph="ttsTextPh"></textarea>
     </div>
 
     <!-- 音色参数：预设快捷 + f0/index/情绪 -->
     <div id="paramSec">
-      <div class="sec-title">音色参数</div>
+      <div class="sec-title" data-i18n="ttsSecVoice">音色参数</div>
       <div id="presetRow">
-        <button class="preset" data-f0="0" data-idx="0.75">V0 基线</button>
-        <button class="preset" data-f0="1" data-idx="0.75">V1 升1半音</button>
-        <button class="preset" data-f0="2" data-idx="0.75">V2 升2半音</button>
-        <button class="preset" data-f0="0" data-idx="0.90">V3 贴模型</button>
-        <button class="preset" data-f0="1" data-idx="0.90">V4 组合</button>
+        <button class="preset" data-f0="0" data-idx="0.75" data-i18n="presetV0">V0 基线</button>
+        <button class="preset" data-f0="1" data-idx="0.75" data-i18n="presetV1">V1 升1半音</button>
+        <button class="preset" data-f0="2" data-idx="0.75" data-i18n="presetV2">V2 升2半音</button>
+        <button class="preset" data-f0="0" data-idx="0.90" data-i18n="presetV3">V3 贴模型</button>
+        <button class="preset" data-f0="1" data-idx="0.90" data-i18n="presetV4">V4 组合</button>
       </div>
       <div class="param-row">
-        <span class="pname">音高偏移</span>
+        <span class="pname" data-i18n="ttsF0">音高偏移</span>
         <input id="f0Slider" type="range" min="-3" max="3" step="0.5" value="0">
         <span class="pval" id="f0Val">0</span>
-        <span class="punit">半音</span>
+        <span class="punit" data-i18n="ttsSemitone">半音</span>
       </div>
       <div class="param-row">
-        <span class="pname">音色贴合</span>
+        <span class="pname" data-i18n="ttsIdx">音色贴合</span>
         <input id="idxSlider" type="range" min="0.5" max="1" step="0.05" value="0.75">
         <span class="pval" id="idxVal">0.75</span>
       </div>
       <div class="param-row">
-        <span class="pname">声线</span>
+        <span class="pname" data-i18n="ttsVoice">声线</span>
         <!-- 自定义下拉（深色玻璃，与面板统一；隐藏的原生 select 仅作 value 载体） -->
         <div class="cs" id="voiceWrap">
-          <button type="button" class="cs-btn" id="voiceBtn" title="选择声线">
+          <button type="button" class="cs-btn" id="voiceBtn" title="选择声线" data-i18n-title="voicePickTitle">
             <span id="voiceBtnText">随情绪默认</span>
             <span class="cs-arrow"></span>
           </button>
           <div class="cs-list hidden" id="voiceList">
-            <div class="cs-item" data-v="">随情绪默认</div>
-            <div class="cs-group">女声</div>
-            <div class="cs-item" data-v="anna">anna（沉稳）</div>
-            <div class="cs-item" data-v="bella">bella（热情）</div>
-            <div class="cs-item" data-v="claire">claire（温柔）</div>
-            <div class="cs-item" data-v="diana">diana（开朗）</div>
-            <div class="cs-group">男声</div>
-            <div class="cs-item" data-v="alex">alex（沉稳）</div>
-            <div class="cs-item" data-v="benjamin">benjamin（深沉）</div>
-            <div class="cs-item" data-v="charles">charles（磁性）</div>
-            <div class="cs-item" data-v="david">david（开朗）</div>
+            <div class="cs-item" data-v="" data-i18n="voiceDefault">随情绪默认</div>
+            <div class="cs-group" data-i18n="voiceF">女声</div>
+            <div class="cs-item" data-v="anna" data-i18n="vAnna">anna（沉稳）</div>
+            <div class="cs-item" data-v="bella" data-i18n="vBella">bella（热情）</div>
+            <div class="cs-item" data-v="claire" data-i18n="vClaire">claire（温柔）</div>
+            <div class="cs-item" data-v="diana" data-i18n="vDiana">diana（开朗）</div>
+            <div class="cs-group" data-i18n="voiceM">男声</div>
+            <div class="cs-item" data-v="alex" data-i18n="vAlex">alex（沉稳）</div>
+            <div class="cs-item" data-v="benjamin" data-i18n="vBenjamin">benjamin（深沉）</div>
+            <div class="cs-item" data-v="charles" data-i18n="vCharles">charles（磁性）</div>
+            <div class="cs-item" data-v="david" data-i18n="vDavid">david（开朗）</div>
           </div>
         </div>
         <select id="voiceSel" class="hidden-sel" tabindex="-1" aria-hidden="true">
-          <option value="">随情绪默认</option>
+          <option value="" data-i18n="voiceDefault">随情绪默认</option>
           <optgroup label="女声">
-            <option value="anna">anna（沉稳）</option>
-            <option value="bella">bella（热情）</option>
-            <option value="claire">claire（温柔）</option>
-            <option value="diana">diana（开朗）</option>
+            <option value="anna" data-i18n="vAnna">anna（沉稳）</option>
+            <option value="bella" data-i18n="vBella">bella（热情）</option>
+            <option value="claire" data-i18n="vClaire">claire（温柔）</option>
+            <option value="diana" data-i18n="vDiana">diana（开朗）</option>
           </optgroup>
           <optgroup label="男声">
-            <option value="alex">alex（沉稳）</option>
-            <option value="benjamin">benjamin（深沉）</option>
-            <option value="charles">charles（磁性）</option>
-            <option value="david">david（开朗）</option>
+            <option value="alex" data-i18n="vAlex">alex（沉稳）</option>
+            <option value="benjamin" data-i18n="vBenjamin">benjamin（深沉）</option>
+            <option value="charles" data-i18n="vCharles">charles（磁性）</option>
+            <option value="david" data-i18n="vDavid">david（开朗）</option>
           </optgroup>
         </select>
       </div>
       <div class="param-row">
-        <span class="pname">情绪</span>
+        <span class="pname" data-i18n="ttsEmotion">情绪</span>
         <span class="emotion-tag" id="emotionTag">平静自然</span>
         <span class="pval" id="emotionIntensity">（强度 50%）</span>
       </div>
       <div class="param-row">
-        <span class="pname">效价</span>
-        <span class="edge-label">难过</span>
+        <span class="pname" data-i18n="ttsValence">效价</span>
+        <span class="edge-label" data-i18n="emoSad">难过</span>
         <input id="valenceSlider" type="range" min="-100" max="100" step="1" value="0">
-        <span class="edge-label">开心</span>
+        <span class="edge-label" data-i18n="emoHappy">开心</span>
         <span class="pval" id="valenceVal">0</span>
       </div>
       <div class="param-row">
-        <span class="pname">活跃度</span>
-        <span class="edge-label">平静</span>
+        <span class="pname" data-i18n="ttsArousal">活跃度</span>
+        <span class="edge-label" data-i18n="emoCalm">平静</span>
         <input id="arousalSlider" type="range" min="0" max="100" step="1" value="50">
-        <span class="edge-label">激烈</span>
+        <span class="edge-label" data-i18n="emoIntense">激烈</span>
         <span class="pval" id="arousalVal">50</span>
       </div>
       <div class="apply-row">
-        <label class="chk"><input type="checkbox" id="chkApplyChat"><span class="box"></span>应用到聊天语音</label>
-        <label class="chk"><input type="checkbox" id="chkApplySing"><span class="box"></span>应用到翻唱（音高/贴合）</label>
-        <label class="chk"><input type="checkbox" id="chkMeowClips" checked><span class="box"></span>口癖用原版音频</label>
+        <label class="chk"><input type="checkbox" id="chkApplyChat"><span class="box"></span><span data-i18n="ttsApplyChat">应用到聊天语音</span></label>
+        <label class="chk"><input type="checkbox" id="chkApplySing"><span class="box"></span><span data-i18n="ttsApplySing">应用到翻唱（音高/贴合）</span></label>
+        <label class="chk"><input type="checkbox" id="chkMeowClips" checked><span class="box"></span><span data-i18n="ttsMeow">口癖用原版音频</span></label>
       </div>
-      <div class="sec-title">显示设置</div>
+      <div class="sec-title" data-i18n="ttsSecDisp">显示设置</div>
       <div class="param-row">
-        <span class="pname">气泡字号</span>
+        <span class="pname" data-i18n="ttsBubbleSize">气泡字号</span>
         <input id="bubbleSizeSlider" type="range" min="12" max="50" step="1" value="16">
         <span class="pval" id="bubbleSizeVal">16</span>
         <span class="punit">px</span>
       </div>
       <div class="param-row">
-        <span class="pname">气泡颜色</span>
+        <span class="pname" data-i18n="ttsBubbleColor">气泡颜色</span>
         <input id="bubbleColor" type="color" value="#ffd166">
-        <button id="btnBubbleColorReset" class="mini-btn" title="恢复默认颜色（#ffd166）">↺</button>
-        <span class="pval">文字主色</span>
+        <button id="btnBubbleColorReset" class="mini-btn" title="恢复默认颜色（#ffd166）" data-i18n-title="bubbleColorReset">↺</button>
+        <span class="pval" data-i18n="ttsTextMain">文字主色</span>
       </div>
     </div>
 
     <!-- 生成 -->
     <div id="genRow">
-      <button id="btnGen" disabled>生成语音</button>
+      <button id="btnGen" disabled data-i18n="ttsGen">生成语音</button>
     </div>
     <div id="statusText"></div>
 
     <!-- 播放控制 -->
     <div id="playRow" class="hidden">
-      <button id="btnToggle" title="播放 / 暂停">⏸</button>
+      <button id="btnToggle" title="播放 / 暂停" data-i18n-title="ttsToggle">⏸</button>
       <span id="playingName"></span>
-      <button id="btnLyric" title="显示桌面歌词">♪</button>
+      <button id="btnLyric" title="显示桌面歌词" data-i18n-title="ttsLyric">♪</button>
       <!-- 播放进度条（仿歌词窗口样式，可拖动 seek） -->
-      <div id="progWrap" title="拖动可跳转进度">
+      <div id="progWrap" title="拖动可跳转进度" data-i18n-title="progSeek">
         <div id="prog"><div id="progFill"></div><div id="progKnob"></div></div>
         <span id="progTime">00:00 / 00:00</span>
       </div>
@@ -143,12 +143,13 @@
 
     <!-- 历史 -->
     <div id="historyHead">
-      <span>已生成</span>
-      <button id="btnDir" title="打开语音文件夹">📂</button>
+      <span data-i18n="ttsHistory">已生成</span>
+      <button id="btnDir" title="打开语音文件夹" data-i18n-title="ttsDir">📂</button>
     </div>
     <div id="historyList"></div>
   </div>
 
+  <script src="i18n.js"></script>
   <script src="tts-panel.js"></script>
 </body>
 </html>

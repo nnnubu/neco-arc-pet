@@ -15,6 +15,7 @@ const { registerBubbleIpc } = require('./bubble');
 const { registerActionPanelIpc } = require('./action-panel');
 const { registerTtsPanelIpc } = require('./tts-panel');
 const { registerMasterPanelIpc, openModule, requestQuit, isQuitting } = require('./master-panel');
+const { registerI18nIpc, t } = require('./i18n');
 
 // 透明窗口加固：Windows 上硬件加速合成偶发导致透明失效变白底，
 // 禁用后透明层走软件合成，稳定可靠（像素动画性能不受影响）
@@ -44,6 +45,8 @@ app.whenReady().then(() => {
   registerActionPanelIpc();
   registerTtsPanelIpc();
   registerMasterPanelIpc();
+  // i18n：渲染层拉取语言表 + 设置语言广播；语言切换时重建托盘菜单
+  registerI18nIpc(() => { setupTray(); });
   // 独立气泡窗口：跟随桌宠窗口定位（透传 window 模块的 getWin）
   registerBubbleIpc(() => require('./window').getWin());
   // 渲染层退出动画（act_49 火箭飞出）播完由渲染层发 quit → 真正退出
@@ -61,21 +64,23 @@ app.whenReady().then(() => {
 });
 
 // 托盘常驻：点击图标/「显示总面板」找回总面板；「退出桌宠」才真正退出（isQuitting 保护 window-all-closed）
+// 菜单文案按当前界面语言（i18n）构建；切换语言时重建
 let tray = null;
 function setupTray() {
   try {
+    if (tray && !tray.isDestroyed()) tray.destroy();
     // 托盘图标：arc 头部透明图标（32px 源图，Windows 按 DPI 自动选用 16/32），比全身帧缩 16px 更清晰
     const icon = nativeImage.createFromPath(
       path.join(getAssetRoot(), 'icons', 'arc-head-32.png')
     );
     if (icon.isEmpty()) throw new Error('托盘图标加载为空');
     tray = new Tray(icon);
-    tray.setToolTip('猫姬桌宠');
+    tray.setToolTip(t('trayTip'));
     tray.on('click', () => openModule('chat'));
     tray.setContextMenu(Menu.buildFromTemplate([
-      { label: '显示总面板', click: () => openModule('chat') },
+      { label: t('trayShow'), click: () => openModule('chat') },
       { type: 'separator' },
-      { label: '退出桌宠', click: () => requestQuit() },
+      { label: t('trayQuit'), click: () => requestQuit() },
     ]));
   } catch (e) {
     console.error('[tray] 托盘创建失败:', e.message);

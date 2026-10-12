@@ -9,3 +9,8 @@ contextBridge.exposeInMainWorld('aiConfigApi', {
   minimize: () => ipcRenderer.send('ai-config-minimize'),
   close: () => ipcRenderer.send('ai-config-close'),
 });
+contextBridge.exposeInMainWorld('necoI18n', {
+  get: () => ipcRenderer.invoke('i18n-get'),
+  on: (cb) => ipcRenderer.on('i18n-change', (_e, lang) => cb(lang)),
+  setLang: (lang) => ipcRenderer.send('i18n-set-lang', lang),
+});

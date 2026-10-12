@@ -2,6 +2,7 @@
 // 渐变：句切换淡出/淡入；句内由渲染层每帧 rAF 发来的 lyric-progress 更新 --p（已唱/未唱分界）
 (function () {
   const $ = (s) => document.querySelector(s);
+  const t = (k) => window.NECO_I18N.t(k);
   let lyrics = [];
   let curIdx = -1;
   let curEl = null;
@@ -201,6 +202,7 @@
   // 初始默认解锁（可操作；点锁按钮进入锁定透传模式）。透明/留白区默认穿透到下层
   setIgnore(true);
   document.addEventListener('mousemove', (e) => updateIgnore(e.target), { passive: true });
+  window.NECO_I18N.init();
 
   function render(i) {
     const prev = $('#prev'), cur = $('#cur'), next = $('#next');
@@ -208,7 +210,7 @@
     cur.style.setProperty('--p', '0%'); // 新句从 0 开始渐变
     if (!lyrics.length) {
       // 无歌词：显示占位（本地无 .lrc 且联网也没搜到时）
-      fadeSwap(cur, '暂无歌词');
+      fadeSwap(cur, t('lyricNoLyric'));
       fadeSwap(prev, '');
       fadeSwap(next, '');
       return;

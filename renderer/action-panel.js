@@ -2,12 +2,13 @@
 // 点击持续播放不关闭面板（便于连续测试）
 (function () {
   const $ = (s) => document.querySelector(s);
+  const { t } = window.NECO_I18N;
   const allBox = $('#all-items');
   let cfg = { randomAction: { enabled: true, intervalMin: 10, intervalMax: 30 } };
 
   // ── 动作设置区：随机表演开关 + 表演间隔区间（步进 5，范围 5-300；min≤max 自动校正）──
   function renderCfg() {
-    $('#cfgToggle').textContent = cfg.randomAction.enabled ? '开' : '关';
+    $('#cfgToggle').textContent = cfg.randomAction.enabled ? t('cfgOn') : t('cfgOff');
     $('#cfgToggle').classList.toggle('on', !!cfg.randomAction.enabled);
     $('#cfgMin').textContent = cfg.randomAction.intervalMin;
     $('#cfgMax').textContent = cfg.randomAction.intervalMax;
@@ -88,4 +89,8 @@
     renderCfg();
     bindCfg();
   });
+
+  // 语言切换：开关文案刷新（data-i18n 自动应用）
+  window.addEventListener('i18n-change', () => renderCfg());
+  window.NECO_I18N.init();
 })();

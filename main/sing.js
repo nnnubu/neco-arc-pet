@@ -9,7 +9,7 @@ const { getWin } = require('./window');
 const { getLyrics, parseLrc } = require('./lyric');
 const { getSingPanelWin, consumePanelLrc } = require('./sing-panel');
 const { getChatWin } = require('./chat');
-const { resolveVoiceEnv, NO_VOICE_MSG } = require('./paths');
+const { resolveVoiceEnv, noVoiceMsg } = require('./paths');
 
 let singProc = null; // 防重入：一次只翻唱一首
 
@@ -34,7 +34,7 @@ function startSing(songPath) {
 
   // 语音引擎探测：语音扩展包解压到程序根目录后自动可用；无引擎则给出安装引导
   const env = resolveVoiceEnv();
-  if (!env) { broadcast('sing-error', NO_VOICE_MSG); return; }
+  if (!env) { broadcast('sing-error', noVoiceMsg()); return; }
   const py = env.py;
   const script = path.join(env.voiceDir, 'sing.py');
   // TTS 面板"应用到翻唱"：音高偏移/音色贴合传给 sing.py（情绪/声线是 CosyVoice 源头参数，

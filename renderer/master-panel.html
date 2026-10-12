@@ -10,35 +10,36 @@
   <aside id="nav">
     <div id="navHead">
       <span class="logo">✦</span>
-      <span id="navTitle">猫姬控制台</span>
+      <span id="navTitle" data-i18n="masterTitle">猫姬控制台</span>
     </div>
     <div id="navItems">
-      <button class="nav-item" data-mod="chat" title="AI 对话">
-        <span class="ic">💬</span><span class="nm">对话</span>
+      <button class="nav-item" data-mod="chat" title="AI 对话" data-i18n-title="navChatTitle">
+        <span class="ic">💬</span><span class="nm" data-i18n="navChat">对话</span>
       </button>
-      <button class="nav-item" data-mod="sing" title="翻唱面板">
-        <span class="ic">🎵</span><span class="nm">翻唱</span>
+      <button class="nav-item" data-mod="sing" title="翻唱面板" data-i18n-title="navSingTitle">
+        <span class="ic">🎵</span><span class="nm" data-i18n="navSing">翻唱</span>
       </button>
-      <button class="nav-item" data-mod="tts" title="文本转语音">
-        <span class="ic">🗣️</span><span class="nm">语音合成</span>
+      <button class="nav-item" data-mod="tts" title="文本转语音" data-i18n-title="navTtsTitle">
+        <span class="ic">🗣️</span><span class="nm" data-i18n="navTts">语音合成</span>
       </button>
-      <button class="nav-item" data-mod="action" title="动作面板">
-        <span class="ic">🎬</span><span class="nm">动作</span>
+      <button class="nav-item" data-mod="action" title="动作面板" data-i18n-title="navActionTitle">
+        <span class="ic">🎬</span><span class="nm" data-i18n="navAction">动作</span>
       </button>
-      <button class="nav-item" data-mod="ai" title="AI 设置">
-        <span class="ic">⚙️</span><span class="nm">AI 设置</span>
+      <button class="nav-item" data-mod="ai" title="AI 设置" data-i18n-title="navAiTitle">
+        <span class="ic">⚙️</span><span class="nm" data-i18n="navAi">AI 设置</span>
       </button>
     </div>
     <div id="navFoot">
       <!-- 最小化/关闭由窗口右上角控制按钮承担，底部保留：最大化/还原 + 退出桌宠（文字按钮） -->
-      <button id="btnMax" title="最大化">最大化</button>
-      <button id="btnQuit" title="退出桌宠">退出桌宠</button>
+      <button id="btnMax" title="最大化"></button>
+      <button id="btnQuit" title="退出桌宠" data-i18n-title="btnQuit" data-i18n="btnQuit">退出桌宠</button>
     </div>
   </aside>
 
   <!-- 右侧内容区：WebContentsView 挂载（占位，view 叠加其上） -->
   <main id="content"></main>
 
+  <script src="i18n.js"></script>
   <script src="master-panel.js"></script>
 </body>
 </html>

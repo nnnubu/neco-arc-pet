@@ -31,3 +31,7 @@ contextBridge.exposeInMainWorld('singPanelApi', {
   // 歌词文件被自动清空（播放/切歌到未绑定歌曲时）：面板同步取消勾选
   onLrcCleared: (cb) => ipcRenderer.on('sing-panel-lrc-cleared', () => cb()),
 });
+contextBridge.exposeInMainWorld('necoI18n', {
+  get: () => ipcRenderer.invoke('i18n-get'),
+  on: (cb) => ipcRenderer.on('i18n-change', (_e, lang) => cb(lang)),
+});

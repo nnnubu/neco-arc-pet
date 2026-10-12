@@ -23,3 +23,7 @@ contextBridge.exposeInMainWorld('lyricApi', {
   // 鼠标透传控制：true=歌词文字区穿透下层（不挡鼠标），false=恢复拦截（hover 到控件/留白可交互）
   setIgnore: (ig) => ipcRenderer.send('lyric-ignore-mouse', !!ig),
 });
+contextBridge.exposeInMainWorld('necoI18n', {
+  get: () => ipcRenderer.invoke('i18n-get'),
+  on: (cb) => ipcRenderer.on('i18n-change', (_e, lang) => cb(lang)),
+});
