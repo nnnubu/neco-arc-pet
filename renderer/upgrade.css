@@ -1,0 +1,96 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #12131f;
+  --bg2: #1b1d2e;
+  --line: rgba(255, 255, 255, 0.09);
+  --txt: #f2f3f7;
+  --txt2: rgba(255, 255, 255, 0.62);
+  --brand1: #ffb84d;
+  --brand2: #ff8a5c;
+  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+html, body { height: 100%; }
+body {
+  font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+  background: linear-gradient(170deg, var(--bg2), var(--bg));
+  color: var(--txt);
+  display: flex;
+  flex-direction: column;
+  padding: 12px 16px 16px;
+  user-select: none;
+  overflow: hidden;
+}
+#head {
+  -webkit-app-region: drag;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.title { font-size: 14px; font-weight: 600; }
+#btnClose {
+  -webkit-app-region: no-drag;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--txt2);
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s var(--ease), color 0.15s var(--ease);
+}
+#btnClose:hover { background: rgba(255, 95, 109, 0.25); color: #fff; }
+.up-drop {
+  -webkit-app-region: no-drag;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px dashed rgba(255, 208, 77, 0.45);
+  border-radius: 12px;
+  text-align: center;
+  color: var(--txt2);
+  cursor: pointer;
+  transition: border-color 0.15s var(--ease), background 0.15s var(--ease);
+}
+.up-drop:hover, .up-drop.drag {
+  border-color: #ffd04d;
+  background: rgba(255, 208, 77, 0.07);
+}
+.up-drop-ic { font-size: 34px; margin-bottom: 10px; }
+.up-drop-hint { font-size: 13px; line-height: 1.6; }
+.up-progress { margin-top: 14px; }
+.up-bar {
+  height: 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+#upFill {
+  height: 100%;
+  width: 0%;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--brand2), var(--brand1));
+  transition: width 0.35s var(--ease);
+}
+#upFill.indet {
+  width: 40%;
+  animation: upIndet 1.2s var(--ease) infinite;
+}
+@keyframes upIndet {
+  0% { margin-left: -40%; }
+  100% { margin-left: 100%; }
+}
+.up-stage { margin-top: 8px; font-size: 12px; color: var(--txt2); }
+.up-err {
+  margin-top: 12px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(255, 95, 109, 0.1);
+  color: #ffb0b6;
+  font-size: 12px;
+  line-height: 1.5;
+  word-break: break-all;
+}

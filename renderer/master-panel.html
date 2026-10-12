@@ -41,25 +41,6 @@
   <!-- 右侧内容区：WebContentsView 挂载（占位，view 叠加其上） -->
   <main id="content"></main>
 
-  <!-- 语音升级弹窗：点击标题栏 ⬆ 打开；可选择 .zip 或拖拽到选框，安装时显示进度条与阶段 -->
-  <div id="upgradeModal" hidden>
-    <div id="upgradeCard">
-      <div class="up-title" data-i18n="upgradeTitle">安装语音扩展包</div>
-      <div id="upDrop" class="up-drop">
-        <div class="up-drop-ic">📦</div>
-        <div class="up-drop-hint" data-i18n="upgradeDropHint">拖拽 .zip 语音扩展包到这里，或点击选择文件</div>
-      </div>
-      <div id="upProgress" class="up-progress" hidden>
-        <div class="up-bar"><div id="upFill"></div></div>
-        <div id="upStage" class="up-stage"></div>
-      </div>
-      <div id="upErr" class="up-err" hidden></div>
-      <div class="up-foot">
-        <button id="upClose" data-i18n="upgradeCancel">取消</button>
-      </div>
-    </div>
-  </div>
-
   <script src="i18n.js"></script>
   <script src="master-panel.js"></script>
 </body>

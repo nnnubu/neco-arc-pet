@@ -221,17 +221,60 @@ function registerMasterPanelIpc() {
 
   // ── 语音升级（基础包无语音时：拖拽/选择语音扩展包 zip → 解压到程序根 → 自动重启）──
   ipcMain.handle('voice-upgrade-status', () => ({ hasVoice: !!resolveVoiceEnv() }));
-  ipcMain.handle('voice-upgrade-pick', async (e) => {
-    if (!masterWin || masterWin.isDestroyed()) return { ok: false };
-    const r = await dialog.showOpenDialog(masterWin, {
+  ipcMain.on('voice-upgrade-open', () => ensureUpgradeWin());
+  ipcMain.on('voice-upgrade-close', () => {
+    if (upgradeWin && !upgradeWin.isDestroyed()) upgradeWin.destroy();
+  });
+  ipcMain.handle('voice-upgrade-pick', async () => {
+    const win = upgradeWin && !upgradeWin.isDestroyed() ? upgradeWin : (masterWin && !masterWin.isDestroyed() ? masterWin : null);
+    if (!win) return { ok: false };
+    const r = await dialog.showOpenDialog(win, {
       title: '选择语音扩展包（.zip）',
       properties: ['openFile'],
       filters: [{ name: 'Zip', extensions: ['zip'] }],
     });
     if (r.canceled || !r.filePaths || !r.filePaths.length) return { ok: false };
-    return { ok: startVoiceUpgrade(r.filePaths[0], e.sender) };
+    return { ok: startVoiceUpgrade(r.filePaths[0]) };
   });
-  ipcMain.on('voice-upgrade-path', (e, zipPath) => startVoiceUpgrade(String(zipPath || ''), e.sender));
+  ipcMain.on('voice-upgrade-path', (_e, zipPath) => startVoiceUpgrade(String(zipPath || '')));
+}
+
+// 语音升级小窗（独立 BrowserWindow：选框 + 进度条；总面板 HTML 弹窗会被原生 WebContentsView 遮挡，故用独立窗口）
+let upgradeWin = null;
+function ensureUpgradeWin() {
+  if (upgradeWin && !upgradeWin.isDestroyed()) { upgradeWin.show(); upgradeWin.focus(); return upgradeWin; }
+  const bw = masterWin && !masterWin.isDestroyed() ? masterWin.getBounds() : null;
+  upgradeWin = new BrowserWindow({
+    width: 500,
+    height: 400,
+    x: bw ? Math.round(bw.x + (bw.width - 500) / 2) : undefined,
+    y: bw ? Math.round(bw.y + (bw.height - 400) / 2) : undefined,
+    frame: false,
+    transparent: false,
+    backgroundColor: '#12131f',
+    resizable: false,
+    minimizable: false,
+    maximizable: false,
+    fullscreenable: false,
+    skipTaskbar: false,
+    show: true,
+    webPreferences: {
+      preload: path.join(__dirname, 'master-panel-preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true,
+    },
+  });
+  upgradeWin.loadFile(path.join(__dirname, '..', 'renderer', 'upgrade.html'));
+  upgradeWin.on('closed', () => { upgradeWin = null; });
+  return upgradeWin;
+}
+// 安装进度广播：升级小窗 + 总面板都收（无论从哪发起）
+function broadcastUpgrade(s) {
+  const targets = [];
+  if (masterWin && !masterWin.isDestroyed()) targets.push(masterWin.webContents);
+  if (upgradeWin && !upgradeWin.isDestroyed()) targets.push(upgradeWin.webContents);
+  for (const wc of targets) { try { wc.send('voice-upgrade-progress', s); } catch (e) {} }
 }
 
 // 解压语音扩展包到程序根并自动重启（tar 为 Windows 10+ 自带，支持 zip；完成后 relaunch 探测到语音包）
@@ -255,14 +298,14 @@ function countVoiceFiles(root) {
   }
   return n;
 }
-function startVoiceUpgrade(zipPath, sender) {
+function startVoiceUpgrade(zipPath) {
   if (upgrading) return false;
   if (!zipPath || !/\.zip$/i.test(zipPath)) {
-    try { sender.send('voice-upgrade-progress', { state: 'error', error: 'invalid' }); } catch (e) {}
+    broadcastUpgrade({ state: 'error', error: 'invalid' });
     return false;
   }
   if (resolveVoiceEnv()) {
-    try { sender.send('voice-upgrade-progress', { state: 'error', error: 'already' }); } catch (e) {}
+    broadcastUpgrade({ state: 'error', error: 'already' });
     return false;
   }
   upgrading = true;
@@ -270,7 +313,7 @@ function startVoiceUpgrade(zipPath, sender) {
   // zip 内条目数（含目录行，作进度分母的近似值，偏保守无碍）
   execFile('tar', ['-tf', zipPath], { windowsHide: true, timeout: 60000 }, (_err, out) => {
     const total = _err ? 0 : String(out).split('\n').filter((l) => l.trim()).length;
-    try { sender.send('voice-upgrade-progress', { state: 'unpacking', done: 0, total, stage: 1 }); } catch (e) {}
+    broadcastUpgrade({ state: 'unpacking', done: 0, total, stage: 1 });
     // 轮询落地文件数 → 进度条 + 阶段（1 脚本 / 2 环境 / 3 收尾）
     if (upgradePoll) clearInterval(upgradePoll);
     upgradePoll = setInterval(() => {
@@ -278,13 +321,13 @@ function startVoiceUpgrade(zipPath, sender) {
       let stage = 1;
       if (fs.existsSync(path.join(appRoot, 'voice', 'voice_server.py'))) stage = 2;
       if (fs.existsSync(path.join(appRoot, 'voice-env310', 'Scripts', 'python.exe'))) stage = 3;
-      try { sender.send('voice-upgrade-progress', { state: 'unpacking', done, total, stage }); } catch (e) {}
+      broadcastUpgrade({ state: 'unpacking', done, total, stage });
     }, 400);
     console.log('[voice-upgrade] 解压语音扩展包 ->', appRoot, '(zip 条目', total, ')');
     execFile('tar', ['-xf', zipPath, '-C', appRoot], { windowsHide: true, timeout: 15 * 60 * 1000 }, (err) => {
       upgrading = false;
       if (upgradePoll) { clearInterval(upgradePoll); upgradePoll = null; }
-      try { sender.send('voice-upgrade-progress', { state: err ? 'error' : 'done', error: err ? String(err.message) : '' }); } catch (e) {}
+      broadcastUpgrade({ state: err ? 'error' : 'done', error: err ? String(err.message) : '' });
       if (err) {
         console.error('[voice-upgrade] 解压失败:', err.message);
         return;

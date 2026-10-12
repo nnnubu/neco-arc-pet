@@ -8,8 +8,10 @@ contextBridge.exposeInMainWorld('masterApi', {
   quit: () => ipcRenderer.send('master-quit'),
   onActive: (cb) => ipcRenderer.on('master-active', (_e, name) => cb(name)),
   onMaxState: (cb) => ipcRenderer.on('master-max-state', (_e, maxed) => cb(!!maxed)),
-  // 语音升级：查询是否已装语音包；选择/拖拽 zip 安装；监听安装进度（unpacking/done/error）
+  // 语音升级：查询是否已装语音包；打开升级小窗；选择/拖拽 zip 安装；监听安装进度（unpacking/done/error）
   getVoiceStatus: () => ipcRenderer.invoke('voice-upgrade-status'),
+  openUpgradeWin: () => ipcRenderer.send('voice-upgrade-open'),
+  closeUpgradeWin: () => ipcRenderer.send('voice-upgrade-close'),
   pickVoiceUpgrade: () => ipcRenderer.invoke('voice-upgrade-pick'),
   upgradeVoiceWithPath: (zipPath) => ipcRenderer.send('voice-upgrade-path', zipPath),
   onVoiceUpgrade: (cb) => ipcRenderer.on('voice-upgrade-progress', (_e, s) => cb(s)),
