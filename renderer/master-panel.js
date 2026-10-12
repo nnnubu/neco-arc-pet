@@ -25,41 +25,91 @@ btnMax.addEventListener('click', () => window.masterApi.maximize());
 window.masterApi.onMaxState((m) => { maxed = !!m; refreshMaxBtn(); });
 window.addEventListener('i18n-change', refreshMaxBtn);
 
-// ── 语音升级：基础包（无语音扩展包）时隐藏 翻唱/语音合成 导航，显示升级入口；已装语音包则隐藏入口 ──
+// ── 语音升级：基础包（无语音扩展包）时隐藏 翻唱/语音合成 导航，标题栏 ⬆ 打开安装弹窗 ──
 const upgradeBtn = document.getElementById('btnUpgrade');
-const upgradeMsg = document.getElementById('upgradeMsg');
+const upgradeModal = document.getElementById('upgradeModal');
+const upDrop = document.getElementById('upDrop');
+const upProgress = document.getElementById('upProgress');
+const upFill = document.getElementById('upFill');
+const upStage = document.getElementById('upStage');
+const upErr = document.getElementById('upErr');
+const upClose = document.getElementById('upClose');
+let installing = false;
+
 function applyVoiceUI(hasVoice) {
   // 有语音包 → 显示 翻唱/语音合成；无语音包（基础包）→ 隐藏并显示升级按钮
   // 注意：不能用 hidden 属性——.nav-item 有显式 display:flex 会覆盖 hidden，必须用 inline style
   document.querySelectorAll('.nav-item[data-voice]').forEach((b) => { b.style.display = hasVoice ? '' : 'none'; });
   upgradeBtn.hidden = !!hasVoice;
-  upgradeMsg.hidden = true;
-}
-function upgradeMsgShow(text) {
-  upgradeMsg.textContent = text;
-  upgradeMsg.hidden = false;
+  if (hasVoice) closeUpgradeModal();
 }
 window.masterApi.getVoiceStatus().then((s) => applyVoiceUI(!!(s && s.hasVoice)));
-upgradeBtn.addEventListener('click', () => window.masterApi.pickVoiceUpgrade());
+
+function closeUpgradeModal() {
+  if (installing) return; // 安装中不允许关闭（避免半装状态）
+  upgradeModal.hidden = true;
+}
+function openUpgradeModal() {
+  if (installing) return; // 安装中：仅显示进度，不重置选框
+  upDrop.hidden = false;
+  upProgress.hidden = true;
+  upErr.hidden = true;
+  upClose.hidden = false;
+  upgradeModal.hidden = false;
+}
+upgradeBtn.addEventListener('click', openUpgradeModal);
+upClose.addEventListener('click', closeUpgradeModal);
+
+function setUpgradeStage(stage) {
+  const map = { 1: t('upgradeStage1'), 2: t('upgradeStage2'), 3: t('upgradeStage3') };
+  upStage.textContent = map[stage] || '';
+}
 window.masterApi.onVoiceUpgrade((s) => {
   if (!s) return;
   if (s.state === 'unpacking') {
-    upgradeBtn.disabled = true;
-    upgradeMsgShow(t('upgrading'));
+    installing = true;
+    upDrop.hidden = true;
+    upClose.hidden = true;
+    upErr.hidden = true;
+    upProgress.hidden = false;
+    if (s.total > 0) {
+      const pct = Math.min(100, Math.round((s.done / s.total) * 100));
+      upFill.style.width = pct + '%';
+      upFill.classList.remove('indet');
+    } else {
+      upFill.classList.add('indet'); // 拿不到条目数：不确定进度动画
+    }
+    setUpgradeStage(s.stage || 1);
   } else if (s.state === 'done') {
-    upgradeMsgShow(t('upgradeDone'));
+    upFill.style.width = '100%';
+    upStage.textContent = t('upgradeStageDone');
   } else if (s.state === 'error') {
-    upgradeBtn.disabled = false;
+    installing = false;
+    upDrop.hidden = false;
+    upClose.hidden = false;
+    upProgress.hidden = true;
+    upErr.hidden = false;
     const why = s.error === 'invalid' ? t('upgradeInvalid') : (s.error === 'already' ? t('upgradeAlready') : String(s.error || ''));
-    upgradeMsgShow(t('upgradeFail') + why);
+    upErr.textContent = t('upgradeFail') + why;
   }
 });
-// 拖拽 .zip 到总面板窗口 → 直接安装（与点击选择等效）
+
+// 弹窗选框：点击选择 / 拖拽 .zip 到选框（窗口任意处拖拽亦可直接开始安装）
+upDrop.addEventListener('click', () => window.masterApi.pickVoiceUpgrade());
+upDrop.addEventListener('dragover', (e) => { e.preventDefault(); e.stopPropagation(); upDrop.classList.add('drag'); });
+upDrop.addEventListener('dragleave', () => upDrop.classList.remove('drag'));
+upDrop.addEventListener('drop', (e) => {
+  e.preventDefault(); e.stopPropagation(); upDrop.classList.remove('drag');
+  const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+  if (!f || !/\.zip$/i.test(f.name)) return;
+  window.masterApi.upgradeVoiceWithPath(f.path);
+});
 window.addEventListener('dragover', (e) => { e.preventDefault(); });
 window.addEventListener('drop', (e) => {
   e.preventDefault();
   const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
   if (!f || !/\.zip$/i.test(f.name)) return;
+  openUpgradeModal(); // 窗口任意处拖入：先打开弹窗显示安装进度
   window.masterApi.upgradeVoiceWithPath(f.path);
 });
 // 退出桌宠：主进程走退出动画链路（播完由桌宠渲染层发 quit 真正退出）

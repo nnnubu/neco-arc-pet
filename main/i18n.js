@@ -177,8 +177,11 @@ const DICT = {
     // ── AI 设置补充 ──
     msgNoAll: '请先填写密钥、接口地址和模型',
     // ── 语音升级（基础包）──
-    btnUpgrade: '语音升级', upgrading: '正在安装语音扩展包，完成后自动重启…',
-    upgradeDone: '安装完成，正在重启…', upgradeFail: '安装失败：',
+    btnUpgrade: '语音升级', upgradeTitle: '安装语音扩展包',
+    upgradeDropHint: '拖拽 .zip 语音扩展包到这里，或点击选择文件', upgradeCancel: '取消',
+    upgradeStage1: '正在解压语音脚本…', upgradeStage2: '脚本就绪，正在解压运行环境…',
+    upgradeStage3: '运行环境就绪，收尾中…', upgradeStageDone: '安装完成，正在重启…',
+    upgradeFail: '安装失败：',
     upgradeInvalid: '请选择 .zip 格式的语音扩展包', upgradeAlready: '已安装语音扩展包，无需重复安装',
   },
   en: {
@@ -342,8 +345,11 @@ const DICT = {
     // ── AI 设置补充 ──
     msgNoAll: 'Please fill in the API key, URL and model',
     // ── 语音升级（基础包）──
-    btnUpgrade: 'Voice Upgrade', upgrading: 'Installing voice pack, will restart automatically…',
-    upgradeDone: 'Installed, restarting…', upgradeFail: 'Install failed: ',
+    btnUpgrade: 'Voice Upgrade', upgradeTitle: 'Install Voice Pack',
+    upgradeDropHint: 'Drag a .zip voice pack here, or click to select a file', upgradeCancel: 'Cancel',
+    upgradeStage1: 'Extracting voice scripts…', upgradeStage2: 'Scripts ready, extracting runtime…',
+    upgradeStage3: 'Runtime ready, finishing…', upgradeStageDone: 'Installed, restarting…',
+    upgradeFail: 'Install failed: ',
     upgradeInvalid: 'Please select a .zip voice pack', upgradeAlready: 'Voice pack already installed',
   },
 };

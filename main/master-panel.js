@@ -5,6 +5,7 @@
 //      （webContents 可直接 send，isDestroyed 反映 view 是否存活）→ sing/voice/lyric 广播链路不变。
 const { BrowserWindow, WebContentsView, ipcMain, screen, dialog } = require('electron');
 const path = require('path');
+const fs = require('fs');
 const { execFile } = require('child_process');
 const { getWin } = require('./window');
 const { getAppRoot, resolveVoiceEnv } = require('./paths');
@@ -234,7 +235,26 @@ function registerMasterPanelIpc() {
 }
 
 // 解压语音扩展包到程序根并自动重启（tar 为 Windows 10+ 自带，支持 zip；完成后 relaunch 探测到语音包）
+// 进度：先取 zip 内条目数作分母，解压期间轮询 voice/ + voice-env310/ 已落地文件数 → 广播 {state,done,total,stage}
 let upgrading = false;
+let upgradePoll = null;
+
+function walkCount(dir) {
+  let n = 0;
+  for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+    const p = path.join(dir, e.name);
+    n += e.isDirectory() ? walkCount(p) : 1;
+  }
+  return n;
+}
+function countVoiceFiles(root) {
+  let n = 0;
+  for (const sub of ['voice', 'voice-env310']) {
+    const dir = path.join(root, sub);
+    try { if (fs.existsSync(dir)) n += walkCount(dir); } catch (e) {}
+  }
+  return n;
+}
 function startVoiceUpgrade(zipPath, sender) {
   if (upgrading) return false;
   if (!zipPath || !/\.zip$/i.test(zipPath)) {
@@ -247,18 +267,32 @@ function startVoiceUpgrade(zipPath, sender) {
   }
   upgrading = true;
   const appRoot = getAppRoot();
-  try { sender.send('voice-upgrade-progress', { state: 'unpacking' }); } catch (e) {}
-  console.log('[voice-upgrade] 解压语音扩展包 ->', appRoot);
-  execFile('tar', ['-xf', zipPath, '-C', appRoot], { windowsHide: true, timeout: 15 * 60 * 1000 }, (err) => {
-    upgrading = false;
-    try { sender.send('voice-upgrade-progress', { state: err ? 'error' : 'done', error: err ? String(err.message) : '' }); } catch (e) {}
-    if (err) {
-      console.error('[voice-upgrade] 解压失败:', err.message);
-      return;
-    }
-    // 自动重启：重启后探测到语音包，侧边栏出现翻唱/语音合成
-    const { app } = require('electron');
-    setTimeout(() => { app.relaunch(); app.exit(0); }, 800);
+  // zip 内条目数（含目录行，作进度分母的近似值，偏保守无碍）
+  execFile('tar', ['-tf', zipPath], { windowsHide: true, timeout: 60000 }, (_err, out) => {
+    const total = _err ? 0 : String(out).split('\n').filter((l) => l.trim()).length;
+    try { sender.send('voice-upgrade-progress', { state: 'unpacking', done: 0, total, stage: 1 }); } catch (e) {}
+    // 轮询落地文件数 → 进度条 + 阶段（1 脚本 / 2 环境 / 3 收尾）
+    if (upgradePoll) clearInterval(upgradePoll);
+    upgradePoll = setInterval(() => {
+      const done = countVoiceFiles(appRoot);
+      let stage = 1;
+      if (fs.existsSync(path.join(appRoot, 'voice', 'voice_server.py'))) stage = 2;
+      if (fs.existsSync(path.join(appRoot, 'voice-env310', 'Scripts', 'python.exe'))) stage = 3;
+      try { sender.send('voice-upgrade-progress', { state: 'unpacking', done, total, stage }); } catch (e) {}
+    }, 400);
+    console.log('[voice-upgrade] 解压语音扩展包 ->', appRoot, '(zip 条目', total, ')');
+    execFile('tar', ['-xf', zipPath, '-C', appRoot], { windowsHide: true, timeout: 15 * 60 * 1000 }, (err) => {
+      upgrading = false;
+      if (upgradePoll) { clearInterval(upgradePoll); upgradePoll = null; }
+      try { sender.send('voice-upgrade-progress', { state: err ? 'error' : 'done', error: err ? String(err.message) : '' }); } catch (e) {}
+      if (err) {
+        console.error('[voice-upgrade] 解压失败:', err.message);
+        return;
+      }
+      // 自动重启：重启后探测到语音包，侧边栏出现翻唱/语音合成
+      const { app } = require('electron');
+      setTimeout(() => { app.relaunch(); app.exit(0); }, 800);
+    });
   });
   return true;
 }
