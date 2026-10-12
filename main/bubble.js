@@ -12,6 +12,14 @@ let petWinGetter = null;
 let hideTimer = null;
 let curBH = BH; // 当前实际窗口高度（内容自适应后更新，供重新定位/高度重算使用）
 
+// 点击穿透 + forward：鼠标事件原样传给下方窗口（桌宠拖拽/走动不受气泡遮挡影响）。
+// Windows 上穿透状态在窗口 setBounds/resize/show 后可能丢失（命中测试失效 → 气泡变"透明墙"
+// 吞掉鼠标，导致 arc 无法点击/拖拽），因此每次窗口几何或显隐变化后都要重新应用。
+function passthrough(b) {
+  if (!b || b.isDestroyed()) return;
+  try { b.setIgnoreMouseEvents(true, { forward: true }); } catch (e) {}
+}
+
 function getBubble() {
   if (bubble && !bubble.isDestroyed()) return bubble;
   bubble = new BrowserWindow({
@@ -35,8 +43,7 @@ function getBubble() {
   });
   bubble.loadFile(path.join(__dirname, '..', 'renderer', 'bubble.html'));
   bubble.setAlwaysOnTop(true, 'screen-saver');
-  // 点击穿透 + forward：鼠标事件原样传给下方窗口（桌宠拖拽/走动不受气泡遮挡影响）
-  bubble.setIgnoreMouseEvents(true, { forward: true });
+  passthrough(bubble);
   bubble.on('closed', () => { bubble = null; });
   return bubble;
 }
@@ -56,6 +63,7 @@ function placeBubble(facing) {
   x = Math.max(wa.x + 4, Math.min(x, wa.x + wa.width - BW - 4));
   y = Math.max(wa.y + 4, Math.min(y, wa.y + wa.height - curBH - 4));
   b.setBounds({ x, y, width: BW, height: curBH });
+  passthrough(b); // 窗口移动后穿透状态可能失效 → 重新应用，防挡 arc
 }
 
 // 渲染层内容高度上报：窗口高度动态跟随文本内容（字大/内容多不裁剪），保持窗口中心锚点不动。
@@ -75,6 +83,7 @@ function resizeBubble(_e, h) {
     const ny = Math.round(old.y + (curBH - nh) / 2);
     curBH = nh;
     b.setBounds({ x: old.x, y: ny, width: old.width, height: nh });
+    passthrough(b); // 调高窗口后穿透状态可能失效 → 重新应用，防挡 arc
   }
   // want < curBH（短句）：不缩回，窗口保持当前高度 —— 长句完整显示优先
 }
@@ -98,6 +107,7 @@ function showBubble(text, facing) {
   const maxH = wa ? Math.max(90, wa.height - 24) : 900;
   b.webContents.send('bubble-text', { text: String(text), fontSize, color, maxH });
   if (!b.isVisible()) b.showInactive();
+  passthrough(b); // 显示/置顶后穿透状态可能失效 → 重新应用，防挡 arc
 }
 
 function hideBubble() {
