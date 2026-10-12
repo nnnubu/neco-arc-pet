@@ -257,12 +257,13 @@ function startDevBuild(kind) {
   broadcastDevBuild({ t: kind === 'voice' ? '正在打包语音扩展包…' : '开始构建基础包…', kind, pct: 2 });
   const child = spawn(process.execPath, [script], { windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
   child.stdout.on('data', (d) => parseDevBuild(d, false));
-  child.stderr.on('data', (d) => {
-    // stderr 不再逐行刷屏：只截取关键行存缓冲，失败时展示摘要
-    const s = String(d);
-    buildErr = (buildErr + s).slice(-6000);
-  });
+  const errChunks = []; // 原始 Buffer 收集：Windows 下 stderr 可能是 GBK 字节，UTF-8 直接解码会乱码
+  child.stderr.on('data', (d) => { errChunks.push(d); });
   child.on('close', (code) => {
+    if (code !== 0 && !buildErr && errChunks.length) {
+      // 脚本未输出失败 JSON（如意外崩溃）时，从原始 stderr 解码关键行兜底
+      try { buildErr = new TextDecoder('gbk').decode(Buffer.concat(errChunks)); } catch (e) { buildErr = ''; }
+    }
     if (code !== 0 && !buildErr) broadcastDevBuild({ t: '✗ 打包失败（无输出详情）', err: '' });
     else if (code !== 0) {
       // 从错误缓冲里挑可读的关键行（去 Node 栈噪音）

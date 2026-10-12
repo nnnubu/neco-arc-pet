@@ -12,12 +12,23 @@ const zip = path.join(pub, 'NecoArc-基础包.zip');
 const outDir = path.join(dist, 'NecoArc-Pet');
 
 function log(t, pct) { console.log(JSON.stringify({ t, pct: pct == null ? undefined : pct })); }
+// 执行命令：stdout 忽略（进度由 log() 上报），stderr 捕获供失败时解码；
+// Windows 下系统工具（tar 等）错误消息是 GBK 字节，需用 TextDecoder('gbk') 解码，避免乱码
 function sh(cmd) {
-  // stdio 全继承：electron-builder 的实时输出透传到本脚本（父进程只解析 JSON 行），
-  // 避免 execSync 默认 1MB 缓冲在构建日志超量时抛错
-  return execSync(cmd, { cwd: root, shell: true, stdio: 'inherit', maxBuffer: 64 * 1024 * 1024 });
+  try {
+    return execSync(cmd, { cwd: root, shell: true, stdio: ['ignore', 'ignore', 'pipe'], maxBuffer: 64 * 1024 * 1024, encoding: 'buffer' });
+  } catch (e) {
+    let msg = String((e && e.message) || '未知错误');
+    if (e && Buffer.isBuffer(e.stderr)) {
+      try { msg = new TextDecoder('gbk').decode(e.stderr).trim().split('\n')[0] || msg; } catch (_) {}
+    }
+    throw new Error(msg);
+  }
 }
 function fail(t, pct) { log(t, pct); process.exit(1); }
+
+// 发布包目录可能被用户删除——自动重建
+fs.mkdirSync(pub, { recursive: true });
 
 // 1 清理旧构建（防嵌套）
 log('清理旧构建目录…', 5);

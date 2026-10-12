@@ -11,9 +11,20 @@ const zip = path.join(pub, 'NecoArc-语音扩展包.zip');
 
 function log(t, pct) { console.log(JSON.stringify({ t, pct: pct == null ? undefined : pct })); }
 function sh(cmd) {
-  return execSync(cmd, { cwd: root, shell: true, stdio: 'inherit', maxBuffer: 64 * 1024 * 1024 });
+  try {
+    return execSync(cmd, { cwd: root, shell: true, stdio: ['ignore', 'ignore', 'pipe'], maxBuffer: 64 * 1024 * 1024, encoding: 'buffer' });
+  } catch (e) {
+    let msg = String((e && e.message) || '未知错误');
+    if (e && Buffer.isBuffer(e.stderr)) {
+      try { msg = new TextDecoder('gbk').decode(e.stderr).trim().split('\n')[0] || msg; } catch (_) {}
+    }
+    throw new Error(msg);
+  }
 }
 function fail(t, pct) { log(t, pct); process.exit(1); }
+
+// 发布包目录可能被用户删除——自动重建
+fs.mkdirSync(pub, { recursive: true });
 
 for (const d of ['voice', 'voice-env310']) {
   if (!fs.existsSync(path.join(root, d))) fail(`✗ 缺少 ${d}\\ 目录——语音扩展包需在已装语音引擎的开发目录生成`, 10);
