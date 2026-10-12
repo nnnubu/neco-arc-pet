@@ -5,7 +5,7 @@
   "main": "main/index.js",
   "scripts": {
     "start": "electron .",
-    "dist": "electron-builder --win portable"
+    "dist": "electron-builder --win dir"
   },
   "keywords": [],
   "author": "",

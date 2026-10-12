@@ -174,6 +174,10 @@ const DICT = {
     actInterval: '表演间隔', actSec: '秒', actLie: '趴下/站起', actReset: '重置动作',
     // ── AI 设置补充 ──
     msgNoAll: '请先填写密钥、接口地址和模型',
+    // ── 语音升级（基础包）──
+    btnUpgrade: '语音升级', upgrading: '正在安装语音扩展包，完成后自动重启…',
+    upgradeDone: '安装完成，正在重启…', upgradeFail: '安装失败：',
+    upgradeInvalid: '请选择 .zip 格式的语音扩展包', upgradeAlready: '已安装语音扩展包，无需重复安装',
   },
   en: {
     masterTitle: 'Neco Arc Console',
@@ -333,6 +337,10 @@ const DICT = {
     actInterval: 'Act Interval', actSec: 's', actLie: 'Lie / Stand', actReset: 'Reset Actions',
     // ── AI 设置补充 ──
     msgNoAll: 'Please fill in the API key, URL and model',
+    // ── 语音升级（基础包）──
+    btnUpgrade: 'Voice Upgrade', upgrading: 'Installing voice pack, will restart automatically…',
+    upgradeDone: 'Installed, restarting…', upgradeFail: 'Install failed: ',
+    upgradeInvalid: 'Please select a .zip voice pack', upgradeAlready: 'Voice pack already installed',
   },
 };
 

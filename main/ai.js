@@ -61,8 +61,8 @@ let aiConfig = (() => {
   const file = loadAiConfigFile();
   return {
     apiKey: String(file.apiKey || ENV.LLM_API_KEY || ''),
-    baseUrl: String(file.baseUrl || ENV.LLM_BASE_URL || 'https://api.siliconflow.cn/v1').replace(/\/+$/, ''),
-    model: String(file.model || ENV.LLM_MODEL || 'Qwen/Qwen2.5-7B-Instruct'),
+    baseUrl: String(file.baseUrl || ENV.LLM_BASE_URL || '').replace(/\/+$/, ''),
+    model: String(file.model || ENV.LLM_MODEL || ''),
     temperature: file.temperature != null ? Number(file.temperature) : (ENV.LLM_TEMPERATURE != null ? Number(ENV.LLM_TEMPERATURE) : 0.7),
     maxTokens: file.maxTokens != null ? Number(file.maxTokens) : (ENV.LLM_MAX_TOKENS != null ? Number(ENV.LLM_MAX_TOKENS) : 256),
     systemPrompt: String(file.systemPrompt || DEFAULT_SYSTEM_PROMPT),
@@ -95,7 +95,7 @@ function updateAiConfig(cfg) {
   const merged = Object.assign({}, aiConfig, cfg || {});
   const next = {
     apiKey: String(merged.apiKey || '').trim(),
-    baseUrl: String(merged.baseUrl || 'https://api.siliconflow.cn/v1').trim().replace(/\/+$/, ''),
+    baseUrl: String(merged.baseUrl || '').trim().replace(/\/+$/, ''),
     model: String(merged.model || '').trim(),
     temperature: Number(merged.temperature != null ? merged.temperature : 0.7),
     maxTokens: Number(merged.maxTokens != null ? merged.maxTokens : 256),

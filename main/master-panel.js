@@ -3,9 +3,11 @@
 //      每个 view 复用原 renderer html + 原 preload，渲染层与 IPC 链路零迁移。
 // 各模块主进程 showXxx() 改为 openModule('xxx')；getXxxWin() 返回 view 包装对象
 //      （webContents 可直接 send，isDestroyed 反映 view 是否存活）→ sing/voice/lyric 广播链路不变。
-const { BrowserWindow, WebContentsView, ipcMain, screen } = require('electron');
+const { BrowserWindow, WebContentsView, ipcMain, screen, dialog } = require('electron');
 const path = require('path');
+const { execFile } = require('child_process');
 const { getWin } = require('./window');
+const { getAppRoot, resolveVoiceEnv } = require('./paths');
 
 // 模块注册表：html 与 preload 全部复用原面板文件
 const MODULES = {
@@ -215,6 +217,50 @@ function registerMasterPanelIpc() {
   ipcMain.on('master-close', () => hideMaster());
   // 总面板「退出桌宠」：复用退出动画链路（渲染层播完发 quit → app.quit）
   ipcMain.on('master-quit', () => requestQuit());
+
+  // ── 语音升级（基础包无语音时：拖拽/选择语音扩展包 zip → 解压到程序根 → 自动重启）──
+  ipcMain.handle('voice-upgrade-status', () => ({ hasVoice: !!resolveVoiceEnv() }));
+  ipcMain.handle('voice-upgrade-pick', async (e) => {
+    if (!masterWin || masterWin.isDestroyed()) return { ok: false };
+    const r = await dialog.showOpenDialog(masterWin, {
+      title: '选择语音扩展包（.zip）',
+      properties: ['openFile'],
+      filters: [{ name: 'Zip', extensions: ['zip'] }],
+    });
+    if (r.canceled || !r.filePaths || !r.filePaths.length) return { ok: false };
+    return { ok: startVoiceUpgrade(r.filePaths[0], e.sender) };
+  });
+  ipcMain.on('voice-upgrade-path', (e, zipPath) => startVoiceUpgrade(String(zipPath || ''), e.sender));
+}
+
+// 解压语音扩展包到程序根并自动重启（tar 为 Windows 10+ 自带，支持 zip；完成后 relaunch 探测到语音包）
+let upgrading = false;
+function startVoiceUpgrade(zipPath, sender) {
+  if (upgrading) return false;
+  if (!zipPath || !/\.zip$/i.test(zipPath)) {
+    try { sender.send('voice-upgrade-progress', { state: 'error', error: 'invalid' }); } catch (e) {}
+    return false;
+  }
+  if (resolveVoiceEnv()) {
+    try { sender.send('voice-upgrade-progress', { state: 'error', error: 'already' }); } catch (e) {}
+    return false;
+  }
+  upgrading = true;
+  const appRoot = getAppRoot();
+  try { sender.send('voice-upgrade-progress', { state: 'unpacking' }); } catch (e) {}
+  console.log('[voice-upgrade] 解压语音扩展包 ->', appRoot);
+  execFile('tar', ['-xf', zipPath, '-C', appRoot], { windowsHide: true, timeout: 15 * 60 * 1000 }, (err) => {
+    upgrading = false;
+    try { sender.send('voice-upgrade-progress', { state: err ? 'error' : 'done', error: err ? String(err.message) : '' }); } catch (e) {}
+    if (err) {
+      console.error('[voice-upgrade] 解压失败:', err.message);
+      return;
+    }
+    // 自动重启：重启后探测到语音包，侧边栏出现翻唱/语音合成
+    const { app } = require('electron');
+    setTimeout(() => { app.relaunch(); app.exit(0); }, 800);
+  });
+  return true;
 }
 
 module.exports = {

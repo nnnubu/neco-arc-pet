@@ -68,9 +68,13 @@ COSY_MODEL = 'FunAudioLLM/CosyVoice2-0.5B'
 
 def _load_api_key():
     """读取 LLM_API_KEY（SiliconFlow，TTS 与 LLM 共用）。来源优先级：
-    1. 程序根 .env 的 LLM_API_KEY（开发态/旧配置）
-    2. assets/ai-config.json 的 apiKey（总面板 AI 设置保存的密钥；打包态无 .env 时兜底）
+    1. 环境变量 LLM_API_KEY（Electron 主进程 spawn 时传入，打包态/密钥变更即时生效）
+    2. 程序根 .env 的 LLM_API_KEY（开发态/旧配置）
+    3. assets/ai-config.json 的 apiKey（总面板 AI 设置保存的密钥；打包态无 .env 时兜底）
     """
+    _env_key = os.environ.get('LLM_API_KEY', '').strip()
+    if _env_key:
+        return _env_key
     env_path = os.path.join(os.path.dirname(BASE_DIR), '.env')
     try:
         with open(env_path, encoding='utf-8') as f:

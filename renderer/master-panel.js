@@ -24,6 +24,42 @@ function refreshMaxBtn() {
 btnMax.addEventListener('click', () => window.masterApi.maximize());
 window.masterApi.onMaxState((m) => { maxed = !!m; refreshMaxBtn(); });
 window.addEventListener('i18n-change', refreshMaxBtn);
+
+// ── 语音升级：基础包（无语音扩展包）时隐藏 翻唱/语音合成 导航，显示升级入口；已装语音包则隐藏入口 ──
+const upgradeBtn = document.getElementById('btnUpgrade');
+const upgradeMsg = document.getElementById('upgradeMsg');
+function applyVoiceUI(hasVoice) {
+  document.querySelectorAll('.nav-item[data-voice]').forEach((b) => { b.hidden = !!hasVoice; });
+  upgradeBtn.hidden = !!hasVoice;
+  upgradeMsg.hidden = true;
+}
+function upgradeMsgShow(text) {
+  upgradeMsg.textContent = text;
+  upgradeMsg.hidden = false;
+}
+window.masterApi.getVoiceStatus().then((s) => applyVoiceUI(!!(s && s.hasVoice)));
+upgradeBtn.addEventListener('click', () => window.masterApi.pickVoiceUpgrade());
+window.masterApi.onVoiceUpgrade((s) => {
+  if (!s) return;
+  if (s.state === 'unpacking') {
+    upgradeBtn.disabled = true;
+    upgradeMsgShow(t('upgrading'));
+  } else if (s.state === 'done') {
+    upgradeMsgShow(t('upgradeDone'));
+  } else if (s.state === 'error') {
+    upgradeBtn.disabled = false;
+    const why = s.error === 'invalid' ? t('upgradeInvalid') : (s.error === 'already' ? t('upgradeAlready') : String(s.error || ''));
+    upgradeMsgShow(t('upgradeFail') + why);
+  }
+});
+// 拖拽 .zip 到总面板窗口 → 直接安装（与点击选择等效）
+window.addEventListener('dragover', (e) => { e.preventDefault(); });
+window.addEventListener('drop', (e) => {
+  e.preventDefault();
+  const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+  if (!f || !/\.zip$/i.test(f.name)) return;
+  window.masterApi.upgradeVoiceWithPath(f.path);
+});
 // 退出桌宠：主进程走退出动画链路（播完由桌宠渲染层发 quit 真正退出）
 document.getElementById('btnQuit').addEventListener('click', () => window.masterApi.quit());
 

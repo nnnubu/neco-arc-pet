@@ -138,6 +138,30 @@ html, body {
   color: #fff;
   box-shadow: 0 2px 10px rgba(217, 58, 66, 0.4);
 }
+#navFoot #btnUpgrade {
+  color: #ffd04d;
+  font-size: 12px;
+  letter-spacing: 1px;
+}
+#navFoot #btnUpgrade:hover {
+  background: rgba(255, 208, 77, 0.15);
+  color: #ffd04d;
+}
+#navFoot #btnUpgrade:disabled { opacity: 0.55; cursor: default; }
+#navFoot #upgradeMsg {
+  flex: none;
+  width: 100%;
+  height: auto;
+  margin: -4px 0 2px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: rgba(255, 208, 77, 0.08);
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 12px;
+  line-height: 1.5;
+  word-break: break-all;
+}
+#navFoot #upgradeMsg[hidden] { display: none; }
 #navFoot button:active { transform: scale(0.9); }
 
 #content {

@@ -228,7 +228,9 @@ function ensureVoiceServer() {
   // 若走 stdout 管道且消费不及时会填满 Windows 管道缓冲，把 Python 进程卡死
   const logFile = fs.openSync(path.join(env.voiceDir, 'voice_server.log'), 'a');
   // windowsHide: true 防止 python.exe 弹出黑色控制台窗口（抢焦点会触发输入框失焦自动关闭）
-  voiceProc = spawn(py, [script], { cwd: env.voiceDir, stdio: ['pipe', 'pipe', logFile], windowsHide: true });
+  // env 传入 LLM_API_KEY：voice_server 启动时优先读环境变量（打包态无 .env，密钥来自 AI 设置面板）
+  const spawnEnv = Object.assign({}, process.env, { LLM_API_KEY: String(getAiConfig().apiKey || '') });
+  voiceProc = spawn(py, [script], { cwd: env.voiceDir, stdio: ['pipe', 'pipe', logFile], windowsHide: true, env: spawnEnv });
   voiceReady = false;
   let buf = '';
   voiceProc.stdout.on('data', (chunk) => {
@@ -276,6 +278,16 @@ function ensureVoiceServer() {
     }
   });
   voiceProc.on('exit', () => { voiceReady = false; voiceProc = null; activeReqs.clear(); });
+}
+
+// 重启语音服务：AI 密钥/配置变更后调用（服务启动时读一次密钥，不重启不会重新加载）
+function restartVoiceServer() {
+  if (voiceProc) {
+    try { voiceProc.kill(); } catch (e) {}
+    voiceProc = null;
+    voiceReady = false;
+  }
+  ensureVoiceServer();
 }
 
 function flushVoiceQueue() {
@@ -391,4 +403,4 @@ function registerVoiceIpc() {
   restartVoiceTimer();
 }
 
-module.exports = { registerVoiceIpc, handleSpeakText, handleProactiveSpeak, restartProactiveTimer, restartVoiceTimer, generateTts, readTtsConfig };
+module.exports = { registerVoiceIpc, handleSpeakText, handleProactiveSpeak, restartProactiveTimer, restartVoiceTimer, generateTts, readTtsConfig, restartVoiceServer };
