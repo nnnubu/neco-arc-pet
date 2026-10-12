@@ -186,6 +186,11 @@ const DICT = {
     upgradeStage3: '运行环境就绪，收尾中…', upgradeStageDone: '安装完成，正在自动重启应用…',
     upgradeFail: '安装失败：',
     upgradeInvalid: '请选择 .zip 格式的语音扩展包', upgradeAlready: '已安装语音扩展包，无需重复安装',
+    upgradeTitleInstalled: '语音扩展包管理', upgradeInstalled: '已安装语音扩展包，桌宠聊天/翻唱/语音合成功能可用',
+    upgradeUninstall: '卸载语音扩展包',
+    upgradeUninstallConfirm: '将删除语音引擎与运行环境，已生成的翻唱/语音文件会保留；卸载后需重启桌宠。确定继续吗？',
+    upgradeUninstalling: '正在卸载…完成将自动重启', upgradeUninstalled: '卸载完成，正在重启桌宠…',
+    upgradeNotInstalled: '未安装语音扩展包',
   },
   en: {
     masterTitle: 'Neco Arc Console',
@@ -357,6 +362,11 @@ const DICT = {
     upgradeStage3: 'Runtime ready, finishing…', upgradeStageDone: 'Installed! Restarting app…',
     upgradeFail: 'Install failed: ',
     upgradeInvalid: 'Please select a .zip voice pack', upgradeAlready: 'Voice pack already installed',
+    upgradeTitleInstalled: 'Voice Pack Manager', upgradeInstalled: 'Voice pack installed. Chat TTS / cover singing are available.',
+    upgradeUninstall: 'Uninstall Voice Pack',
+    upgradeUninstallConfirm: 'This will remove the voice engine and runtime; your generated cover / TTS files will be kept. The app will restart. Continue?',
+    upgradeUninstalling: 'Uninstalling… app will restart when done', upgradeUninstalled: 'Uninstalled! Restarting app…',
+    upgradeNotInstalled: 'Voice pack not installed',
   },
 };
 

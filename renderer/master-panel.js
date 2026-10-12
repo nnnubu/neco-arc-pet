@@ -29,10 +29,12 @@ window.addEventListener('i18n-change', refreshMaxBtn);
 const upgradeBtn = document.getElementById('btnUpgrade');
 
 function applyVoiceUI(hasVoice) {
-  // 有语音包 → 显示 翻唱/语音合成；无语音包（基础包）→ 隐藏并显示升级按钮
+  // 有语音包 → 显示 翻唱/语音合成；无语音包（基础包）→ 隐藏
   // 注意：不能用 hidden 属性——.nav-item 有显式 display:flex 会覆盖 hidden，必须用 inline style
   document.querySelectorAll('.nav-item[data-voice]').forEach((b) => { b.style.display = hasVoice ? '' : 'none'; });
-  upgradeBtn.hidden = !!hasVoice;
+  // 语音管理按钮（⬆）始终显示：基础包=安装入口；已装语音包=打开管理小窗（可卸载）
+  upgradeBtn.hidden = false;
+  upgradeBtn.title = hasVoice ? t('upgradeTitleInstalled') : t('upgradeTitle');
 }
 window.masterApi.getVoiceStatus().then((s) => applyVoiceUI(!!(s && s.hasVoice)));
 

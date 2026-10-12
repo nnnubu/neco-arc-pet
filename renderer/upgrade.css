@@ -124,3 +124,49 @@ body {
   line-height: 1.5;
   word-break: break-all;
 }
+/* 已安装态：状态 + 卸载入口（与安装选框同区域，居中布局） */
+#upInstalled {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  border: 1.5px solid rgba(255, 208, 77, 0.22);
+  border-radius: 12px;
+  background: rgba(255, 208, 77, 0.04);
+  text-align: center;
+  padding: 18px;
+}
+#upInstalled[hidden] { display: none; }
+.up-inst-ic { font-size: 34px; }
+.up-inst-txt {
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--txt2);
+  max-width: 320px;
+}
+.up-uninstall {
+  margin-top: 4px;
+  padding: 9px 22px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #ffb0b6;
+  background: rgba(255, 95, 109, 0.14);
+  border: 1px solid rgba(255, 95, 109, 0.4);
+  border-radius: 9px;
+  cursor: pointer;
+  transition: background 0.16s var(--ease), border-color 0.16s var(--ease), transform 0.12s var(--ease);
+}
+.up-uninstall:hover { background: rgba(255, 95, 109, 0.26); border-color: rgba(255, 95, 109, 0.6); }
+.up-uninstall:active { transform: scale(0.96); }
+.up-uninstall-busy {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--txt2);
+}
+.up-uninstall-busy[hidden] { display: none; }
+.spin.small { width: 22px; height: 22px; border-width: 2px; }

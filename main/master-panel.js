@@ -222,6 +222,8 @@ function registerMasterPanelIpc() {
   // ── 语音升级（基础包无语音时：拖拽/选择语音扩展包 zip → 解压到程序根 → 自动重启）──
   ipcMain.handle('voice-upgrade-status', () => ({ hasVoice: !!resolveVoiceEnv() }));
   ipcMain.on('voice-upgrade-open', () => ensureUpgradeWin());
+  // 卸载语音扩展包：删除语音引擎与环境，保留用户作品（voice/sing_output、voice/tts_output），完成后自动重启
+  ipcMain.handle('voice-uninstall', () => startVoiceUninstall());
   ipcMain.on('voice-upgrade-close', () => {
     if (upgradeWin && !upgradeWin.isDestroyed()) upgradeWin.destroy();
   });
@@ -423,6 +425,43 @@ function startVoiceUpgrade(zipPath) {
       setTimeout(() => { app.relaunch(); app.exit(0); }, 800);
     });
   });
+  return true;
+}
+
+// 卸载语音扩展包（发行版/开发版通用）：删 voice-env310 整个目录 + voice 目录内除作品子目录外的内容
+// 作品子目录（sing_output/tts_output）保留，避免用户已生成的翻唱/语音文件丢失；完成后自动重启回到基础包态
+let uninstalling = false;
+function startVoiceUninstall() {
+  if (uninstalling) return false;
+  const env = resolveVoiceEnv();
+  if (!env) { broadcastUpgrade({ state: 'error', error: 'not-installed' }); return false; }
+  uninstalling = true;
+  broadcastUpgrade({ state: 'uninstalling' });
+  const { app } = require('electron');
+  const appRoot = env.appRoot;
+  const keep = new Set(['sing_output', 'tts_output']);
+  setTimeout(() => {
+    try {
+      // 1) 删 Python 环境（大目录，异步删除避免卡 UI）
+      fs.rmSync(path.join(appRoot, 'voice-env310'), { recursive: true, force: true });
+      // 2) 删 voice 目录内除作品子目录外的引擎文件/目录（voice_server.py、models、cache、日志等）
+      const voiceDir = path.join(appRoot, 'voice');
+      if (fs.existsSync(voiceDir)) {
+        for (const e of fs.readdirSync(voiceDir, { withFileTypes: true })) {
+          if (keep.has(e.name)) continue;
+          fs.rmSync(path.join(voiceDir, e.name), { recursive: true, force: true });
+        }
+      }
+      uninstalling = false;
+      broadcastUpgrade({ state: 'uninstalled' });
+      console.log('[voice-uninstall] 已卸载语音扩展包:', appRoot);
+      setTimeout(() => { app.relaunch(); app.exit(0); }, 800);
+    } catch (e) {
+      uninstalling = false;
+      console.error('[voice-uninstall] 卸载失败:', e.message);
+      broadcastUpgrade({ state: 'error', error: e.message });
+    }
+  }, 300);
   return true;
 }
 

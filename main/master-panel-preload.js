@@ -15,6 +15,8 @@ contextBridge.exposeInMainWorld('masterApi', {
   pickVoiceUpgrade: () => ipcRenderer.invoke('voice-upgrade-pick'),
   upgradeVoiceWithPath: (zipPath) => ipcRenderer.send('voice-upgrade-path', zipPath),
   onVoiceUpgrade: (cb) => ipcRenderer.on('voice-upgrade-progress', (_e, s) => cb(s)),
+  // 卸载语音扩展包（删引擎+环境，保留已生成作品，完成后自动重启）
+  uninstallVoice: () => ipcRenderer.invoke('voice-uninstall'),
   // 拖拽文件：新版 Electron 移除了 File.path，必须经 webUtils 取真实路径
   getPathForFile: (file) => webUtils.getPathForFile(file),
   // 开发者工具（仅开发版）：是否开发版 + 一键生成发布包

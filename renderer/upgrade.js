@@ -10,7 +10,41 @@
   const upStage = document.getElementById('upStage');
   const upPct = document.getElementById('upPct');
   const upErr = document.getElementById('upErr');
+  // 已安装态：状态区 + 卸载按钮
+  const upInstalled = document.getElementById('upInstalled');
+  const btnUninstall = document.getElementById('btnUninstall');
+  const upUninstallBusy = document.getElementById('upUninstallBusy');
+  const upUninstallTxt = document.getElementById('upUninstallTxt');
+  const upTitle = document.getElementById('upTitle');
   let installing = false;
+  let uninstalling = false;
+
+  // 打开时按语音包状态切换界面：无语音=安装引导；有语音=卸载管理
+  window.masterApi.getVoiceStatus().then((s) => {
+    if (s && s.hasVoice) {
+      upDrop.hidden = true;
+      upProgress.hidden = true;
+      upInstalled.hidden = false;
+      upTitle.textContent = t('upgradeTitleInstalled');
+      upTitle.dataset.i18n = 'upgradeTitleInstalled';
+      upErr.hidden = true;
+    } else {
+      upInstalled.hidden = true;
+      upDrop.hidden = false;
+      upTitle.textContent = t('upgradeTitle');
+    }
+  });
+
+  // 卸载：二次确认（会删引擎与环境，保留已生成作品）→ 主进程删除并自动重启
+  btnUninstall.addEventListener('click', () => {
+    if (uninstalling) return;
+    if (!window.confirm(t('upgradeUninstallConfirm'))) return;
+    uninstalling = true;
+    btnUninstall.hidden = true;
+    upUninstallBusy.hidden = false;
+    upUninstallTxt.textContent = t('upgradeUninstalling');
+    window.masterApi.uninstallVoice();
+  });
 
   function setBusy(pct) {
     // 选框转为"安装中"状态（转圈 + 百分比；拿不到分母时显示 …）
@@ -70,13 +104,32 @@
       upStage.textContent = t('upgradeStageDone');
       setBusy(100);
       setPct(100);
+    } else if (s.state === 'uninstalling') {
+      // 卸载中：进度条转不确定动画，禁用选框
+      upProgress.hidden = false;
+      upFill.classList.add('indet');
+      upStage.textContent = t('upgradeUninstalling');
+      upInstalled.hidden = true;
+      setBusy(null);
+      setPct(null);
+    } else if (s.state === 'uninstalled') {
+      upFill.classList.remove('indet');
+      upStage.textContent = t('upgradeUninstalled');
+      setBusy(100);
+      setPct(100);
     } else if (s.state === 'error') {
       installing = false;
       resetDrop();
       upProgress.hidden = true;
       upErr.hidden = false;
       setPct(null);
-      const why = s.error === 'invalid' ? t('upgradeInvalid') : (s.error === 'already' ? t('upgradeAlready') : String(s.error || ''));
+      // 卸载失败：恢复卸载按钮
+      if (uninstalling) {
+        uninstalling = false;
+        btnUninstall.hidden = false;
+        upUninstallBusy.hidden = true;
+      }
+      const why = s.error === 'invalid' ? t('upgradeInvalid') : (s.error === 'already' ? t('upgradeAlready') : (s.error === 'not-installed' ? t('upgradeNotInstalled') : String(s.error || '')));
       upErr.textContent = t('upgradeFail') + why;
     }
   });
