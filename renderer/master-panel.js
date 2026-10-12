@@ -39,15 +39,29 @@ window.masterApi.getVoiceStatus().then((s) => applyVoiceUI(!!(s && s.hasVoice)))
 // 升级入口：打开独立升级小窗（选框+进度条）。不用 HTML 弹窗——总面板右侧是原生
 // WebContentsView，会盖住 HTML 层全屏弹窗，独立 BrowserWindow 才能正常展示。
 upgradeBtn.addEventListener('click', () => window.masterApi.openUpgradeWin());
-// 拖拽 .zip 到总面板窗口 → 打开升级小窗并开始安装
+// 拖拽 .zip 到总面板窗口 → 打开升级小窗并开始安装（新版 Electron 无 File.path，须经 webUtils 取路径）
 window.addEventListener('dragover', (e) => { e.preventDefault(); });
 window.addEventListener('drop', (e) => {
   e.preventDefault();
   const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
   if (!f || !/\.zip$/i.test(f.name)) return;
+  const p = window.masterApi.getPathForFile ? window.masterApi.getPathForFile(f) : (f.path || '');
+  if (!p) return;
   window.masterApi.openUpgradeWin();
-  window.masterApi.upgradeVoiceWithPath(f.path);
+  window.masterApi.upgradeVoiceWithPath(p);
 });
+
+// ── 开发者工具（仅开发版显示）：一键生成基础包 / 语音扩展包 ──
+window.masterApi.isDev().then((dev) => {
+  if (!dev) return;
+  document.getElementById('devTools').hidden = false;
+});
+const devStatus = document.getElementById('devStatus');
+const btnDevBasic = document.getElementById('btnDevBasic');
+const btnDevVoice = document.getElementById('btnDevVoice');
+btnDevBasic.addEventListener('click', () => { devStatus.textContent = '正在构建基础包…'; window.masterApi.devBuild('basic'); });
+btnDevVoice.addEventListener('click', () => { devStatus.textContent = '正在打包语音扩展包…'; window.masterApi.devBuild('voice'); });
+window.masterApi.onDevBuild((s) => { if (s && s.t) devStatus.textContent = s.t; });
 // 退出桌宠：主进程走退出动画链路（播完由桌宠渲染层发 quit 真正退出）
 document.getElementById('btnQuit').addEventListener('click', () => window.masterApi.quit());
 

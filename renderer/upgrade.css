@@ -61,6 +61,23 @@ body {
 }
 .up-drop-ic { font-size: 34px; margin-bottom: 10px; }
 .up-drop-hint { font-size: 13px; line-height: 1.6; }
+.up-drop-busy {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.up-drop-busy[hidden] { display: none; }
+.spin {
+  width: 30px;
+  height: 30px;
+  border: 3px solid rgba(255, 208, 77, 0.25);
+  border-top-color: #ffd04d;
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.up-drop-pct { font-size: 13px; color: #ffd04d; font-weight: 600; }
 .up-progress { margin-top: 14px; }
 .up-bar {
   height: 8px;

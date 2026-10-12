@@ -3,10 +3,10 @@
 //      每个 view 复用原 renderer html + 原 preload，渲染层与 IPC 链路零迁移。
 // 各模块主进程 showXxx() 改为 openModule('xxx')；getXxxWin() 返回 view 包装对象
 //      （webContents 可直接 send，isDestroyed 反映 view 是否存活）→ sing/voice/lyric 广播链路不变。
-const { BrowserWindow, WebContentsView, ipcMain, screen, dialog } = require('electron');
+const { BrowserWindow, WebContentsView, ipcMain, screen, dialog, app } = require('electron');
 const path = require('path');
 const fs = require('fs');
-const { execFile } = require('child_process');
+const { execFile, spawn } = require('child_process');
 const { getWin } = require('./window');
 const { getAppRoot, resolveVoiceEnv } = require('./paths');
 
@@ -237,6 +237,37 @@ function registerMasterPanelIpc() {
     return { ok: startVoiceUpgrade(r.filePaths[0]) };
   });
   ipcMain.on('voice-upgrade-path', (_e, zipPath) => startVoiceUpgrade(String(zipPath || '')));
+
+  // ── 开发者一键打包（仅开发版显示；发行版 app.isPackaged=true 时渲染层不显示按钮）──
+  ipcMain.handle('app-is-dev', () => !app.isPackaged);
+  ipcMain.on('dev-build', (_e, kind) => startDevBuild(String(kind || '')));
+}
+
+function startDevBuild(kind) {
+  const script = path.join(__dirname, '..', 'scripts', kind === 'voice' ? 'build-voice.js' : 'build-basic.js');
+  if (!fs.existsSync(script)) return;
+  const child = spawn(process.execPath, [script], { windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
+  child.stdout.on('data', (d) => parseDevBuild(d, false));
+  child.stderr.on('data', (d) => parseDevBuild(d, true));
+  child.on('close', (code) => broadcastDevBuild({ t: code === 0 ? '✓ 打包流程结束' : '✗ 打包失败（请查看桌宠控制台输出）' }));
+}
+function parseDevBuild(d, isErr) {
+  const text = String(d);
+  for (const line of text.split('\n')) {
+    const s = line.trim();
+    if (!s) continue;
+    try {
+      const j = JSON.parse(s);
+      if (j && j.t) broadcastDevBuild({ t: j.t });
+    } catch (e) {
+      if (isErr) broadcastDevBuild({ t: s.slice(0, 120) });
+    }
+  }
+}
+function broadcastDevBuild(s) {
+  if (masterWin && !masterWin.isDestroyed()) {
+    try { masterWin.webContents.send('dev-build-progress', s); } catch (e) {}
+  }
 }
 
 // 语音升级小窗（独立 BrowserWindow：选框 + 进度条；总面板 HTML 弹窗会被原生 WebContentsView 遮挡，故用独立窗口）

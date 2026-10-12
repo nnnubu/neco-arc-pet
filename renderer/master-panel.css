@@ -160,6 +160,35 @@ html, body {
   box-shadow: 0 2px 10px rgba(217, 58, 66, 0.4);
 }
 #navFoot button:active { transform: scale(0.9); }
+#devTools {
+  width: 100%;
+  margin-bottom: 10px;
+  padding: 8px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+#devTools[hidden] { display: none; }
+.dev-row { display: flex; gap: 6px; }
+.dev-row button {
+  flex: 1;
+  height: 26px;
+  border: none;
+  border-radius: 7px;
+  background: rgba(64, 150, 255, 0.16);
+  color: #bfdcff;
+  font-size: 11px;
+  cursor: pointer;
+  transition: background 0.15s var(--ease), color 0.15s var(--ease);
+}
+.dev-row button:hover { background: rgba(64, 150, 255, 0.3); color: #fff; }
+.dev-status {
+  margin-top: 6px;
+  font-size: 10.5px;
+  line-height: 1.5;
+  color: var(--txt2);
+  word-break: break-all;
+}
 
 #content {
   position: fixed;

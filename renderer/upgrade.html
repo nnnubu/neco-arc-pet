@@ -12,8 +12,12 @@
     <button id="btnClose" title="关闭">✕</button>
   </header>
   <div id="upDrop" class="up-drop">
-    <div class="up-drop-ic">📦</div>
-    <div class="up-drop-hint" data-i18n="upgradeDropHint">拖拽 .zip 语音扩展包到这里，或点击选择文件</div>
+    <div id="upDropIc" class="up-drop-ic">📦</div>
+    <div id="upDropHint" class="up-drop-hint" data-i18n="upgradeDropHint">拖拽 .zip 语音扩展包到这里，或点击选择文件</div>
+    <div id="upDropBusy" class="up-drop-busy" hidden>
+      <div class="spin"></div>
+      <div id="upDropPct" class="up-drop-pct"></div>
+    </div>
   </div>
   <div id="upProgress" class="up-progress" hidden>
     <div class="up-bar"><div id="upFill"></div></div>
