@@ -111,6 +111,36 @@
     setMuteUI(next);
   });
 
+  // ── 气泡显示设置（Aa 展开一行：字号滑块 + 文字颜色 + 恢复默认）──
+  // 读写 tts-config 同源（与 TTS 面板一致）；基础包无语音扩展包时这里就是唯一入口
+  const bubbleSettings = $('#bubbleSettings');
+  const btnBubble = $('#btnBubble');
+  const bsSize = $('#bsSize');
+  const bsSizeVal = $('#bsSizeVal');
+  const bsColor = $('#bsColor');
+  let bubbleOpen = false;
+  btnBubble.addEventListener('click', () => {
+    bubbleOpen = !bubbleOpen;
+    bubbleSettings.classList.toggle('hidden', !bubbleOpen);
+    btnBubble.classList.toggle('on', bubbleOpen);
+  });
+  function saveBubble() {
+    window.chatApi.bubbleSet({ bubbleFontSize: parseInt(bsSize.value, 10) || 16, bubbleColor: bsColor.value });
+  }
+  bsSize.addEventListener('input', () => { bsSizeVal.textContent = bsSize.value; saveBubble(); });
+  bsColor.addEventListener('input', () => saveBubble());
+  $('#bsReset').addEventListener('click', () => {
+    bsSize.value = 16; bsSizeVal.textContent = '16';
+    bsColor.value = '#ffd166';
+    saveBubble();
+  });
+  window.chatApi.bubbleGet().then((cfg) => {
+    if (!cfg) return;
+    bsSize.value = cfg.bubbleFontSize != null ? cfg.bubbleFontSize : 16;
+    bsSizeVal.textContent = bsSize.value;
+    bsColor.value = /^#[0-9a-fA-F]{6}$/.test(String(cfg.bubbleColor || '')) ? cfg.bubbleColor : '#ffd166';
+  });
+
   // ── 语音问答状态 ──
   window.chatApi.onSpeakState((s) => {
     if (!s) return;

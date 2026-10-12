@@ -6,7 +6,6 @@ const fs = require('fs');
 const path = require('path');
 const { getWin } = require('./window');
 const { getLyricsByTitle } = require('./lyric');
-const { broadcast } = require('./sing');
 const { openModule } = require('./master-panel');
 const { getAssetRoot, getVoiceRoot } = require('./paths');
 
@@ -143,7 +142,7 @@ function registerMenuIpc() {
         if (full) {
           const p = path.join(dir, full);
           if (!fs.existsSync(p)) return; // 文件被删/占位：不播
-          broadcast('sing-play', { full: p, vocal: null, name, dir });
+          require('./sing').broadcast('sing-play', { full: p, vocal: null, name, dir });
           getLyricsByTitle(name).then((lyr) => {
             if (win && !win.isDestroyed() && lyr && lyr.lyrics && lyr.lyrics.length) {
               win.webContents.send('sing-lyric', lyr);

@@ -31,9 +31,20 @@
     <!-- 状态行（思考中/生成语音中/翻唱进度/错误） -->
     <div id="chatStatus"></div>
 
-    <!-- 输入行：联网搜索开关 + 输入框 + 发送 + 回答缓存开关 + 清空缓存 -->
+    <!-- 气泡显示设置（字号/文字颜色）：基础包无语音也可用；读 tts-config 同源 -->
+    <div id="bubbleSettings" class="hidden">
+      <span class="bs-name" data-i18n="bsSize">气泡字号</span>
+      <input id="bsSize" type="range" min="12" max="50" step="1" value="16">
+      <span id="bsSizeVal" class="bs-val">16</span>
+      <span class="bs-name" data-i18n="bsColor">文字颜色</span>
+      <input id="bsColor" type="color" value="#ffd166">
+      <button id="bsReset" title="恢复默认字号 16px / 颜色 #ffd166" data-i18n-title="bubbleColorReset">↺</button>
+    </div>
+
+    <!-- 输入行：联网搜索开关 + 气泡设置 + 输入框 + 发送 + 回答缓存开关 + 清空缓存 -->
     <div id="inputRow">
       <button id="btnSearch" title="联网搜索（回答最新/实时信息时自动搜索增强）" data-i18n-title="searchTitleOff">🌐</button>
+      <button id="btnBubble" title="气泡显示设置" data-i18n-title="bubbleTitle">Aa</button>
       <input id="chatInput" type="text" placeholder="说点什么喵…" maxlength="200" data-i18n-ph="chatPlaceholder" />
       <button id="btnSend" data-i18n="btnSend">发送</button>
       <button id="btnCache" title="缓存：开=同问同答直接返回，关=每次重新生成" data-i18n-title="cacheTitleOn">💾</button>

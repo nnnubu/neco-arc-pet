@@ -7,9 +7,10 @@ const path = require('path');
 const fs = require('fs');
 const { getWin } = require('./window');
 const { generateTts } = require('./voice');
-const { broadcast } = require('./sing');
 const { openModule, hideMaster, minimizeMaster, getViewWebContents } = require('./master-panel');
 const { getAssetRoot, getVoiceRoot, resolveVoiceEnv, noVoiceMsg } = require('./paths');
+// sing 延迟 require：chat.js → tts-panel.js → sing.js → chat.js 循环依赖，顶层解构会拿到部分导出
+function singModule() { return require('./sing'); }
 
 let generating = false; // 防重入：一次只生成一段
 
@@ -149,7 +150,7 @@ function scanTtsHistory() {
 function playTts(full, name, text, dur) {
   const win = getWin();
   if (!win || win.isDestroyed() || !full) return;
-  broadcast('sing-play', { full, vocal: null, name, dir: TTS_DIR }); // 桌宠窗播放 + 翻唱面板/对话窗同步歌名
+  singModule().broadcast('sing-play', { full, vocal: null, name, dir: TTS_DIR }); // 桌宠窗播放 + 翻唱面板/对话窗同步歌名
   const lyrics = textToLyrics(text, dur);
   if (lyrics.length) {
     win.webContents.send('sing-lyric', { lyrics, title: name, source: 'tts' });

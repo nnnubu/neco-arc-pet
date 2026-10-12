@@ -5,9 +5,12 @@ const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
 const { getWin } = require('./window');
-const { getChatWin, recordMsg } = require('./chat');
+// chat 模块延迟 require：chat.js → tts-panel.js → voice.js 构成循环依赖，
+// 顶层解构会触发 "Accessing non-existent property" 警告；函数内 require 则始终拿到完整导出
 const { askAI, getAiConfig } = require('./ai');
 const { getAssetRoot, resolveVoiceEnv, getVoiceRoot, noVoiceMsg } = require('./paths');
+
+function chatModule() { return require('./chat'); }
 
 // TTS 面板参数（assets/tts-config.json）：聊天/翻唱"应用到…"开关由此读
 const TTS_CONFIG_PATH = path.join(getAssetRoot(), 'tts-config.json');
@@ -33,7 +36,7 @@ function readTtsConfig() {
 function broadcast(channel, payload) {
   const win = getWin();
   if (win && !win.isDestroyed()) win.webContents.send(channel, payload);
-  const chat = getChatWin();
+  const chat = chatModule().getChatWin();
   if (chat && !chat.isDestroyed()) chat.webContents.send(channel, payload);
 }
 
@@ -185,15 +188,18 @@ async function handleProactiveSpeak(force = false) {
   }
   const { emotion, text: speakText } = parseEmotion(reply);
   console.log(`[proactive] 情绪=${emotion} 文本=${speakText}`);
-  recordMsg('pet', speakText); // 进对话窗历史（即使对话窗未打开，重开可见）
-  proactiveHistory.push(speakText);
-  if (proactiveHistory.length > 12) proactiveHistory.shift();
+  chatModule().recordMsg('pet', speakText); // 进对话窗历史（即使对话窗未打开，重开可见）
+  proactiveHistory.push(speakText);  if (proactiveHistory.length > 12) proactiveHistory.shift();
   if (!win.isDestroyed()) broadcast('ai-reply', { text: speakText });
   // 翻唱播放中/静音模式：只出文字不播语音（手动点"立即说一句"也走这里；静音不影响翻唱音乐）
   if (singPlaying || getAiConfig().muteVoice) { broadcast('speak-state', { state: 'done' }); return true; }
   broadcast('speak-state', { state: 'generating' });
-  // 无语音扩展包：只出文本不合成
-  if (!resolveVoiceEnv()) { broadcast('speak-state', { state: 'done' }); return true; }
+  // 无语音扩展包：只出文本不合成（基础包降级，不报错打扰用户聊天）——文本仍显示在 arc 旁气泡
+  if (!resolveVoiceEnv()) {
+    broadcast('bubble-text-only', { text: speakText });
+    broadcast('speak-state', { state: 'done' });
+    return true;
+  }
   ensureVoiceServer();
   const id = Date.now();
   activeReqs.add(id);
@@ -306,7 +312,7 @@ async function handleSpeakText(text, force) {
   // 清除孤立代理项（输入法/粘贴可能产生），防止传给 Python 时编码崩溃
   const t = String(text || '').replace(/[\uD800-\uDFFF]/g, '').trim();
   if (!t) return;
-  recordMsg('me', t); // 用户输入进对话窗历史
+  chatModule().recordMsg('me', t); // 用户输入进对话窗历史
   broadcast('speak-state', { state: 'ai' }); // 思考中…
   let reply;
   try {
@@ -326,15 +332,19 @@ async function handleSpeakText(text, force) {
   // 解析情绪标签：标签决定语音合成情绪（voice_server 内部映射到 CosyVoice 参数）
   const { emotion, text: speakText } = parseEmotion(reply);
   console.log(`[ai] 情绪=${emotion} 文本=${speakText}`);
-  recordMsg('pet', speakText); // 猫姬回复进对话窗历史（对话窗未开也不丢，重开回放）
+  chatModule().recordMsg('pet', speakText); // 猫姬回复进对话窗历史（对话窗未开也不丢，重开回放）
   // 回复文本（去标签）给渲染层显示
   if (!win.isDestroyed()) broadcast('ai-reply', { text: speakText });
   // 翻唱播放中/静音模式：只出文字不播语音，避免打断用户听歌（静音不影响翻唱音乐）
   if (singPlaying || getAiConfig().muteVoice) { broadcast('speak-state', { state: 'done' }); return; }
   // 合成回复语音（CosyVoice 情绪源 → RVC 变声 → 缓存；情绪进缓存 key）
   broadcast('speak-state', { state: 'generating' });
-  // 无语音扩展包：只出文本不合成（基础包降级，不报错打扰用户聊天）
-  if (!resolveVoiceEnv()) { broadcast('speak-state', { state: 'done' }); return; }
+  // 无语音扩展包：只出文本不合成（基础包降级，不报错打扰用户聊天）——文本仍显示在 arc 旁气泡
+  if (!resolveVoiceEnv()) {
+    broadcast('bubble-text-only', { text: speakText });
+    broadcast('speak-state', { state: 'done' });
+    return;
+  }
   ensureVoiceServer();
   const id = Date.now();
   activeReqs.add(id);

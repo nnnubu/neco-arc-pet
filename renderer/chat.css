@@ -218,6 +218,58 @@ html, body {
   border-top: 1px solid var(--line);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent);
 }
+/* 气泡显示设置行（默认收起，由输入行 Aa 按钮展开） */
+#bubbleSettings {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px 0;
+  font-size: 12px;
+}
+#bubbleSettings.hidden { display: none; }
+#bubbleSettings .bs-name { color: var(--txt2); white-space: nowrap; }
+#bubbleSettings .bs-val { color: var(--txt); min-width: 24px; text-align: right; }
+#bubbleSettings input[type="range"] {
+  flex: 0 1 120px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.14);
+  -webkit-appearance: none;
+  appearance: none;
+  outline: none;
+}
+#bubbleSettings input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--brand1), var(--brand2));
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+}
+#bubbleSettings input[type="color"] {
+  width: 30px;
+  height: 22px;
+  padding: 1px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+}
+#bubbleSettings #bsReset {
+  width: 26px;
+  height: 22px;
+  border: none;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--txt2);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s var(--ease), color 0.15s var(--ease);
+}
+#bubbleSettings #bsReset:hover { background: rgba(255, 255, 255, 0.15); color: #fff; }
 #chatInput {
   flex: 1 1 auto;
   min-width: 0;
@@ -314,4 +366,28 @@ html, body {
   background: transparent;
   border-color: transparent;
   text-shadow: 0 0 12px rgba(106, 179, 255, 0.95), 0 0 24px rgba(106, 179, 255, 0.5);
+}
+/* 气泡显示设置入口（Aa）：与 🌐/💾 同款切换按钮，展开时暖白高亮 */
+#btnBubble {
+  flex: 0 0 auto;
+  width: 40px; height: 40px;
+  font-size: 14px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.62);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 11px;
+  cursor: pointer;
+  filter: grayscale(0.35);
+  opacity: 0.75;
+  transition: filter 0.2s var(--ease), opacity 0.2s var(--ease), text-shadow 0.2s var(--ease), background 0.2s var(--ease), color 0.2s var(--ease);
+}
+#btnBubble:hover { filter: grayscale(0); opacity: 1; background: rgba(255, 255, 255, 0.05); color: #fff; }
+#btnBubble.on {
+  filter: none;
+  opacity: 1;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.14);
+  text-shadow: 0 0 12px rgba(255, 209, 102, 0.9), 0 0 24px rgba(255, 209, 102, 0.45);
 }

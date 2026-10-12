@@ -8,8 +8,9 @@ const { spawn } = require('child_process');
 const { getWin } = require('./window');
 const { getLyrics, parseLrc } = require('./lyric');
 const { getSingPanelWin, consumePanelLrc } = require('./sing-panel');
-const { getChatWin } = require('./chat');
 const { resolveVoiceEnv, noVoiceMsg } = require('./paths');
+// chat 延迟 require：chat.js → tts-panel.js → voice.js → chat.js 循环依赖，顶层解构会拿到部分导出
+function chatModule() { return require('./chat'); }
 
 let singProc = null; // 防重入：一次只翻唱一首
 
@@ -19,7 +20,7 @@ function broadcast(channel, payload) {
   if (win && !win.isDestroyed()) win.webContents.send(channel, payload);
   const panel = getSingPanelWin();
   if (panel && !panel.isDestroyed()) panel.webContents.send(channel, payload);
-  const chat = getChatWin();
+  const chat = chatModule().getChatWin();
   if (chat && !chat.isDestroyed()) chat.webContents.send(channel, payload);
 }
 

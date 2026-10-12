@@ -5,6 +5,7 @@ const { ipcMain } = require('electron');
 const { getWin } = require('./window');
 const { openModule, wrapView, hideMaster, minimizeMaster } = require('./master-panel');
 const { getAiConfig, updateAiConfig } = require('./ai');
+const { loadConfig: loadTtsConfig, saveConfig: saveTtsConfig } = require('./tts-panel');
 
 // ── 消息记录（内存，上限 200 条）：用户输入/猫姬回复/主动说话都进记录，
 // 对话模块关闭再打开时回放，避免"主动说话没加到对话面板"（窗口未开时消息丢失）
@@ -114,6 +115,23 @@ function registerChatIpc() {
     const next = !getAiConfig().muteVoice;
     updateAiConfig({ muteVoice: next });
     return next;
+  });
+
+  // 气泡显示设置（字号/文字颜色）：读写 tts-config.json 的气泡字段，与 TTS 面板同源
+  // 基础包（无语音扩展包）没有 TTS 面板，聊天面板提供同一入口
+  ipcMain.handle('chat-bubble-get', () => {
+    const c = loadTtsConfig() || {};
+    return {
+      bubbleFontSize: c.bubbleFontSize != null ? Number(c.bubbleFontSize) : 16,
+      bubbleColor: /^#[0-9a-fA-F]{6}$/.test(String(c.bubbleColor || '')) ? String(c.bubbleColor) : '#ffd166',
+    };
+  });
+  ipcMain.handle('chat-bubble-set', (_e, cfg) => {
+    const next = loadTtsConfig() || {};
+    if (cfg && cfg.bubbleFontSize != null) next.bubbleFontSize = Number(cfg.bubbleFontSize);
+    if (cfg && /^#[0-9a-fA-F]{6}$/.test(String(cfg.bubbleColor || ''))) next.bubbleColor = String(cfg.bubbleColor);
+    saveTtsConfig(next);
+    return { ok: true };
   });
 }
 

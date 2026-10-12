@@ -48,6 +48,8 @@ contextBridge.exposeInMainWorld('pet', {
   onSpeakState: (cb) => ipcRenderer.on('speak-state', (_e, s) => cb(s)),
   onAiReply: (cb) => ipcRenderer.on('ai-reply', (_e, r) => cb(r)),
   onAiToken: (cb) => ipcRenderer.on('ai-token', (_e, r) => cb(r)),
+  // 无语音扩展包时：AI 回复文本也显示在 arc 旁气泡（基础包不升级也能看到气泡文本）
+  onBubbleTextOnly: (cb) => ipcRenderer.on('bubble-text-only', (_e, r) => cb(r)),
   // 唱歌（翻唱）
   singSong: (songPath) => ipcRenderer.send('sing-song', songPath),
   onSingProgress: (cb) => ipcRenderer.on('sing-progress', (_e, s) => cb(s)),

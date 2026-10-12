@@ -17,6 +17,9 @@ contextBridge.exposeInMainWorld('chatApi', {
   // 静音模式（arc 不说话，翻唱音乐不受影响）
   muteState: () => ipcRenderer.invoke('chat-mute-state'),
   muteToggle: () => ipcRenderer.invoke('chat-mute-toggle'),
+  // 气泡显示设置（字号/文字颜色；读写 tts-config 同源，基础包无 TTS 面板也可见）
+  bubbleGet: () => ipcRenderer.invoke('chat-bubble-get'),
+  bubbleSet: (cfg) => ipcRenderer.invoke('chat-bubble-set', cfg),
   // 对话窗历史回放（用户输入/猫姬回复/主动说话；主进程内存记录）
   getHistory: () => ipcRenderer.invoke('chat-get-history'),
   // 打开时向桌宠渲染层同步当前翻唱播放状态（按钮显示 ▶/⏸ 与面板一致）

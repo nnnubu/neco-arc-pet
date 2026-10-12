@@ -150,6 +150,11 @@ window.VoiceUI = (() => {
     window.pet.onAiReply((r) => {
       replyText = (r && r.text) || '';
     });
+    // 无语音扩展包（基础包）：AI 回复不合成语音，文本仍显示到 arc 旁气泡，停留几秒后淡出
+    window.pet.onBubbleTextOnly((r) => {
+      const txt = (r && r.text) || '';
+      if (txt) bubbleTip(txt, 4000);
+    });
 
     // ── 翻唱（唱歌）──
     // 播放完整版 + 桌面歌词同步（菜单历史/翻唱面板/翻唱完成自动播放都走这里；歌词可稍后补发）
