@@ -236,22 +236,26 @@ html, body {
 #bubbleSettings input[type="range"] {
   flex: 1 1 auto;
   min-width: 50px;
-  height: 4px;
-  border-radius: 2px;
-  background: rgba(255, 255, 255, 0.14);
+  height: 5px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, rgba(255, 95, 109, 0.75), rgba(255, 138, 92, 0.75));
   -webkit-appearance: none;
   appearance: none;
   outline: none;
+  cursor: pointer;
 }
 #bubbleSettings input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 14px;
-  height: 14px;
+  width: 13px;
+  height: 13px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--brand1), var(--brand2));
-  border: 2px solid rgba(255, 255, 255, 0.85);
+  background: #fff;
+  border: 2px solid #ff5f6d;
+  box-shadow: 0 2px 6px rgba(255, 95, 109, 0.4);
   cursor: pointer;
+  transition: transform 0.12s var(--ease);
 }
+#bubbleSettings input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
 /* 颜色：自绘色块按钮（背景=当前色），原生 color input 透明覆盖其上负责弹系统色盘 */
 #bubbleSettings #bsColorWrap {
   position: relative;
