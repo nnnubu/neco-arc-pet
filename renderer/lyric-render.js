@@ -157,6 +157,26 @@
     });
   }
 
+  // ── 鼠标透传（类桌宠）：歌词文字区穿透下层不挡鼠标；hover 到控件/标题/留白恢复拦截可交互。
+  // 穿透用 setIgnoreMouse(true, {forward:true})：窗口仍能收到 mousemove 供 hover 判定。
+  let lastIgnore = null;
+  function setIgnore(ig) {
+    if (lastIgnore === ig) return;
+    lastIgnore = ig;
+    window.lyricApi.setIgnore(ig);
+  }
+  function updateIgnore(target) {
+    // 控件区（上一首/暂停/下一首/进度条/关闭）→ 拦截，可点击
+    if (target.closest('#controls') || target.closest('#lyricClose')) { setIgnore(false); return; }
+    // 歌词文字区（prev/cur/next）→ 穿透，不挡下层
+    if (target.closest('#prev') || target.closest('#cur') || target.closest('#next')) { setIgnore(true); return; }
+    // 其余（标题/留白）→ 拦截，可拖动窗口/滚轮缩放
+    setIgnore(false);
+  }
+  // 初始默认穿透（歌词纯展示；需要操作时鼠标移到控件/留白自动恢复）
+  setIgnore(true);
+  document.addEventListener('mousemove', (e) => updateIgnore(e.target), { passive: true });
+
   function render(i) {
     const prev = $('#prev'), cur = $('#cur'), next = $('#next');
     curEl = cur;

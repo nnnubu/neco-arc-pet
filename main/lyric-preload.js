@@ -20,4 +20,6 @@ contextBridge.exposeInMainWorld('lyricApi', {
   next: () => ipcRenderer.send('lyric-next'),
   // 播放状态（sing-state 广播 → 主进程转发 lyric-state → 按钮 ⏸/▶ 切换）
   onState: (cb) => ipcRenderer.on('lyric-state', (_e, s) => cb(s)),
+  // 鼠标透传控制：true=歌词文字区穿透下层（不挡鼠标），false=恢复拦截（hover 到控件/留白可交互）
+  setIgnore: (ig) => ipcRenderer.send('lyric-ignore-mouse', !!ig),
 });
