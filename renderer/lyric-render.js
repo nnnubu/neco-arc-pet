@@ -157,24 +157,46 @@
     });
   }
 
-  // ── 鼠标透传（类桌宠）：歌词文字区穿透下层不挡鼠标；hover 到控件/标题/留白恢复拦截可交互。
+  // ── 鼠标透传（类桌宠）：双模式。
+  // 解锁态（默认）：歌词文字区穿透下层不挡鼠标；hover 到控件/标题/留白恢复拦截可交互（暂停/切歌/seek/拖动/缩放）。
+  // 锁定态：除右上角锁按钮外整窗穿透（纯展示，完全不挡鼠标）；再点锁按钮解锁。
   // 穿透用 setIgnoreMouse(true, {forward:true})：窗口仍能收到 mousemove 供 hover 判定。
   let lastIgnore = null;
+  let locked = false;
+  let lastMoveTarget = null;
   function setIgnore(ig) {
     if (lastIgnore === ig) return;
     lastIgnore = ig;
     window.lyricApi.setIgnore(ig);
   }
   function updateIgnore(target) {
-    // 控件区（上一首/暂停/下一首/进度条/关闭）→ 拦截，可点击
+    lastMoveTarget = target;
+    // 锁按钮永远可点（锁定态也能解锁）
+    if (target.closest('#lyricLock')) { setIgnore(false); return; }
+    if (locked) { setIgnore(true); return; } // 锁定态：其余全部穿透
+    // 解锁态：控件区（上一首/暂停/下一首/进度条/关闭）→ 拦截，可点击
     if (target.closest('#controls') || target.closest('#lyricClose')) { setIgnore(false); return; }
     // 歌词文字区（prev/cur/next）→ 穿透，不挡下层
     if (target.closest('#prev') || target.closest('#cur') || target.closest('#next')) { setIgnore(true); return; }
     // 其余（标题/留白）→ 拦截，可拖动窗口/滚轮缩放
     setIgnore(false);
   }
-  // 初始默认穿透（歌词纯展示；需要操作时鼠标移到控件/留白自动恢复）
-  setIgnore(true);
+  function setLocked(v) {
+    locked = v;
+    document.body.classList.toggle('locked', v);
+    // 锁图标：锁定=梁伸入锁体，解锁=梁悬空
+    document.getElementById('lockSvg').innerHTML = v
+      ? '<path d="M5 8V6a3 3 0 0 1 6 0V8"/><rect x="3" y="8" width="10" height="7" rx="1.6"/>'
+      : '<path d="M5 8V6a3 3 0 0 1 6 0"/><rect x="3" y="8" width="10" height="7" rx="1.6"/>';
+    // 状态切换后立刻按当前鼠标位置刷新穿透判定
+    if (lastMoveTarget) updateIgnore(lastMoveTarget);
+  }
+  document.getElementById('lyricLock').addEventListener('click', (e) => {
+    e.stopPropagation();
+    setLocked(!locked);
+  });
+  // 初始默认解锁（可拖动可操作；点锁按钮进入锁定透传模式）
+  setIgnore(false);
   document.addEventListener('mousemove', (e) => updateIgnore(e.target), { passive: true });
 
   function render(i) {
