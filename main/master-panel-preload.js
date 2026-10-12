@@ -21,6 +21,7 @@ contextBridge.exposeInMainWorld('masterApi', {
   isDev: () => ipcRenderer.invoke('app-is-dev'),
   devBuild: (kind) => ipcRenderer.send('dev-build', kind),
   onDevBuild: (cb) => ipcRenderer.on('dev-build-progress', (_e, s) => cb(s)),
+  closeBuildWin: () => ipcRenderer.send('build-win-close'),
 });
 contextBridge.exposeInMainWorld('necoI18n', {
   get: () => ipcRenderer.invoke('i18n-get'),

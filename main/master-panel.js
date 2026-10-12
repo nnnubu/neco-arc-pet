@@ -238,18 +238,41 @@ function registerMasterPanelIpc() {
   });
   ipcMain.on('voice-upgrade-path', (_e, zipPath) => startVoiceUpgrade(String(zipPath || '')));
 
-  // ── 开发者一键打包（仅开发版显示；发行版 app.isPackaged=true 时渲染层不显示按钮）──
-  ipcMain.handle('app-is-dev', () => !app.isPackaged);
-  ipcMain.on('dev-build', (_e, kind) => startDevBuild(String(kind || '')));
+// ── 开发者一键打包（仅开发版显示；发行版 app.isPackaged=true 时渲染层不显示按钮）──
+ipcMain.handle('app-is-dev', () => !app.isPackaged);
+ipcMain.on('dev-build', (_e, kind) => startDevBuild(String(kind || '')));
+ipcMain.on('build-win-close', () => { if (buildWin && !buildWin.isDestroyed()) buildWin.close(); });
 }
+
+// 打包状态（顶层作用域：进度小窗标题 + 失败日志摘要）
+let buildKind = '';   // 当前打包类型（basic/voice）
+let buildErr = '';    // 构建失败时收集 stderr 关键内容
 
 function startDevBuild(kind) {
   const script = path.join(__dirname, '..', 'scripts', kind === 'voice' ? 'build-voice.js' : 'build-basic.js');
   if (!fs.existsSync(script)) return;
+  buildKind = kind;
+  buildErr = '';
+  ensureBuildWin();
+  broadcastDevBuild({ t: kind === 'voice' ? '正在打包语音扩展包…' : '开始构建基础包…', kind, pct: 2 });
   const child = spawn(process.execPath, [script], { windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
   child.stdout.on('data', (d) => parseDevBuild(d, false));
-  child.stderr.on('data', (d) => parseDevBuild(d, true));
-  child.on('close', (code) => broadcastDevBuild({ t: code === 0 ? '✓ 打包流程结束' : '✗ 打包失败（请查看桌宠控制台输出）' }));
+  child.stderr.on('data', (d) => {
+    // stderr 不再逐行刷屏：只截取关键行存缓冲，失败时展示摘要
+    const s = String(d);
+    buildErr = (buildErr + s).slice(-6000);
+  });
+  child.on('close', (code) => {
+    if (code !== 0 && !buildErr) broadcastDevBuild({ t: '✗ 打包失败（无输出详情）', err: '' });
+    else if (code !== 0) {
+      // 从错误缓冲里挑可读的关键行（去 Node 栈噪音）
+      const lines = buildErr.split('\n').map((l) => l.trim()).filter((l) => l && !/^\s*at /.test(l));
+      const brief = lines.slice(-8).join('\n').slice(0, 900);
+      broadcastDevBuild({ t: '✗ 打包失败', err: brief || buildErr.slice(-500) });
+    } else {
+      broadcastDevBuild({ t: '✓ 打包流程结束', pct: 100 });
+    }
+  });
 }
 function parseDevBuild(d, isErr) {
   const text = String(d);
@@ -258,16 +281,46 @@ function parseDevBuild(d, isErr) {
     if (!s) continue;
     try {
       const j = JSON.parse(s);
-      if (j && j.t) broadcastDevBuild({ t: j.t });
-    } catch (e) {
-      if (isErr) broadcastDevBuild({ t: s.slice(0, 120) });
-    }
+      if (j && j.t) broadcastDevBuild({ t: j.t, pct: typeof j.pct === 'number' ? j.pct : undefined });
+    } catch (e) { /* 普通日志行忽略 */ }
   }
 }
 function broadcastDevBuild(s) {
-  if (masterWin && !masterWin.isDestroyed()) {
-    try { masterWin.webContents.send('dev-build-progress', s); } catch (e) {}
-  }
+  const targets = [];
+  if (masterWin && !masterWin.isDestroyed()) targets.push(masterWin.webContents);
+  if (buildWin && !buildWin.isDestroyed()) targets.push(buildWin.webContents);
+  for (const wc of targets) { try { wc.send('dev-build-progress', s); } catch (e) {} }
+}
+
+// 打包进度小窗（独立 BrowserWindow，与语音升级小窗同款交互：进度条 + 百分比 + 阶段/日志）
+let buildWin = null;
+function ensureBuildWin() {
+  if (buildWin && !buildWin.isDestroyed()) { buildWin.show(); buildWin.focus(); return buildWin; }
+  const bw = masterWin && !masterWin.isDestroyed() ? masterWin.getBounds() : null;
+  buildWin = new BrowserWindow({
+    width: 500,
+    height: 400,
+    x: bw ? Math.round(bw.x + (bw.width - 500) / 2) : undefined,
+    y: bw ? Math.round(bw.y + (bw.height - 400) / 2) : undefined,
+    frame: false,
+    transparent: false,
+    backgroundColor: '#12131f',
+    resizable: false,
+    minimizable: false,
+    maximizable: false,
+    fullscreenable: false,
+    skipTaskbar: false,
+    show: true,
+    webPreferences: {
+      preload: path.join(__dirname, 'master-panel-preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true,
+    },
+  });
+  buildWin.loadFile(path.join(__dirname, '..', 'renderer', 'build.html'));
+  buildWin.on('closed', () => { buildWin = null; });
+  return buildWin;
 }
 
 // 语音升级小窗（独立 BrowserWindow：选框 + 进度条；总面板 HTML 弹窗会被原生 WebContentsView 遮挡，故用独立窗口）
