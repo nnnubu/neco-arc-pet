@@ -218,20 +218,24 @@ html, body {
   border-top: 1px solid var(--line);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent);
 }
-/* 气泡显示设置行（默认收起，由输入行 Aa 按钮展开） */
+/* 气泡显示设置行（默认收起，由输入行 Aa 按钮展开）：一行撑满，滑块占满剩余空间 */
 #bubbleSettings {
   flex: 0 0 auto;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 7px 12px 0;
+  gap: 10px;
+  padding: 8px 14px;
+  border-top: 1px solid var(--line);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent);
   font-size: 12px;
 }
 #bubbleSettings.hidden { display: none; }
 #bubbleSettings .bs-name { color: var(--txt2); white-space: nowrap; }
-#bubbleSettings .bs-val { color: var(--txt); min-width: 24px; text-align: right; }
+#bubbleSettings .bs-val { color: var(--txt); min-width: 22px; text-align: right; }
+#bubbleSettings .bs-unit { color: var(--txt3); }
 #bubbleSettings input[type="range"] {
-  flex: 0 1 120px;
+  flex: 1 1 auto;
+  min-width: 50px;
   height: 4px;
   border-radius: 2px;
   background: rgba(255, 255, 255, 0.14);
@@ -248,16 +252,37 @@ html, body {
   border: 2px solid rgba(255, 255, 255, 0.85);
   cursor: pointer;
 }
-#bubbleSettings input[type="color"] {
+/* 颜色：自绘色块按钮（背景=当前色），原生 color input 透明覆盖其上负责弹系统色盘 */
+#bubbleSettings #bsColorWrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+#bubbleSettings #bsColorBtn {
   width: 30px;
-  height: 22px;
-  padding: 1px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 6px;
-  background: transparent;
+  height: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 7px;
+  background: #ffd166;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
   cursor: pointer;
+  padding: 0;
+  transition: transform 0.12s var(--ease), border-color 0.18s var(--ease);
+}
+#bubbleSettings #bsColorBtn:hover { border-color: rgba(255, 255, 255, 0.5); }
+#bubbleSettings #bsColorBtn:active { transform: scale(0.92); }
+#bubbleSettings #bsColor {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  border: none;
+  padding: 0;
 }
 #bubbleSettings #bsReset {
+  flex: 0 0 auto;
   width: 26px;
   height: 22px;
   border: none;

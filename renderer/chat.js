@@ -118,20 +118,27 @@
   const bsSize = $('#bsSize');
   const bsSizeVal = $('#bsSizeVal');
   const bsColor = $('#bsColor');
+  const bsColorBtn = $('#bsColorBtn');
   let bubbleOpen = false;
   btnBubble.addEventListener('click', () => {
     bubbleOpen = !bubbleOpen;
     bubbleSettings.classList.toggle('hidden', !bubbleOpen);
     btnBubble.classList.toggle('on', bubbleOpen);
   });
+  function setBsColorSwatch() {
+    bsColorBtn.style.background = bsColor.value;
+  }
   function saveBubble() {
     window.chatApi.bubbleSet({ bubbleFontSize: parseInt(bsSize.value, 10) || 16, bubbleColor: bsColor.value });
   }
   bsSize.addEventListener('input', () => { bsSizeVal.textContent = bsSize.value; saveBubble(); });
-  bsColor.addEventListener('input', () => saveBubble());
+  // 色块按钮 → 触发原生 color input（透明覆盖其上，点击即弹系统色盘）；选色即时保存并同步色块
+  bsColorBtn.addEventListener('click', () => bsColor.click());
+  bsColor.addEventListener('input', () => { setBsColorSwatch(); saveBubble(); });
   $('#bsReset').addEventListener('click', () => {
     bsSize.value = 16; bsSizeVal.textContent = '16';
     bsColor.value = '#ffd166';
+    setBsColorSwatch();
     saveBubble();
   });
   window.chatApi.bubbleGet().then((cfg) => {
@@ -139,6 +146,7 @@
     bsSize.value = cfg.bubbleFontSize != null ? cfg.bubbleFontSize : 16;
     bsSizeVal.textContent = bsSize.value;
     bsColor.value = /^#[0-9a-fA-F]{6}$/.test(String(cfg.bubbleColor || '')) ? cfg.bubbleColor : '#ffd166';
+    setBsColorSwatch();
   });
 
   // ── 语音问答状态 ──
