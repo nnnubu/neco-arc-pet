@@ -9,6 +9,38 @@ window.VoiceUI = (() => {
   let currentSingLyrics = null; // 当前翻唱歌词（播放不等歌词：搜索完成异步补发）
   let currentSingIsTts = false; // 当前播放是否为 TTS（语音合成）：文本改用 arc 旁气泡逐句显示，不再弹桌面歌词窗口
 
+  // ── TTS 音画同步：歌词时间轴按"字符占比×时长"估算，与实际朗读存在偏差 ──
+  // ① 音频前导静音（TTS/RVC 输出常见 0.1~0.6s 空白）→ 文本比语音提前切句；
+  // ② 点播时长按文本量估算、自动播放时长含前后静音 → 时间轴总跨度与真实 wav 时长不符。
+  // 播放中做两步修正：先等比缩放到真实 duration，再检测首个有声帧整体平移对齐。
+  let ttsSyncCtx = null;        // AudioContext（仅用于分析，不影响原播放链路）
+  let ttsSyncAnalyser = null;
+  let ttsSyncInit = false;      // createMediaElementSource 只能调用一次
+  let ttsLeadDetected = false;  // 已找到首个有声帧（整体平移完成）
+  let ttsSpanAdjusted = false;  // 已按真实时长缩放时间轴
+  function ensureTtsSync() {
+    if (ttsSyncInit) return;
+    try {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx || !singAudio) return;
+      ttsSyncInit = true; // 先置位：createMediaElementSource 重复调用会抛错
+      ttsSyncCtx = new Ctx();
+      ttsSyncAnalyser = ttsSyncCtx.createAnalyser();
+      ttsSyncAnalyser.fftSize = 2048;
+      ttsSyncAnalyser.smoothingTimeConstant = 0.15;
+      const src = ttsSyncCtx.createMediaElementSource(singAudio);
+      src.connect(ttsSyncAnalyser);
+      ttsSyncAnalyser.connect(ttsSyncCtx.destination);
+      if (ttsSyncCtx.state === 'suspended') ttsSyncCtx.resume().catch(() => {});
+    } catch (e) {
+      ttsSyncInit = false; // 失败则降级：不修正（保持原行为）
+    }
+  }
+  function resetTtsSync() {
+    ttsLeadDetected = false;
+    ttsSpanAdjusted = false;
+  }
+
   // AI 回复全文（语音播放时整段显示到气泡，不做逐字打字）
   let replyText = '';
 
@@ -52,6 +84,38 @@ window.VoiceUI = (() => {
         const ls = currentSingLyrics;
         if (!singAudio || singAudio.paused) return;
         const t = singAudio.currentTime;
+        // TTS 音画同步修正（仅 TTS 文本气泡场景；翻唱歌词有真实时间轴不需要）：
+        // ① 首次拿到真实 duration 时，若歌词时间轴总跨度与 wav 时长偏差显著 → 等比缩放，
+        //    消除"点播按文本量估算时长/自动播放时长含前后静音"造成的快慢错位；
+        // ② 检测首个有声帧 → 整体时间轴平移对齐，消除音频前导静音导致的"语音未出声文本先切句"。
+        if (currentSingIsTts && ls && ls.length) {
+          if (!ttsSpanAdjusted) {
+            const dur = singAudio.duration || 0;
+            const span = ls[ls.length - 1].time || 0;
+            if (dur > 0.5 && span > 0.5 && Math.abs(span - dur) / Math.max(dur, 0.001) > 0.12) {
+              const k = dur / span;
+              for (const l of ls) l.time = Math.round(l.time * k * 100) / 100;
+              lastLyricIdx = -1; // 强制按新时间轴重算当前句
+            }
+            ttsSpanAdjusted = true;
+          }
+          if (!ttsLeadDetected && ttsSyncAnalyser) {
+            const arr = new Uint8Array(ttsSyncAnalyser.frequencyBinCount);
+            ttsSyncAnalyser.getByteTimeDomainData(arr);
+            let peak = 0;
+            for (let i = 0; i < arr.length; i++) { const v = Math.abs(arr[i] - 128); if (v > peak) peak = v; }
+            if (peak > 6) { // 出现实际音频内容（静音段≈128，阈值 6/128 灵敏度足够且避底噪）
+              ttsLeadDetected = true;
+              const lead = singAudio.currentTime || 0;
+              // 上限 1s：TTS/RVC 前导静音通常 ≤1s；若歌词补发太晚（音频已播 >1s），
+              // 直接按当前进度显示对应句即可，整体平移反而会毁掉时间轴
+              if (lead > 0.05 && lead < 1.0) {
+                for (const l of ls) l.time = Math.max(0, Math.round((l.time - lead) * 100) / 100);
+                lastLyricIdx = -1;
+              }
+            }
+          }
+        }
         // 有歌词：驱动句切换 + 句内进度；无歌词（暂无歌词占位）也照常发整首进度（进度条可用）
         if (ls && ls.length) {
           let idx = 0;
@@ -163,6 +227,8 @@ window.VoiceUI = (() => {
       try {
         if (!full) return;
         currentSingIsTts = !!isTts;
+        resetTtsSync();
+        if (isTts) ensureTtsSync(); // TTS：初始化音画同步分析（createMediaElementSource 单次）
         // 上报当前播放歌名（歌词窗"下一首"定位用）
         try { window.pet.singNow(name || ''); } catch (e) {}
         // 暂停语音（互斥：翻唱播放时不让语音插话）
