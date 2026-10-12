@@ -342,7 +342,8 @@ function startVoiceUpgrade(zipPath) {
   upgrading = true;
   const appRoot = getAppRoot();
   // zip 内条目数（含目录行，作进度分母的近似值，偏保守无碍）
-  execFile('tar', ['-tf', zipPath], { windowsHide: true, timeout: 60000 }, (_err, out) => {
+  // 注意：zip 条目 2.5 万+ 时 tar -tf 输出超 1MB，默认 maxBuffer 会截断报错 → 必须调大，否则 total=0 百分比永远不显示
+  execFile('tar', ['-tf', zipPath], { windowsHide: true, timeout: 60000, maxBuffer: 64 * 1024 * 1024 }, (_err, out) => {
     const total = _err ? 0 : String(out).split('\n').filter((l) => l.trim()).length;
     broadcastUpgrade({ state: 'unpacking', done: 0, total, stage: 1 });
     // 轮询落地文件数 → 进度条 + 阶段（1 脚本 / 2 环境 / 3 收尾）

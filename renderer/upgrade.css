@@ -100,7 +100,20 @@ body {
   0% { margin-left: -40%; }
   100% { margin-left: 100%; }
 }
-.up-stage { margin-top: 8px; font-size: 12px; color: var(--txt2); }
+.up-stage {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--txt2);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.up-stage-pct {
+  color: #ffd04d;
+  font-weight: 600;
+  white-space: nowrap;
+}
 .up-err {
   margin-top: 12px;
   padding: 8px 10px;

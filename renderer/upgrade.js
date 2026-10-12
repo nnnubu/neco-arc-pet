@@ -8,8 +8,23 @@
   const upProgress = document.getElementById('upProgress');
   const upFill = document.getElementById('upFill');
   const upStage = document.getElementById('upStage');
+  const upPct = document.getElementById('upPct');
   const upErr = document.getElementById('upErr');
   let installing = false;
+
+  function setBusy(pct) {
+    // 选框转为"安装中"状态（转圈 + 百分比；拿不到分母时显示 …）
+    upDrop.style.pointerEvents = 'none';
+    upDrop.classList.add('busy');
+    upDropIc.hidden = true;
+    upDropHint.hidden = true;
+    upDropBusy.hidden = false;
+    upDropPct.textContent = (pct != null ? Math.round(pct) + '%' : '…');
+  }
+  function setPct(pct) {
+    // 底部进度条旁的数字百分比（与选框同步）
+    upPct.textContent = (pct != null ? Math.round(pct) + '%' : '');
+  }
 
   function setBusy(pct) {
     // 选框整体转为"安装中"状态（转圈 + 百分比），并禁用点击（不能用 hidden——display:flex 会覆盖）
@@ -41,9 +56,11 @@
         upFill.style.width = Math.round(pct) + '%';
         upFill.classList.remove('indet');
         setBusy(pct);
+        setPct(pct);
       } else {
         upFill.classList.add('indet'); // 拿不到条目数：不确定进度动画
         setBusy(null);
+        setPct(null);
       }
       const map = { 1: t('upgradeStage1'), 2: t('upgradeStage2'), 3: t('upgradeStage3') };
       upStage.textContent = map[s.stage || 1] || '';
@@ -52,11 +69,13 @@
       upFill.classList.remove('indet');
       upStage.textContent = t('upgradeStageDone');
       setBusy(100);
+      setPct(100);
     } else if (s.state === 'error') {
       installing = false;
       resetDrop();
       upProgress.hidden = true;
       upErr.hidden = false;
+      setPct(null);
       const why = s.error === 'invalid' ? t('upgradeInvalid') : (s.error === 'already' ? t('upgradeAlready') : String(s.error || ''));
       upErr.textContent = t('upgradeFail') + why;
     }
