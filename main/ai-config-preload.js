@@ -7,6 +7,8 @@ contextBridge.exposeInMainWorld('aiConfigApi', {
   test: (cfg) => ipcRenderer.invoke('ai-config-test', cfg),
   proactiveNow: () => ipcRenderer.invoke('ai-config-proactive-now'),
   minimize: () => ipcRenderer.send('ai-config-minimize'),
+  maximize: () => ipcRenderer.send('master-maximize'),
+  onMaxState: (cb) => ipcRenderer.on('master-max-state', (_e, m) => cb(!!m)),
   close: () => ipcRenderer.send('ai-config-close'),
 });
 contextBridge.exposeInMainWorld('necoI18n', {

@@ -190,7 +190,17 @@
     });
   }
 
-  // ── 最小化 / 关闭 / 打开文件夹 ──
+  // ── 最大化/还原 / 最小化 / 关闭 / 打开文件夹 ──
+  const btnMax = $('#btnMax');
+  let maxed = false;
+  function refreshMax() {
+    btnMax.textContent = maxed ? '❐' : '⛶';
+    btnMax.title = maxed ? t('btnRestore') : t('btnMax');
+  }
+  btnMax.addEventListener('click', () => window.singPanelApi.maximize());
+  window.singPanelApi.onMaxState((m) => { maxed = !!m; refreshMax(); });
+  window.addEventListener('i18n-change', refreshMax);
+  refreshMax();
   $('#btnMin').addEventListener('click', () => window.singPanelApi.minimize());
   $('#btnClose').addEventListener('click', () => window.singPanelApi.close());
   $('#btnDir').addEventListener('click', () => window.singPanelApi.openDir());

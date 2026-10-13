@@ -115,7 +115,17 @@
     setMsg(t('msgDefaultRestored'));
   });
 
-  // 标题栏按钮
+  // 标题栏按钮：最大化/还原 / 最小化 / 关闭
+  const btnMax = $('#btnMax');
+  let maxed = false;
+  function refreshMax() {
+    btnMax.textContent = maxed ? '❐' : '⛶';
+    btnMax.title = maxed ? t('btnRestore') : t('btnMax');
+  }
+  btnMax.addEventListener('click', () => window.aiConfigApi.maximize());
+  window.aiConfigApi.onMaxState((m) => { maxed = !!m; refreshMax(); });
+  window.addEventListener('i18n-change', refreshMax);
+  refreshMax();
   $('#btnMin').addEventListener('click', () => window.aiConfigApi.minimize());
   $('#btnClose').addEventListener('click', () => window.aiConfigApi.close());
 

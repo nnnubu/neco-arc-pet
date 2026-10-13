@@ -58,7 +58,17 @@
     window.actionPanelApi.pick(act);
   });
 
-  // 标题栏按钮
+  // 标题栏按钮：最大化/还原 / 最小化 / 关闭
+  const btnMax = $('#btnMax');
+  let maxed = false;
+  function refreshMax() {
+    btnMax.textContent = maxed ? '❐' : '⛶';
+    btnMax.title = maxed ? t('btnRestore') : t('btnMax');
+  }
+  btnMax.addEventListener('click', () => window.actionPanelApi.maximize());
+  window.actionPanelApi.onMaxState((m) => { maxed = !!m; refreshMax(); });
+  window.addEventListener('i18n-change', refreshMax);
+  refreshMax();
   $('#btnMin').addEventListener('click', () => window.actionPanelApi.minimize());
   $('#btnClose').addEventListener('click', () => window.actionPanelApi.close());
 

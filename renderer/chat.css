@@ -91,7 +91,6 @@ html, body {
 }
 #tbBtns button:active, #npToggle:active { transform: scale(0.9); }
 #tbBtns button[title="关闭"]:hover { background: var(--danger); border-color: transparent; }
-#tbBtns button[title="打开翻唱面板"]:hover { background: rgba(255, 170, 60, 0.28); color: var(--brand3); }
 #tbBtns button[title*="静音"]:hover { background: rgba(150, 160, 220, 0.25); color: #fff; }
 #tbMute.on { background: rgba(140, 150, 210, 0.25); color: #c8d2ff; box-shadow: 0 0 0 1px rgba(160, 175, 240, 0.35); }
 #tbToggle.playing { background: rgba(255, 170, 60, 0.22); color: #ffd04d; }

@@ -215,10 +215,18 @@
     else if (s === 'ended') { setPlayingUI(false); setStatus(t('statusEnded')); np.classList.add('hidden'); }
   });
 
-  // ── 翻唱面板入口 / 最小化 / 关闭（播放控制统一在翻唱面板）──
-  $('#tbSing').addEventListener('click', () => window.chatApi.openSingPanel());
+  // ── 最大化/还原（翻唱面板入口已由左侧导航承担）/ 最小化 / 关闭 ──
+  const tbMax = $('#tbMax');
+  let maxed = false;
+  function refreshMax() {
+    tbMax.textContent = maxed ? '❐' : '⛶';
+    tbMax.title = maxed ? t('btnRestore') : t('btnMax');
+  }
+  tbMax.addEventListener('click', () => window.chatApi.maximize());
+  window.chatApi.onMaxState((m) => { maxed = !!m; refreshMax(); });
   $('#tbMin').addEventListener('click', () => window.chatApi.minimize());
   $('#tbClose').addEventListener('click', () => window.chatApi.close());
+  refreshMax();
 
   // 打开时向桌宠渲染层同步当前翻唱播放状态（避免按钮状态与翻唱面板不一致：播放中应显示 ⏸）
   window.chatApi.askState();

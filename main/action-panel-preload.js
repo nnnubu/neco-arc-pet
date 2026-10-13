@@ -10,6 +10,8 @@ contextBridge.exposeInMainWorld('actionPanelApi', {
   getConfig: () => ipcRenderer.invoke('get-config'),
   setConfig: (key, value) => ipcRenderer.send('menu-config-set', key, value),
   minimize: () => ipcRenderer.send('action-panel-minimize'),
+  maximize: () => ipcRenderer.send('master-maximize'),
+  onMaxState: (cb) => ipcRenderer.on('master-max-state', (_e, m) => cb(!!m)),
   close: () => ipcRenderer.send('action-panel-close'),
 });
 contextBridge.exposeInMainWorld('necoI18n', {

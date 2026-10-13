@@ -203,15 +203,6 @@ html, body {
   letter-spacing: 2px;
   font-weight: 600;
 }
-#navFoot #btnMax {
-  color: rgba(255, 255, 255, 0.65);
-  font-size: 12px;
-  letter-spacing: 1px;
-}
-#navFoot #btnMax:hover {
-  background: rgba(255, 255, 255, 0.12);
-  color: #fff;
-}
 #navFoot #btnQuit:hover {
   background: linear-gradient(180deg, var(--brand1), #d93a42);
   color: #fff;

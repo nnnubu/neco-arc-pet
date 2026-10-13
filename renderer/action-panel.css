@@ -47,7 +47,7 @@ html, body {
   -webkit-text-fill-color: transparent;
 }
 #tbBtns { display: flex; gap: 6px; -webkit-app-region: no-drag; }
-#btnClose, #btnMin {
+#btnClose, #btnMin, #btnMax {
   width: 28px; height: 28px;
   border: none; border-radius: 8px;
   background: rgba(255, 255, 255, 0.06);
@@ -56,9 +56,9 @@ html, body {
   cursor: pointer;
   transition: background 0.16s var(--ease), color 0.16s var(--ease), transform 0.12s var(--ease);
 }
-#btnMin:hover { background: rgba(255, 255, 255, 0.14); color: #fff; }
+#btnMin:hover, #btnMax:hover { background: rgba(255, 255, 255, 0.14); color: #fff; }
 #btnClose:hover { background: var(--danger); color: #fff; }
-#btnClose:active, #btnMin:active { transform: scale(0.9); }
+#btnClose:active, #btnMin:active, #btnMax:active { transform: scale(0.9); }
 
 /* 滚动容器 */
 body { display: flex; flex-direction: column; height: 100vh; }

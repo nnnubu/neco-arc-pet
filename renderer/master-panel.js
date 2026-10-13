@@ -13,17 +13,7 @@ items.forEach((b) => {
   });
 });
 
-// 最小化/关闭由窗口右上角控制按钮承担（master-panel.js 渲染层不再绑定 navFoot 的 —/×）
-// 最大化/还原：点击切换；主进程推送当前状态同步按钮文字（"最大化"/"还原"），语言切换时按保存状态重刷
-const btnMax = document.getElementById('btnMax');
-let maxed = false;
-function refreshMaxBtn() {
-  btnMax.textContent = maxed ? t('btnRestore') : t('btnMax');
-  btnMax.title = maxed ? t('btnRestore') : t('btnMax');
-}
-btnMax.addEventListener('click', () => window.masterApi.maximize());
-window.masterApi.onMaxState((m) => { maxed = !!m; refreshMaxBtn(); });
-window.addEventListener('i18n-change', refreshMaxBtn);
+// 最小化/关闭由窗口右上角控制按钮承担；最大化/还原按钮已移到各模块标题栏右侧（各模块渲染层各自绑定）
 
 // ── 语音升级：基础包（无语音扩展包）时隐藏 翻唱/语音合成 导航，标题栏 ⬆ 打开独立升级小窗 ──
 const upgradeBtn = document.getElementById('btnUpgrade');
@@ -90,5 +80,4 @@ window.masterApi.onActive((name) => setActive(name));
 
 // 默认高亮对话模块（主进程 openModule 会再推一次，这里兜底）
 setActive('chat');
-refreshMaxBtn();
 window.NECO_I18N.init();

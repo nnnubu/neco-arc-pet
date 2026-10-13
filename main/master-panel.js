@@ -166,6 +166,12 @@ function ensureView(name) {
     }
     // 加载完成后聚焦内容区：避免首次点击被"激活窗口"吞掉（面板要点两次的根因）
     view.webContents.focus();
+    // 懒加载 view 首次就绪时补推一次最大化状态（标题栏按钮同步；此前广播可能已错过）
+    try {
+      if (masterWin && !masterWin.isDestroyed()) {
+        view.webContents.send('master-max-state', !!masterWin.isMaximized());
+      }
+    } catch (e) {}
   });
   return view;
 }
@@ -207,8 +213,17 @@ function toggleMaximizeMaster() {
   pushMaxState();
 }
 function pushMaxState() {
-  if (masterWin && !masterWin.isDestroyed() && masterWin.webContents) {
-    masterWin.webContents.send('master-max-state', !!masterWin.isMaximized());
+  if (!masterWin || masterWin.isDestroyed()) return;
+  const maxed = !!masterWin.isMaximized();
+  // 导航层 + 各模块 view（标题栏最大化按钮都要同步"最大化/还原"状态）
+  if (masterWin.webContents && !masterWin.webContents.isDestroyed()) {
+    masterWin.webContents.send('master-max-state', maxed);
+  }
+  for (const k of Object.keys(views)) {
+    const v = views[k] && views[k].view;
+    if (v && v.webContents && !v.webContents.isDestroyed()) {
+      v.webContents.send('master-max-state', maxed);
+    }
   }
 }
 

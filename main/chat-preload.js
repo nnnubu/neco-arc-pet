@@ -4,6 +4,8 @@ contextBridge.exposeInMainWorld('chatApi', {
   sendText: (text, force) => ipcRenderer.send('chat-send', text, !!force),
   toggleSing: () => ipcRenderer.send('chat-toggle-sing'),
   openSingPanel: () => ipcRenderer.send('chat-open-sing-panel'),
+  maximize: () => ipcRenderer.send('master-maximize'),
+  onMaxState: (cb) => ipcRenderer.on('master-max-state', (_e, m) => cb(!!m)),
   minimize: () => ipcRenderer.send('chat-minimize'),
   close: () => ipcRenderer.send('chat-close'),
   // 联网搜索开关（状态持久化在主进程 ai 配置）

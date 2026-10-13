@@ -7,6 +7,8 @@ contextBridge.exposeInMainWorld('ttsPanelApi', {
   play: (name) => ipcRenderer.invoke('tts-panel-play', name),
   openDir: () => ipcRenderer.send('tts-panel-dir'),
   minimize: () => ipcRenderer.send('tts-panel-minimize'),
+  maximize: () => ipcRenderer.send('master-maximize'),
+  onMaxState: (cb) => ipcRenderer.on('master-max-state', (_e, m) => cb(!!m)),
   close: () => ipcRenderer.send('tts-panel-close'),
   onDone: (cb) => ipcRenderer.on('tts-done', (_e, r) => cb(r)),
   onError: (cb) => ipcRenderer.on('tts-error', (_e, e) => cb(e)),

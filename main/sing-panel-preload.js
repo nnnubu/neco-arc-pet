@@ -8,6 +8,8 @@ contextBridge.exposeInMainWorld('singPanelApi', {
   play: (name) => ipcRenderer.send('sing-panel-play', name),
   openDir: () => ipcRenderer.send('sing-panel-dir'),
   minimize: () => ipcRenderer.send('sing-panel-minimize'),
+  maximize: () => ipcRenderer.send('master-maximize'),
+  onMaxState: (cb) => ipcRenderer.on('master-max-state', (_e, m) => cb(!!m)),
   close: () => ipcRenderer.send('sing-panel-close'),
   getHistory: () => ipcRenderer.invoke('sing-panel-history'),
   // 语音引擎状态（无语音扩展包时面板显示安装引导）
