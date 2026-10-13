@@ -13,6 +13,7 @@ const INIT_H = 265;
 let win = null;
 const dragState = { dragging: false, startMouse: null, startWin: null };
 let mouseTimer = null;
+let opacityRestoreTimer = null; // resize 期间窗口透明化的恢复定时器（连续 resize 只恢复最后一次）
 
 function getWin() {
   return win;
@@ -182,10 +183,16 @@ function registerWindowIpc() {
       const wa = screen.getPrimaryDisplay().workArea;
       const x = Math.round(clampTo(b.x + (b.width - width) / 2, wa.x, wa.x + wa.width - width));
       const y = Math.round(clampTo(b.y + b.height - height, wa.y, wa.y + wa.height - height));
-      // 隐藏-移动-显示：避免透明窗口快速 resize 时 DWM 合成拖影（左上角残影）
-      win.hide();
+      // 透明化-移动-恢复：避免透明窗口快速 resize 时 DWM 合成拖影（左上/右上残影）。
+      // 窗口在 resize 期间整体透明（比 hide/show 更彻底——DWM 不会对全透明窗口合成旧帧，
+      // 大跨度放大如 act_91 220→1229px 单步仍可能拖影），短暂延迟后恢复可见。
+      if (opacityRestoreTimer) clearTimeout(opacityRestoreTimer);
+      win.setOpacity(0);
       win.setBounds({ x, y, width: Math.round(width), height: Math.round(height) });
-      win.show();
+      opacityRestoreTimer = setTimeout(() => {
+        opacityRestoreTimer = null;
+        if (win && !win.isDestroyed()) win.setOpacity(1);
+      }, 60);
       // 窗口尺寸/位置变化后立即推送一次全局鼠标位置：渲染层马上重评估穿透状态，
       // 避免大动作播放（hide/show 放大→恢复）后穿透状态残留（鼠标在角色上却持续穿透，点不到/拖不动）
       try {
