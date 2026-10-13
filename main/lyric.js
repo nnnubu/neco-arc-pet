@@ -19,6 +19,21 @@ let lyricWin = null;
 let lyricScale = 1; // 歌词窗口缩放（滚轮调节，持久到下次播放）
 let lastLyrics = null;   // 最近一次显示的歌词（翻唱面板"显示歌词"重开用）
 let lastTitle = '';
+let lyricHoverTimer = null; // 鼠标悬停轮询（控件显隐驱动）
+
+// ── 鼠标悬停轮询（控件显隐）──
+// 不依赖渲染层 Chromium 鼠标事件：透传(setIgnoreMouseEvents)切换会让渲染层 mouseout/mouseleave 状态错乱
+// （锁定→解锁后控件常显）。由主进程用系统光标位置 + 窗口边界判定鼠标是否在窗口内，定时推给渲染层。
+function startLyricHoverPoll() {
+  if (lyricHoverTimer) return;
+  lyricHoverTimer = setInterval(() => {
+    if (!lyricWin || lyricWin.isDestroyed() || !lyricWin.isVisible()) return;
+    const p = screen.getCursorScreenPoint();
+    const b = lyricWin.getBounds();
+    const inside = p.x >= b.x && p.x <= b.x + b.width && p.y >= b.y && p.y <= b.y + b.height;
+    lyricWin.webContents.send('lyric-hover', inside);
+  }, 150);
+}
 
 // ── lrc 解析：[mm:ss.xx] / [mm:ss:xx] 格式 → [{time, text}]（按时间排序）──
 function parseLrc(text) {
@@ -171,6 +186,7 @@ function showLyricWindow(lyrics, title) {
     // floating 仍高于普通应用窗口（歌词照常可见），但桌宠永远在歌词之上，arc 始终可点可拖。
     lyricWin.setAlwaysOnTop(true, 'floating');
     lyricWin.loadFile(path.join(__dirname, '..', 'renderer', 'lyric.html'));
+    startLyricHoverPoll(); // 控件显隐轮询（系统光标位置判定，不依赖 Chromium 鼠标事件）
     // loadFile 异步：必须等渲染层加载完成再发歌词数据，否则首帧数据丢失
     lyricWin.webContents.once('did-finish-load', () => {
       if (lyricWin && !lyricWin.isDestroyed()) {

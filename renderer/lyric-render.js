@@ -181,8 +181,10 @@
     if (locked) { setIgnore(true); return; } // 锁定态：除锁按钮外整窗穿透（不可拖不可缩放不可交互）
     setIgnore(false); // 解锁态：整窗拦截（不穿透）
   }
-  // 控件显隐（关闭/控制行）：鼠标在窗口内移动即显示，离开窗口隐藏；锁定态由 CSS body.locked 强制隐藏兜底
+  // 控件显隐（关闭/控制行）：由主进程鼠标位置轮询驱动（inside=鼠标在窗口内则显示，否则隐藏）。
+  // 不用 Chromium mousemove/mouseout——透传(setIgnoreMouseEvents)切换后其状态会错乱（锁定→解锁控件常显）。
   function setControlsVisible(v) {
+    if (locked && v) return; // 锁定态永不显示控件（body.locked CSS 也强制隐藏兜底）
     document.body.classList.toggle('show-ctrl', v);
   }
   function setLocked(v) {
@@ -202,13 +204,10 @@
     e.stopPropagation();
     setLocked(!locked);
   });
-  // 初始默认解锁：整窗拦截（不穿透）；鼠标进入窗口显示控件，离开窗口隐藏。
-  // 显隐不依赖 CSS :hover（透明窗口偶发丢失 hover 状态）；也不单靠 mouseleave（Electron 透明窗口不可靠），
-  // 三保险：mousemove 显示 + mouseout(relatedTarget=null 即移出窗口) 隐藏 + mouseleave 兜底隐藏。
+  // 初始默认解锁：整窗拦截（不穿透）。控件显隐由主进程光标位置轮询（lyric-hover）驱动。
   setIgnore(false);
-  document.addEventListener('mousemove', (e) => { updateIgnore(e.target); setControlsVisible(true); }, { passive: true });
-  document.addEventListener('mouseout', (e) => { if (!e.relatedTarget) setControlsVisible(false); });
-  document.addEventListener('mouseleave', () => setControlsVisible(false));
+  document.addEventListener('mousemove', (e) => updateIgnore(e.target), { passive: true }); // 仅透传判定用
+  window.lyricApi.onHover((inside) => setControlsVisible(inside));
   window.NECO_I18N.init();
 
   function render(i) {

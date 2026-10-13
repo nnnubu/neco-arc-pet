@@ -22,6 +22,8 @@ contextBridge.exposeInMainWorld('lyricApi', {
   onState: (cb) => ipcRenderer.on('lyric-state', (_e, s) => cb(s)),
   // 鼠标透传控制：true=歌词文字区穿透下层（不挡鼠标），false=恢复拦截（hover 到控件/留白可交互）
   setIgnore: (ig) => ipcRenderer.send('lyric-ignore-mouse', !!ig),
+  // 鼠标悬停轮询（主进程用系统光标位置判定鼠标是否在窗口内 → 控件显隐；不依赖 Chromium mouseout）
+  onHover: (cb) => ipcRenderer.on('lyric-hover', (_e, inside) => cb(!!inside)),
 });
 contextBridge.exposeInMainWorld('necoI18n', {
   get: () => ipcRenderer.invoke('i18n-get'),
