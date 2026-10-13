@@ -192,8 +192,40 @@ def _check_text_duration(text, path, tag):
         )
 
 
-def _cosy_synth(text, voice, desc, gain, tmp_path):
-    """CosyVoice API 合成带情绪的中文源音频到 tmp_path（在线，按 UTF-8 字节计费）"""
+# ── CosyVoice 单次输出时长上限（实测约 23.96s）──
+# SiliconFlow /v1/audio/speech 对单次合成存在隐式输出时长上限（约 24s），
+# 超长文本一次合成会在 ~24s 处截断，后半段内容丢失（用户实测 23s 截断=此因）。
+# 解决：按句读标点切段（每段 ≤ MAX_CHARS_PER_REQ 字），逐段合成后拼接成完整源音频。
+# 每段字符上限取 55：中文正常语速约 0.25s/字（55 字≈14s），拖长音/慢读 0.4s/字也仅 22s，
+# 均低于 ~24s 上限，留安全余量；段间插 120ms 静音作自然句间停顿。
+MAX_CHARS_PER_REQ = 55
+SEG_PAUSE_SEC = 0.12
+
+
+def _split_synth_chunks(text, max_chars):
+    """按句读标点（。！？…；换行）切段；段超长再在次级标点（，、：）后断开，无标点则硬切。
+    返回非空段列表（顺序保持原文）。"""
+    parts = re.split(r'(?<=[。！？!?；;…\n])', text)
+    chunks = []
+    for p in parts:
+        p = p.strip()
+        if not p:
+            continue
+        while len(p) > max_chars:
+            cut = max_chars
+            for i in range(max_chars - 1, max_chars // 2 - 1, -1):
+                if p[i] in '，、,：: ':
+                    cut = i + 1
+                    break
+            chunks.append(p[:cut])
+            p = p[cut:].lstrip()
+        if p:
+            chunks.append(p)
+    return chunks
+
+
+def _cosy_synth_once(text, voice, desc, gain, tmp_path):
+    """单段 CosyVoice API 合成带情绪的中文源音频到 tmp_path（在线，按 UTF-8 字节计费）"""
     if not API_KEY:
         raise RuntimeError('未配置 LLM_API_KEY（项目根 .env）')
     import requests
@@ -222,6 +254,56 @@ def _cosy_synth(text, voice, desc, gain, tmp_path):
         f.write(r.content)
     # 服务端间歇性把 wav 头 size 字段写成 int32 溢出值（0xFFFFFFxx），
     # 会导致 wave 解析出 48695s 假时长；先按实际长度修复头，再校验时长
+    _repair_wav(tmp_path)
+    _check_text_duration(text, tmp_path, 'CosyVoice 源音频')
+
+
+def _cosy_synth(text, voice, desc, gain, tmp_path):
+    """CosyVoice API 合成带情绪的中文源音频到 tmp_path。
+    短文本（≤55 字）单次合成；长文本自动分段合成再拼接，绕开 ~24s 单次输出上限截断。"""
+    if len(text) <= MAX_CHARS_PER_REQ:
+        _cosy_synth_once(text, voice, desc, gain, tmp_path)
+        return
+    chunks = _split_synth_chunks(text, MAX_CHARS_PER_REQ)
+    import numpy as np
+    import wave as _wave
+    segs = []
+    try:
+        for i, seg in enumerate(chunks):
+            seg_tmp = os.path.join(CACHE_DIR, f'_cosy_seg_{i}.wav')
+            _cosy_synth_once(seg, voice, desc, gain, seg_tmp)
+            with _wave.open(seg_tmp, 'rb') as w:
+                sr = w.getframerate()
+                ch = w.getnchannels()
+                d = np.frombuffer(w.readframes(w.getnframes()), dtype=np.int16)
+            if ch > 1:
+                d = d.reshape(-1, ch).mean(axis=1).astype(np.int16)
+            if sr != 44100:
+                d = (_resample(d.astype(np.float32) / 32768.0, sr, 44100) * 32767).astype(np.int16)
+            segs.append(d)
+            try:
+                os.remove(seg_tmp)
+            except OSError:
+                pass
+        # 段间插入短暂静音作自然停顿，首尾相接成整段
+        joined = segs[0]
+        if len(segs) > 1:
+            pause = np.zeros(int(44100 * SEG_PAUSE_SEC), dtype=np.int16)
+            for d in segs[1:]:
+                joined = np.concatenate([joined, pause, d])
+        with _wave.open(tmp_path, 'wb') as w:
+            w.setnchannels(1)
+            w.setsampwidth(2)
+            w.setframerate(44100)
+            w.writeframes(joined.astype(np.int16).tobytes())
+    except Exception:
+        for i in range(len(chunks)):
+            try:
+                os.remove(os.path.join(CACHE_DIR, f'_cosy_seg_{i}.wav'))
+            except OSError:
+                pass
+        raise
+    # 整段校验：拼接后时长应对应完整文本（防某段合成坏/缺段导致整体异常）
     _repair_wav(tmp_path)
     _check_text_duration(text, tmp_path, 'CosyVoice 源音频')
 
