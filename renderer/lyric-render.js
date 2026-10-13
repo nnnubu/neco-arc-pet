@@ -161,10 +161,11 @@
     });
   }
 
-  // ── 鼠标透传（类桌宠）：双模式。
-  // 解锁态（默认）：歌词文字区穿透下层不挡鼠标；hover 到控件/标题/留白恢复拦截可交互（暂停/切歌/seek/拖动/缩放）。
+  // ── 鼠标透传：双模式。
+  // 解锁态（默认）：整窗拦截鼠标（不穿透）——hover 显示控件/移开隐藏正常、文本/标题区可拖动、可缩放。
   // 锁定态：除右上角锁按钮外整窗穿透（纯展示，完全不挡鼠标）；再点锁按钮解锁。
-  // 穿透用 setIgnoreMouse(true, {forward:true})：窗口仍能收到 mousemove 供 hover 判定。
+  // 穿透用 setIgnoreMouseEvents(true, {forward:true})：窗口仍能收到 mousemove 供锁按钮 hover 判定。
+  // 注意：解锁态不可穿透——CSS 控件显隐依赖 body:hover，穿透(forward)时 mouseout 收不到会让 :hover 粘住、控件常显。
   let lastIgnore = null;
   let locked = false;
   let lastMoveTarget = null;
@@ -175,15 +176,10 @@
   }
   function updateIgnore(target) {
     lastMoveTarget = target;
-    // 锁按钮永远可点（锁定态也能解锁）
+    // 锁按钮永远可点（解锁态点它进锁定；锁定态点它解锁）
     if (target.closest('#lyricLock')) { setIgnore(false); return; }
-    if (locked) { setIgnore(true); return; } // 锁定态：除锁按钮外全部穿透（不可拖不可缩放）
-    // 解锁态：控件区（上一首/暂停/下一首/进度条/关闭）→ 拦截，可点击
-    if (target.closest('#controls') || target.closest('#lyricClose')) { setIgnore(false); return; }
-    // 歌词文本/标题区 → 拦截：作为拖动把手 + 滚轮缩放
-    if (target.closest('#prev') || target.closest('#cur') || target.closest('#next') || target.closest('#title')) { setIgnore(false); return; }
-    // 其余透明/留白 → 穿透到下层（点击透传，不挡下层窗口操作）
-    setIgnore(true);
+    if (locked) { setIgnore(true); return; } // 锁定态：除锁按钮外整窗穿透（不可拖不可缩放不可交互）
+    setIgnore(false); // 解锁态：整窗拦截（不穿透）
   }
   function setLocked(v) {
     locked = v;
@@ -199,8 +195,8 @@
     e.stopPropagation();
     setLocked(!locked);
   });
-  // 初始默认解锁（可操作；点锁按钮进入锁定透传模式）。透明/留白区默认穿透到下层
-  setIgnore(true);
+  // 初始默认解锁：整窗拦截（不穿透），控件 hover 显示/移开隐藏、文本可拖动
+  setIgnore(false);
   document.addEventListener('mousemove', (e) => updateIgnore(e.target), { passive: true });
   window.NECO_I18N.init();
 
