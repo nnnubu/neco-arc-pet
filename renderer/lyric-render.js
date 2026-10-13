@@ -162,10 +162,10 @@
   }
 
   // ── 鼠标透传：双模式。
-  // 解锁态（默认）：整窗拦截鼠标（不穿透）——hover 显示控件/移开隐藏正常、文本/标题区可拖动、可缩放。
+  // 解锁态（默认）：整窗拦截鼠标（不穿透）——控件显隐由 JS 驱动（mousemove 显示 / mouseleave 隐藏）、文本/标题区可拖动、可缩放。
   // 锁定态：除右上角锁按钮外整窗穿透（纯展示，完全不挡鼠标）；再点锁按钮解锁。
   // 穿透用 setIgnoreMouseEvents(true, {forward:true})：窗口仍能收到 mousemove 供锁按钮 hover 判定。
-  // 注意：解锁态不可穿透——CSS 控件显隐依赖 body:hover，穿透(forward)时 mouseout 收不到会让 :hover 粘住、控件常显。
+  // 控件显隐不用 CSS body:hover——透明窗口+透传切换时 Chromium 偶发收不到 mouseout 会致 :hover 粘住、控件常显。
   let lastIgnore = null;
   let locked = false;
   let lastMoveTarget = null;
@@ -181,9 +181,14 @@
     if (locked) { setIgnore(true); return; } // 锁定态：除锁按钮外整窗穿透（不可拖不可缩放不可交互）
     setIgnore(false); // 解锁态：整窗拦截（不穿透）
   }
+  // 控件显隐（关闭/控制行）：鼠标在窗口内移动即显示，离开窗口隐藏；锁定态由 CSS body.locked 强制隐藏兜底
+  function setControlsVisible(v) {
+    document.body.classList.toggle('show-ctrl', v);
+  }
   function setLocked(v) {
     locked = v;
     document.body.classList.toggle('locked', v);
+    if (v) setControlsVisible(false); // 锁定即隐藏控件（纯展示）
     // 锁图标：锁定=梁伸入锁体，解锁=梁悬空
     document.getElementById('lockSvg').innerHTML = v
       ? '<path d="M5 8V6a3 3 0 0 1 6 0V8"/><rect x="3" y="8" width="10" height="7" rx="1.6"/>'
@@ -195,9 +200,10 @@
     e.stopPropagation();
     setLocked(!locked);
   });
-  // 初始默认解锁：整窗拦截（不穿透），控件 hover 显示/移开隐藏、文本可拖动
+  // 初始默认解锁：整窗拦截（不穿透）；鼠标进入窗口显示控件，离开窗口隐藏
   setIgnore(false);
-  document.addEventListener('mousemove', (e) => updateIgnore(e.target), { passive: true });
+  document.addEventListener('mousemove', (e) => { updateIgnore(e.target); setControlsVisible(true); }, { passive: true });
+  document.addEventListener('mouseleave', () => setControlsVisible(false));
   window.NECO_I18N.init();
 
   function render(i) {

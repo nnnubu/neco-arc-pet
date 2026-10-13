@@ -76,7 +76,7 @@ html, body {
   opacity: 0;
   transition: opacity 0.18s, background 0.15s, color 0.15s;
 }
-body:hover #lyricClose { opacity: 1; }
+body.show-ctrl #lyricClose { opacity: 1; }
 #lyricClose:hover { background: #d93a42; color: #fff; }
 
 /* 锁定按钮：常驻显示（锁定态也要找得到、点得到）；与关闭按钮并排 */
@@ -110,7 +110,7 @@ body.locked #controls { opacity: 0 !important; pointer-events: none; }
   opacity: 0;
   transition: opacity 0.18s;
 }
-body:hover #controls { opacity: 1; }
+body.show-ctrl #controls { opacity: 1; }
 #lcPrev, #lcToggle, #lcNext {
   flex: 0 0 auto;
   width: 24px; height: 24px;
