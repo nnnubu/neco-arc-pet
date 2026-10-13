@@ -120,15 +120,14 @@
   });
 
   // JS 拖动歌词窗口（替代 -webkit-app-region:drag：drag 区域会吞右键/滚轮）
-  // 解锁态：整窗可拖（透明区 + 歌词文本/标题都是把手；进度条/控制按钮/锁/关闭除外），
-  // 锁定态：整窗穿透收不到鼠标（此处兜底 return 不触发拖动）。
+  // 只有按住歌词文本/标题（拖动把手）才拖动；透明/留白区不触发拖动
   let dragging = false;
   document.addEventListener('mousedown', (e) => {
     if (e.button !== 0) return;
-    if (locked) return;                    // 锁定态穿透，不触发拖动（兜底）
     if (e.target.closest('#lyricClose')) return; // 关闭按钮不触发拖动
     if (e.target.closest('#controls')) return;   // 进度条/控制按钮不触发拖动
     if (e.target.closest('#lyricLock')) return;  // 锁按钮不触发拖动
+    if (!(e.target.closest('#prev') || e.target.closest('#cur') || e.target.closest('#next') || e.target.closest('#title'))) return; // 仅文本/标题区可拖动
     dragging = true;
     window.lyricApi.dragStart({ sx: e.screenX, sy: e.screenY });
     e.preventDefault();
@@ -189,7 +188,9 @@
   function setLocked(v) {
     locked = v;
     document.body.classList.toggle('locked', v);
-    if (v) setControlsVisible(false); // 锁定即隐藏控件（纯展示）
+    // 锁定/解锁切换都先隐藏控件：透传状态(setIgnoreMouseEvents)切换会让 Chromium 鼠标命中状态错乱，
+    // 残留的 show-ctrl 会导致解锁后控件常显；等下一次 mousemove 再按鼠标位置显示。
+    setControlsVisible(false);
     // 锁图标：锁定=梁伸入锁体，解锁=梁悬空
     document.getElementById('lockSvg').innerHTML = v
       ? '<path d="M5 8V6a3 3 0 0 1 6 0V8"/><rect x="3" y="8" width="10" height="7" rx="1.6"/>'
