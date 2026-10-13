@@ -6,7 +6,8 @@ const fs = require('fs');
 const path = require('path');
 
 const root = path.join(__dirname, '..');
-const pub = path.join('C:\\Users\\nnnubu\\Desktop\\neco arc\\发布包');
+// 发布包目录：项目容器根（neco arc/发布包）；相对定位，避免硬编码旧桌面路径在项目移动后失效
+const pub = path.join(__dirname, '..', '..', '发布包');
 const zip = path.join(pub, 'NecoArc-语音扩展包.zip');
 
 function log(t, pct) { console.log(JSON.stringify({ t, pct: pct == null ? undefined : pct })); }
