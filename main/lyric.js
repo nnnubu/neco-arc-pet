@@ -45,7 +45,8 @@ function parseLrc(text) {
 // ── 本地歌词：歌曲同目录同名 .lrc ──
 function localLrc(songPath) {
   const dir = path.dirname(songPath);
-  const base = path.basename(songPath, path.extname(songPath));
+  // trim：文件名末尾空格（Windows 会自动剔除）若保留会导致同名 .lrc 匹配不上
+  const base = path.basename(songPath, path.extname(songPath)).trim();
   for (const ext of ['.lrc', '.LRC']) {
     const p = path.join(dir, base + ext);
     if (fs.existsSync(p)) {
@@ -84,12 +85,13 @@ async function searchOnlineLyrics(q) {
 
 // 歌名候选：完整名（含"歌手 - "前缀）、去掉歌手前缀（周杰伦 - 晴天 → 晴天）
 function titleCandidates(name) {
-  return [...new Set([name, name.replace(/^[^\-\u4e00-\u9fff]+\s*-\s*/, '')])].filter(Boolean);
+  const n = String(name || '').trim(); // 防末尾空格（Windows 剔除后本地/在线名不一致）
+  return [...new Set([n, n.replace(/^[^\-\u4e00-\u9fff]+\s*-\s*/, '')])].filter(Boolean);
 }
 
 // ── 网易云联网兜底（按文件路径歌名）──
 async function onlineLyrics(songPath) {
-  const name = path.basename(songPath, path.extname(songPath));
+  const name = path.basename(songPath, path.extname(songPath)).trim();
   for (const q of titleCandidates(name)) {
     const got = await searchOnlineLyrics(q);
     if (got) return got;
@@ -117,7 +119,7 @@ async function getLyrics(songPath) {
   if (local) {
     const parsed = parseLrc(local);
     if (parsed.length) {
-      return { lyrics: parsed, title: path.basename(songPath, path.extname(songPath)), source: 'local' };
+      return { lyrics: parsed, title: path.basename(songPath, path.extname(songPath)).trim(), source: 'local' };
     }
   }
   try {

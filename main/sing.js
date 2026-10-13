@@ -74,7 +74,8 @@ function startSing(songPath) {
         }
         broadcast('sing-done', doneMsg);
         // 歌词异步补发：面板自定义 .lrc（消费逻辑：绑定原曲名才用，绑定其他歌自动清空）→ 本地同名 .lrc → 网易云兜底
-        const srcName = path.basename(p, path.extname(p));
+        // 去扩展名 + trim：文件名末尾空格（Windows 会自动剔除）若保留会导致本地 lrc 匹配/歌词搜索失败
+        const srcName = path.basename(p, path.extname(p)).trim();
         const lrc = consumePanelLrc(srcName);
         if (lrc && lrc.path) {
           try {

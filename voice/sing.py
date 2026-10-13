@@ -63,7 +63,10 @@ def main():
             i += 1
     if not src or not os.path.exists(src):
         log({'error': '找不到歌曲文件: ' + (src or '空')}); return
-    name = re.sub(r'\.[^.]+$', '', os.path.basename(src))
+    # 歌名去扩展名 + 去首尾空白：Windows 会自动剔除目录/文件名末尾空格，
+    # 若保留空格（如 "浮夸 - 陈奕迅 .mp3"）→ makedirs 实际创建无空格目录，
+    # 而 pre_wav/full 路径字符串仍带空格 → 访问不存在路径报 "No such file or directory"
+    name = re.sub(r'\.[^.]+$', '', os.path.basename(src)).strip()
     OUT = os.path.join(ROOT, 'voice', 'sing_output', name)
     shutil.rmtree(OUT, ignore_errors=True)
     os.makedirs(OUT, exist_ok=True)
