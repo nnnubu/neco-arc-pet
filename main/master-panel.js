@@ -119,6 +119,9 @@ function ensureMasterWin() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
+      // 关键：关闭后台节流。总面板(控制台)频繁接收各模块广播（翻唱进度/失败、语音状态、歌词等），
+      // 渲染被节流/卡顿会导致窗口闪烁（画面瞬间消失又恢复）——保持渲染线程始终活跃
+      backgroundThrottling: false,
     },
   });
   masterWin.loadFile(path.join(__dirname, '..', 'renderer', 'master-panel.html'));
@@ -139,6 +142,8 @@ function ensureView(name) {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
+      // 关闭后台节流：模块 view 被遮挡（切到其他模块）时若暂停渲染，切回瞬间可能闪白/闪烁
+      backgroundThrottling: false,
     },
   });
   views[name] = { view, loaded: false };
@@ -321,6 +326,9 @@ function ensureBuildWin() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
+      // 关键：关闭后台节流。总面板(控制台)频繁接收各模块广播（翻唱进度/失败、语音状态、歌词等），
+      // 渲染被节流/卡顿会导致窗口闪烁（画面瞬间消失又恢复）——保持渲染线程始终活跃
+      backgroundThrottling: false,
     },
   });
   buildWin.loadFile(path.join(__dirname, '..', 'renderer', 'build.html'));
@@ -352,6 +360,9 @@ function ensureUpgradeWin() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
+      // 关键：关闭后台节流。总面板(控制台)频繁接收各模块广播（翻唱进度/失败、语音状态、歌词等），
+      // 渲染被节流/卡顿会导致窗口闪烁（画面瞬间消失又恢复）——保持渲染线程始终活跃
+      backgroundThrottling: false,
     },
   });
   upgradeWin.loadFile(path.join(__dirname, '..', 'renderer', 'upgrade.html'));
