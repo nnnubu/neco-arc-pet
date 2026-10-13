@@ -417,6 +417,15 @@ window.SpriteCore = (() => {
   }
 
   function spritePlayOneshot(name, opts) {
+    // 大动作残留清理：特殊大动作（bigSprite）若未在 onComplete/淡出中正常收尾
+    // （被打断、淡出等待期等），会残留占用 hit-test/穿透判定（bbox 语义错配 → 鼠标判不在角色上，
+    // 穿透持续开启 → 点不到/拖不动）。任何新动作开始前先清掉大动作精灵并恢复窗口/缩放。
+    if (bigSprite) {
+      app.stage.removeChild(bigSprite);
+      bigSprite.destroy({ children: true });
+      bigSprite = null;
+    }
+    if (bigSaved) restoreBig();
     // 新动作播放：清除下落超时兜底定时器（动作已切换，不再需要兜底）
     if (fallWatchTimer) { clearTimeout(fallWatchTimer); fallWatchTimer = null; }
     // 走动优先，不打断；但掉回模式（fallback）例外——出屏掉回必须强制播放掉落动画
@@ -809,9 +818,11 @@ window.SpriteCore = (() => {
           // 按时间均匀淡出（update 约 60fps，动画 12fps：fadeFrames 动画帧对应 fadeFrames/12 秒）
           const step = 1 / (fadeFrames / SPRITE.FPS * 60);
           s.alpha = Math.max(0, s.alpha - step);
-          // act_43 窗口超宽（474×162 帧 → 990×170 窗口，DWM 合成拖影窗口期最长）：
-          // 淡出到完全透明后立即恢复原窗口（清屏+缩小），不再停留大窗口（onComplete+400ms 太久）
-          if (SPRITE.currentName === 'act_43' && s.alpha <= 0) spriteBackToIdle();
+          // 淡出到完全透明后立即回待机（恢复窗口/清理 bigSprite）：
+          // act_43 窗口超宽（474×162 帧 → 990×170 窗口，DWM 合成拖影窗口期最长），
+          // 48/91 同理由 onComplete+400ms 等待改为立即收尾——避免透明 bigSprite 残留
+          // 继续占用 hit-test/穿透判定（鼠标判不在角色上 → 穿透开启 → 点不到/拖不动）
+          if (s.alpha <= 0) spriteBackToIdle();
         }
       }
     }

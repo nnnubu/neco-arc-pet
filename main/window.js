@@ -186,6 +186,13 @@ function registerWindowIpc() {
       win.hide();
       win.setBounds({ x, y, width: Math.round(width), height: Math.round(height) });
       win.show();
+      // 窗口尺寸/位置变化后立即推送一次全局鼠标位置：渲染层马上重评估穿透状态，
+      // 避免大动作播放（hide/show 放大→恢复）后穿透状态残留（鼠标在角色上却持续穿透，点不到/拖不动）
+      try {
+        const cp = screen.getCursorScreenPoint();
+        const [nwx, nwy] = win.getPosition();
+        win.webContents.send('mouse-pos', { mx: cp.x, my: cp.y, wx: nwx, wy: nwy });
+      } catch (e) { /* 窗口销毁瞬间忽略 */ }
     } else {
       const [x, y] = win.getPosition();
       win.setBounds({ x, y, width: Math.round(width), height: Math.round(height) });
