@@ -120,14 +120,15 @@
   });
 
   // JS 拖动歌词窗口（替代 -webkit-app-region:drag：drag 区域会吞右键/滚轮）
-  // 只有按住歌词文本/标题（拖动把手）才拖动；透明/留白区鼠标穿透到下层（不挡下层操作）
+  // 解锁态：整窗可拖（透明区 + 歌词文本/标题都是把手；进度条/控制按钮/锁/关闭除外），
+  // 锁定态：整窗穿透收不到鼠标（此处兜底 return 不触发拖动）。
   let dragging = false;
   document.addEventListener('mousedown', (e) => {
     if (e.button !== 0) return;
+    if (locked) return;                    // 锁定态穿透，不触发拖动（兜底）
     if (e.target.closest('#lyricClose')) return; // 关闭按钮不触发拖动
     if (e.target.closest('#controls')) return;   // 进度条/控制按钮不触发拖动
     if (e.target.closest('#lyricLock')) return;  // 锁按钮不触发拖动
-    if (!(e.target.closest('#prev') || e.target.closest('#cur') || e.target.closest('#next') || e.target.closest('#title'))) return; // 仅文本/标题区可拖动
     dragging = true;
     window.lyricApi.dragStart({ sx: e.screenX, sy: e.screenY });
     e.preventDefault();
@@ -200,9 +201,12 @@
     e.stopPropagation();
     setLocked(!locked);
   });
-  // 初始默认解锁：整窗拦截（不穿透）；鼠标进入窗口显示控件，离开窗口隐藏
+  // 初始默认解锁：整窗拦截（不穿透）；鼠标进入窗口显示控件，离开窗口隐藏。
+  // 显隐不依赖 CSS :hover（透明窗口偶发丢失 hover 状态）；也不单靠 mouseleave（Electron 透明窗口不可靠），
+  // 三保险：mousemove 显示 + mouseout(relatedTarget=null 即移出窗口) 隐藏 + mouseleave 兜底隐藏。
   setIgnore(false);
   document.addEventListener('mousemove', (e) => { updateIgnore(e.target); setControlsVisible(true); }, { passive: true });
+  document.addEventListener('mouseout', (e) => { if (!e.relatedTarget) setControlsVisible(false); });
   document.addEventListener('mouseleave', () => setControlsVisible(false));
   window.NECO_I18N.init();
 
