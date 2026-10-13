@@ -301,9 +301,10 @@ function registerLyricIpc() {
   ipcMain.on('lyric-drag-end', () => { lyricDrag = null; });
   // 鼠标透传（类桌宠）：歌词文字区默认穿透下层不挡鼠标，hover 到控件/留白恢复拦截可交互。
   // forward:true 保证穿透时渲染层仍能收到 mousemove，用于 hover 判定。
+  // 注意 API 名是 setIgnoreMouseEvents（早期误写 setIgnoreMouse 导致 TypeError、透传从未生效）
   ipcMain.on('lyric-ignore-mouse', (_e, ig) => {
     if (!lyricWin || lyricWin.isDestroyed()) return;
-    lyricWin.setIgnoreMouse(!!ig, { forward: true });
+    lyricWin.setIgnoreMouseEvents(!!ig, { forward: true });
   });
   // 渲染层：更新当前句索引（audio timeupdate 驱动）
   ipcMain.on('lyric-update', (_e, index) => {
