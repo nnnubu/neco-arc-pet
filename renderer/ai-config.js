@@ -35,6 +35,8 @@
       searchWords: $('#inSearchWords').value.trim(),
       muteVoice: !!$('#inMute').checked,
       ttsModel: $('#inTtsModel').value.trim(),
+      ttsApiKey: $('#inTtsKey').value.trim(),
+      ttsBaseUrl: $('#inTtsBase').value.trim(),
       ttsEdgeFallback: !!$('#inEdgeFallback').checked,
     };
   }
@@ -58,7 +60,11 @@
     $('#inSearchWords').value = c.searchWords || '';
     $('#inMute').checked = !!c.muteVoice;
     $('#inTtsModel').value = c.ttsModel || '';
+    $('#inTtsKey').value = c.ttsApiKey || '';
+    $('#inTtsBase').value = c.ttsBaseUrl || '';
     $('#inEdgeFallback').checked = c.ttsEdgeFallback !== false;
+    // 未安装语音扩展包：隐藏语音合成配置区（含分隔线）
+    if (c.voiceInstalled === false) $('#ttsSection').classList.add('hidden');
     syncSearchWordsVisibility();
   });
 
@@ -76,12 +82,11 @@
     $('#btnKeyEye').textContent = show ? '🙈' : '👁';
   });
 
-  // 保存
+  // 保存（语音合成模型非必填：未装语音模块/暂不启用语音的用户可留空保存；运行时未填会提示）
   $('#btnSave').addEventListener('click', async () => {
     const cfg = readForm();
     if (!cfg.model) { setMsg(t('msgNoModel'), true); return; }
     if (!cfg.baseUrl) { setMsg(t('msgNoBase'), true); return; }
-    if (!cfg.ttsModel) { setMsg(t('msgNoTtsModel'), true); return; }
     $('#btnSave').disabled = true;
     const r = await window.aiConfigApi.save(cfg);
     $('#btnSave').disabled = false;

@@ -208,8 +208,9 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; marg
   to { opacity: 1; transform: translateY(0); }
 }
 
-#btns { display: flex; gap: 7px; }
-#btns button {
+#btns, #btns2 { display: flex; gap: 7px; }
+#btns2 { margin-top: 6px; }
+#btns button, #btns2 button {
   flex: 1;
   min-width: 0;
   padding: 8px 2px;
@@ -222,17 +223,17 @@ input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; marg
   cursor: pointer;
   transition: background 0.16s var(--ease), color 0.16s var(--ease), transform 0.12s var(--ease), box-shadow 0.16s var(--ease);
 }
-#btns button:hover { background: rgba(255, 255, 255, 0.14); color: #fff; }
-#btns button:active:not(:disabled) { transform: scale(0.96); }
-#btns button.primary {
+#btns button:hover, #btns2 button:hover { background: rgba(255, 255, 255, 0.14); color: #fff; }
+#btns button:active:not(:disabled), #btns2 button:active:not(:disabled) { transform: scale(0.96); }
+#btns button.primary, #btns2 button.primary {
   background: linear-gradient(180deg, var(--brand1), #d93a42);
   font-weight: 700;
   letter-spacing: 1px;
   color: #fff;
   box-shadow: 0 3px 12px rgba(217, 58, 66, 0.3);
 }
-#btns button.primary:hover { filter: brightness(1.12); background: linear-gradient(180deg, var(--brand1), #d93a42); }
-#btns button:disabled { opacity: 0.5; cursor: default; transform: none; }
+#btns button.primary:hover, #btns2 button.primary:hover { filter: brightness(1.12); background: linear-gradient(180deg, var(--brand1), #d93a42); }
+#btns button:disabled, #btns2 button:disabled { opacity: 0.5; cursor: default; transform: none; }
 #hint {
   margin-top: 8px;
   padding-top: 8px;

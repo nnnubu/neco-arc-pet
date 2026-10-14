@@ -132,6 +132,26 @@ def _current_cosy_model():
         return ''
 
 
+def _tts_api_key():
+    """语音合成专用 API 密钥：面板 ttsApiKey 优先；留空共用文本生成密钥（LLM_API_KEY/.env/ai-config.apiKey）"""
+    try:
+        k = str(_load_ai_cfg_json().get('ttsApiKey') or '').strip()
+        if k:
+            return k
+    except Exception:
+        pass
+    return _load_api_key()
+
+
+def _tts_base_url():
+    """语音合成接口地址：面板 ttsBaseUrl 优先；留空用硅基默认（/v1 级，拼 /audio/speech）"""
+    try:
+        u = str(_load_ai_cfg_json().get('ttsBaseUrl') or '').strip().rstrip('/')
+        return u if u else 'https://api.siliconflow.cn/v1'
+    except Exception:
+        return 'https://api.siliconflow.cn/v1'
+
+
 def _edge_fallback_enabled():
     """Edge TTS 兜底开关（ttsEdgeFallback）：未配置时默认开启"""
     try:
@@ -364,13 +384,14 @@ def _split_synth_chunks(text, max_chars):
 
 def _cosy_synth_once(text, voice, desc, gain, tmp_path):
     """单段 CosyVoice API 合成带情绪的中文源音频到 tmp_path（在线，按 UTF-8 字节计费）。
-    model 动态读面板配置（ttsModel），支持自定义任意硅基语音模型 ID"""
-    if not API_KEY:
-        raise RuntimeError('未配置 LLM_API_KEY（项目根 .env）')
-    import requests
+    model/密钥/接口动态读面板配置（ttsModel/ttsApiKey/ttsBaseUrl），支持自定义任意硅基语音模型"""
+    key = _tts_api_key()
+    if not key:
+        raise RuntimeError('未配置 API 密钥（语音合成）：请在 AI 设置面板填写语音 API 密钥或文本 API 密钥')
     model = _current_cosy_model()
     if not model:
         raise RuntimeError('未配置语音合成模型 ID（请在 AI 设置面板「语音合成模型」中填写）')
+    import requests
     payload = {
         'model': model,
         'voice': model + ':' + voice,
@@ -380,8 +401,8 @@ def _cosy_synth_once(text, voice, desc, gain, tmp_path):
         'gain': gain,
     }
     r = requests.post(
-        'https://api.siliconflow.cn/v1/audio/speech',
-        headers={'Authorization': 'Bearer ' + API_KEY, 'Content-Type': 'application/json'},
+        _tts_base_url() + '/audio/speech',
+        headers={'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json'},
         json=payload,
         timeout=120,
         # 强制直连：绕过环境/系统代理（防 Clash 等代理残留把请求转发到异常节点）

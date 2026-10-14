@@ -55,20 +55,28 @@
         </label>
       </div>
 
-      <!-- 语音合成模型：与文本生成模型同区统一配置（必填；指定模型失败才触发免费兜底） -->
-      <div class="divider"></div>
-      <div class="section-title" data-i18n="secTts">语音合成模型</div>
-      <label class="field">
-        <span data-i18n="lblTtsModel">语音合成模型 ID（必填）</span>
-        <input id="inTtsModel" type="text" placeholder="FunAudioLLM/CosyVoice2-0.5B" data-i18n-ph="ttsModelPh" autocomplete="off">
-      </label>
-      <label class="field check" id="lblEdgeFallback">
-        <input id="inEdgeFallback" type="checkbox" checked>
-        <span data-i18n="lblEdgeFallback">指定模型失败时自动用免费兜底（Edge TTS / 系统语音）</span>
-      </label>
-      <div class="row" id="ttsTestRow">
-        <button id="btnTestCosy" title="用当前语音合成模型 ID 合成一句测试" data-i18n-title="btnTestCosy" data-i18n="btnTestCosy">测试语音模型</button>
-        <button id="btnTestEdge" title="测试免费兜底链路（Edge TTS / 系统语音）" data-i18n-title="btnTestEdge" data-i18n="btnTestEdge">测试免费兜底</button>
+      <!-- 语音合成模型区：与文本生成模型并列（结构对称）；未安装语音扩展包时整区隐藏 -->
+      <div id="ttsSection">
+        <div class="divider"></div>
+        <div class="row">
+          <label class="field half">
+            <span data-i18n="lblTtsModel">语音合成模型 ID</span>
+            <input id="inTtsModel" type="text" placeholder="FunAudioLLM/CosyVoice2-0.5B" data-i18n-ph="ttsModelPh" autocomplete="off">
+          </label>
+          <label class="field half">
+            <span data-i18n="lblTtsKey">语音 API 密钥（留空共用文本密钥）</span>
+            <input id="inTtsKey" type="password" placeholder="sk-…" autocomplete="off">
+          </label>
+        </div>
+        <label class="field">
+          <span data-i18n="lblTtsBase">语音接口地址（留空用硅基默认）</span>
+          <input id="inTtsBase" type="text" placeholder="https://api.siliconflow.cn/v1" autocomplete="off">
+        </label>
+        <label class="field check" id="lblEdgeFallback">
+          <input id="inEdgeFallback" type="checkbox" checked>
+          <span data-i18n="lblEdgeFallback">指定模型失败时自动用免费兜底（Edge TTS / 系统语音）</span>
+        </label>
+        <div class="divider"></div>
       </div>
 
       <label class="field">
@@ -137,8 +145,14 @@
   <div id="footer">
     <div id="msg"></div>
 
+    <!-- 第一行：三个测试按钮（文本/语音模型/免费兜底各自独立测试） -->
     <div id="btns">
       <button id="btnTest" title="用当前表单值发一条测试消息验证" data-i18n-title="btnTest" data-i18n="btnTest">测试连接</button>
+      <button id="btnTestCosy" title="用当前语音合成模型 ID 合成一句测试" data-i18n-title="btnTestCosy" data-i18n="btnTestCosy">测试语音模型</button>
+      <button id="btnTestEdge" title="测试免费兜底链路（Edge TTS / 系统语音）" data-i18n-title="btnTestEdge" data-i18n="btnTestEdge">测试免费兜底</button>
+    </div>
+    <!-- 第二行：其余操作按钮 -->
+    <div id="btns2">
       <button id="btnDefault" title="提示词恢复猫姬默认人设" data-i18n-title="btnDefault" data-i18n="btnDefault">恢复默认</button>
       <button id="btnProactiveNow" title="立即让桌宠主动说一句（不依赖定时）" data-i18n-title="btnProactiveNow" data-i18n="btnProactiveNow">立即说一句</button>
       <button id="btnSave" class="primary" data-i18n="btnSave">保存</button>
