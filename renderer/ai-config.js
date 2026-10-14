@@ -74,13 +74,17 @@
   }
   $('#inSearchMode').addEventListener('change', syncSearchWordsVisibility);
 
-  // 密钥明文/密文切换
-  $('#btnKeyEye').addEventListener('click', () => {
-    const el = $('#inKey');
-    const show = el.type === 'password';
-    el.type = show ? 'text' : 'password';
-    $('#btnKeyEye').textContent = show ? '🙈' : '👁';
-  });
+  // 密钥明文/密文切换（文本/语音各一）
+  function bindKeyEye(inputSel, btnSel) {
+    $(btnSel).addEventListener('click', () => {
+      const el = $(inputSel);
+      const show = el.type === 'password';
+      el.type = show ? 'text' : 'password';
+      $(btnSel).textContent = show ? '🙈' : '👁';
+    });
+  }
+  bindKeyEye('#inKey', '#btnKeyEye');
+  bindKeyEye('#inTtsKey', '#btnTtsKeyEye');
 
   // 保存（语音合成模型非必填：未装语音模块/暂不启用语音的用户可留空保存；运行时未填会提示）
   $('#btnSave').addEventListener('click', async () => {

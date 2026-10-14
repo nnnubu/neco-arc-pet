@@ -408,16 +408,16 @@ def _cosy_synth_once(text, voice, desc, gain, tmp_path):
         proxies={'http': None, 'https': None},
     )
     if r.status_code != 200:
-        raise RuntimeError(f'CosyVoice API {r.status_code}: {r.text[:200]}')
+        raise RuntimeError(f'语音合成 API {r.status_code}: {r.text[:200]}')
     # 校验响应是合法 wav（网络异常时可能返回 HTML 错误页/空内容但状态码 200）
     if len(r.content) < 100 or r.content[:4] != b'RIFF':
-        raise RuntimeError('CosyVoice 返回内容异常（非有效 wav），已拒绝写入缓存')
+        raise RuntimeError('语音合成返回内容异常（非有效 wav），已拒绝写入缓存')
     with open(tmp_path, 'wb') as f:
         f.write(r.content)
     # 服务端间歇性把 wav 头 size 字段写成 int32 溢出值（0xFFFFFFxx），
     # 会导致 wave 解析出 48695s 假时长；先按实际长度修复头，再校验时长
     _repair_wav(tmp_path)
-    _check_text_duration(text, tmp_path, 'CosyVoice 源音频')
+    _check_text_duration(text, tmp_path, '语音合成源音频')
 
 
 def _cosy_synth(text, voice, desc, gain, tmp_path):
@@ -473,14 +473,14 @@ def _cosy_synth(text, voice, desc, gain, tmp_path):
             raise
         # 整段校验：拼接后时长应对应完整文本（防某段合成坏/缺段导致整体异常）
         _repair_wav(tmp_path)
-        _check_text_duration(text, tmp_path, 'CosyVoice 源音频')
+        _check_text_duration(text, tmp_path, '语音合成源音频')
     except Exception as cosy_err:
         if _edge_fallback_enabled():
             try:
                 _fallback_synth_once(text, tmp_path)
                 return
             except Exception as edge_err:
-                raise RuntimeError(f'CosyVoice 失败（{cosy_err}），免费兜底也失败（{edge_err}）') from edge_err
+                raise RuntimeError(f'语音合成失败（{cosy_err}），免费兜底也失败（{edge_err}）') from edge_err
         raise
 
 
