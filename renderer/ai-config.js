@@ -38,6 +38,11 @@
       ttsApiKey: $('#inTtsKey').value.trim(),
       ttsBaseUrl: $('#inTtsBase').value.trim(),
       ttsEdgeFallback: !!$('#inEdgeFallback').checked,
+      kbModel: $('#inKbModel').value.trim(),
+      kbApiKey: $('#inKbKey').value.trim(),
+      kbBaseUrl: $('#inKbBase').value.trim(),
+      kbMode: $('#inKbMode').value === 'always' ? 'always' : ($('#inKbMode').value === 'custom' ? 'custom' : 'auto'),
+      kbWords: $('#inKbWords').value.trim(),
     };
   }
 
@@ -63,9 +68,15 @@
     $('#inTtsKey').value = c.ttsApiKey || '';
     $('#inTtsBase').value = c.ttsBaseUrl || '';
     $('#inEdgeFallback').checked = c.ttsEdgeFallback !== false;
+    $('#inKbModel').value = c.kbModel || '';
+    $('#inKbKey').value = c.kbApiKey || '';
+    $('#inKbBase').value = c.kbBaseUrl || '';
+    $('#inKbMode').value = c.kbMode === 'always' ? 'always' : (c.kbMode === 'custom' ? 'custom' : 'auto');
+    $('#inKbWords').value = c.kbWords || '';
     // 未安装语音扩展包：隐藏语音合成配置区（含分隔线）
     if (c.voiceInstalled === false) $('#ttsSection').classList.add('hidden');
     syncSearchWordsVisibility();
+    syncKbWordsVisibility();
   });
 
   // 触发方式切换：仅"自定义关键词"时显示关键词输入框
@@ -73,6 +84,10 @@
     $('#lblSearchWords').classList.toggle('hidden', $('#inSearchMode').value !== 'custom');
   }
   $('#inSearchMode').addEventListener('change', syncSearchWordsVisibility);
+  function syncKbWordsVisibility() {
+    $('#lblKbWords').classList.toggle('hidden', $('#inKbMode').value !== 'custom');
+  }
+  $('#inKbMode').addEventListener('change', syncKbWordsVisibility);
 
   // 密钥明文/密文切换（文本/语音各一）
   function bindKeyEye(inputSel, btnSel) {
@@ -85,6 +100,7 @@
   }
   bindKeyEye('#inKey', '#btnKeyEye');
   bindKeyEye('#inTtsKey', '#btnTtsKeyEye');
+  bindKeyEye('#inKbKey', '#btnKbKeyEye');
 
   // 保存（语音合成模型非必填：未装语音模块/暂不启用语音的用户可留空保存；运行时未填会提示）
   $('#btnSave').addEventListener('click', async () => {

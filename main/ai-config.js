@@ -24,6 +24,7 @@ function registerAiConfigIpc() {
       randomVoiceEnabled: c.randomVoiceEnabled, randomVoiceMin: c.randomVoiceMin, randomVoiceMax: c.randomVoiceMax,
       muteVoice: c.muteVoice,
       ttsModel: c.ttsModel, ttsApiKey: c.ttsApiKey, ttsBaseUrl: c.ttsBaseUrl, ttsEdgeFallback: c.ttsEdgeFallback,
+      kbModel: c.kbModel, kbApiKey: c.kbApiKey, kbBaseUrl: c.kbBaseUrl, kbMode: c.kbMode, kbWords: c.kbWords,
       // 语音扩展包是否已安装：未安装则渲染层隐藏语音合成配置区
       voiceInstalled: !!(require('./paths').resolveVoiceEnv && require('./paths').resolveVoiceEnv()),
     };

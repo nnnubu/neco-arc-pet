@@ -141,8 +141,8 @@ body { display: flex; flex-direction: column; }
   padding-right: 28px;
 }
 .field select option { background: #141522; color: #eee; }
-#keyRow, #ttsKeyRow { display: flex; gap: 7px; }
-#keyRow input, #ttsKeyRow input { flex: 1; }
+#keyRow, #ttsKeyRow, #kbKeyRow { display: flex; gap: 7px; }
+#keyRow input, #ttsKeyRow input, #kbKeyRow input { flex: 1; }
 .field.check {
   display: flex;
   align-items: center;
@@ -151,7 +151,7 @@ body { display: flex; flex-direction: column; }
 }
 .field.check input { width: 16px; height: 16px; accent-color: var(--brand1); cursor: pointer; }
 .field.check span { margin: 0; color: var(--txt2); font-size: 12px; }
-#btnKeyEye, #btnTtsKeyEye {
+#btnKeyEye, #btnTtsKeyEye, #btnKbKeyEye {
   width: 38px;
   border: 1px solid var(--line-strong);
   border-radius: 10px;
@@ -161,7 +161,7 @@ body { display: flex; flex-direction: column; }
   cursor: pointer;
   transition: background 0.16s var(--ease), color 0.16s var(--ease);
 }
-#btnKeyEye:hover, #btnTtsKeyEye:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
+#btnKeyEye:hover, #btnTtsKeyEye:hover, #btnKbKeyEye:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
 .field textarea { resize: none; line-height: 1.55; }
 /* 数字框：隐藏系统浅色上下键（与整体深色玻璃风格统一；聚焦时滚轮可调、可直接输入） */
 input[type="number"] { -moz-appearance: textfield; appearance: textfield; }

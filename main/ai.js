@@ -89,6 +89,15 @@ let aiConfig = (() => {
     ttsApiKey: String(file.ttsApiKey || ''),
     ttsBaseUrl: String(file.ttsBaseUrl || '').trim().replace(/\/+$/, ''),
     ttsEdgeFallback: file.ttsEdgeFallback != null ? !!file.ttsEdgeFallback : true,
+    // 知识库（RAG）嵌入：kbModel/kbApiKey/kbBaseUrl 独立配置，用户指定（不留默认）；
+    // 未配置时 RAG 自动用本地关键词检索兜底（免费离线）
+    kbModel: String(file.kbModel || ''),
+    kbApiKey: String(file.kbApiKey || ''),
+    kbBaseUrl: String(file.kbBaseUrl || '').trim().replace(/\/+$/, ''),
+    // 知识库触发方式：auto=内置词表智能判断（身份/口癖/招式等词，默认）；always=每条消息都检索；
+    // custom=按用户自定义关键词触发（kbWords 逗号分隔，问题含任一词即检索）
+    kbMode: file.kbMode === 'always' ? 'always' : (file.kbMode === 'custom' ? 'custom' : 'auto'),
+    kbWords: String(file.kbWords || ''),
   };
 })();
 
@@ -121,6 +130,11 @@ function updateAiConfig(cfg) {
     ttsApiKey: String(merged.ttsApiKey || '').trim(),
     ttsBaseUrl: String(merged.ttsBaseUrl || '').trim().replace(/\/+$/, ''),
     ttsEdgeFallback: merged.ttsEdgeFallback != null ? !!merged.ttsEdgeFallback : true,
+    kbModel: String(merged.kbModel || '').trim(),
+    kbApiKey: String(merged.kbApiKey || '').trim(),
+    kbBaseUrl: String(merged.kbBaseUrl || '').trim().replace(/\/+$/, ''),
+    kbMode: merged.kbMode === 'always' ? 'always' : (merged.kbMode === 'custom' ? 'custom' : 'auto'),
+    kbWords: String(merged.kbWords || ''),
   };
   aiConfig = next;
   try {
@@ -237,8 +251,23 @@ const KB_TRIGGER_WORDS = [
 async function maybeEnrichWithKnowledge(userText) {
   const t = String(userText || '').trim();
   if (t.length < 2) return null;
-  const low = t.toLowerCase();
-  if (!KB_TRIGGER_WORDS.some((w) => low.includes(w.toLowerCase()))) return null;
+  // 触发方式配置化（与联网搜索同款）：always=每条都查；custom=按用户自定义关键词；auto=内置词表智能判断
+  const mode = aiConfig.kbMode === 'always' ? 'always' : (aiConfig.kbMode === 'custom' ? 'custom' : 'auto');
+  let should = false;
+  if (mode === 'always') {
+    should = true;
+  } else if (mode === 'custom') {
+    const low = t.toLowerCase();
+    const words = String(aiConfig.kbWords || '')
+      .split(/[,，;；\s]+/)
+      .map((w) => w.trim())
+      .filter(Boolean);
+    should = words.length > 0 && words.some((w) => low.includes(w.toLowerCase()));
+  } else {
+    const low = t.toLowerCase();
+    should = KB_TRIGGER_WORDS.some((w) => low.includes(w.toLowerCase()));
+  }
+  if (!should) return null;
   const { searchKnowledge, formatKnowledge } = require('./arc-knowledge');
   const hits = await searchKnowledge(t);
   if (!hits || !hits.length) return null;

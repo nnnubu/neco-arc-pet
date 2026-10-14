@@ -1,8 +1,9 @@
 // 主进程 - 猫Arc 知识库检索模块（增强版 RAG：向量语义检索 + 关键词兜底）
 // 资料库：assets/arc-knowledge/*.md（按 ## 标题分块，每块一个主题）
 // 接口固定：searchKnowledge(query) → [{title, content, score}]
-//   增强版内部 = SiliconFlow BAAI/bge-m3 向量召回（语义检索，同义换词也能命中）；
-//   任何环节失败（无密钥/网络/API 异常）自动降级为关键词打分检索，不影响问答链路。
+//   增强版内部 = 用户指定的 embedding 模型（面板「知识库（RAG）」配置 kbModel/kbApiKey/kbBaseUrl）
+//   向量召回（语义检索，同义换词也能命中）；未配置三字段/无密钥/网络/API 异常
+//   自动降级为本地关键词打分检索（免费离线兜底，无需任何模型），不影响问答链路。
 const fs = require('fs');
 const path = require('path');
 const https = require('https');
@@ -12,8 +13,7 @@ const { getAssetRoot } = require('./paths');
 const KB_DIR = path.join(getAssetRoot(), 'arc-knowledge');
 const MAX_HITS = 3;            // 最多注入块数
 const MAX_BLOCK_CHARS = 320;   // 每块注入截断长度（控制 token）
-const EMB_MODEL = 'BAAI/bge-m3';              // SiliconFlow embedding 模型
-// 嵌入缓存放 assets（基础包无 voice 目录也要能写）；assets 在打包态=resources/assets 可写
+// 嵌入缓存（按资料库指纹+模型名分版本，换模型自动重生成）
 const EMB_CACHE_PATH = path.join(getAssetRoot(), 'kb_embeddings.json');
 const EMB_TIMEOUT_MS = 15000;
 
@@ -103,12 +103,17 @@ function keywordSearch(blocks, query) {
 }
 
 // ── 向量检索（增强版）──
-// embedding 配置直接读 assets/ai-config.json（避免与 ai.js 循环依赖；面板保存会同步写文件）
+// embedding 配置直接读 assets/ai-config.json 的知识库字段（kbModel/kbApiKey/kbBaseUrl），
+// 与 ai.js 无循环依赖（面板保存会同步写文件）；三字段均需用户指定，不留默认/不共用文本生成配置。
 function readAiConfig() {
   try {
     const c = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'assets', 'ai-config.json'), 'utf8'));
-    return { apiKey: String(c.apiKey || ''), baseUrl: String(c.baseUrl || 'https://api.siliconflow.cn/v1').replace(/\/+$/, '') };
-  } catch { return { apiKey: '', baseUrl: 'https://api.siliconflow.cn/v1' }; }
+    return {
+      model: String(c.kbModel || '').trim(),
+      apiKey: String(c.kbApiKey || '').trim(),
+      baseUrl: String(c.kbBaseUrl || '').trim().replace(/\/+$/, ''),
+    };
+  } catch { return { model: '', apiKey: '', baseUrl: '' }; }
 }
 
 // 从系统 hosts 文件直接读 IP（curl 能通而 node 解析器 EAI_FAIL 时唯一可靠来源）
@@ -130,20 +135,20 @@ function lookupFromHosts(hostname) {
 // 注意：Node 原生 fetch 在该环境直连 api.siliconflow.cn 常失败（DNS 解析器损坏，历史坑），
 //   IP 来源 = 系统 hosts 文件 → web-search.js 的多源解析（系统 DNS→腾讯→阿里 DoH）→ 抛错降级。
 async function embedTexts(texts) {
-  const { apiKey, baseUrl } = readAiConfig();
-  if (!apiKey) throw new Error('未配置 AI 密钥');
-  const hostname = String(baseUrl).replace(/^https?:\/\//, '').replace(/\/.*$/, ''); // api.siliconflow.cn
-  const apiPath = String(baseUrl).replace(/^https?:\/\/[^/]+/, '') + '/embeddings';
+  const cfg = readAiConfig();
+  if (!cfg.model || !cfg.apiKey || !cfg.baseUrl) throw new Error('未配置知识库嵌入模型/密钥/接口');
+  const hostname = String(cfg.baseUrl).replace(/^https?:\/\//, '').replace(/\/.*$/, ''); // api.siliconflow.cn
+  const apiPath = String(cfg.baseUrl).replace(/^https?:\/\/[^/]+/, '') + '/embeddings';
   const ip = lookupFromHosts(hostname) || await require('./web-search').resolveHost(hostname);
   if (!ip) throw new Error('DNS 解析失败');
-  const body = JSON.stringify({ model: EMB_MODEL, input: texts });
+  const body = JSON.stringify({ model: cfg.model, input: texts });
   const result = await new Promise((resolve, reject) => {
     const req = https.request({
       host: ip, port: 443, path: apiPath, method: 'POST', servername: hostname,
       headers: {
         'Content-Type': 'application/json',
         'Content-Length': Buffer.byteLength(body),
-        'Authorization': `Bearer ${apiKey}`,
+        'Authorization': `Bearer ${cfg.apiKey}`,
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
       },
       timeout: EMB_TIMEOUT_MS,
@@ -164,13 +169,16 @@ async function embedTexts(texts) {
   return vecs;
 }
 
-// 资料库指纹：块标题+正文摘要参与 hash，资料库变了就重新生成 embedding 缓存
+// 资料库指纹：块标题+正文摘要 + 嵌入模型名参与 hash；
+// 资料库变了 / 换了嵌入模型，都重新生成 embedding 缓存（不同模型的向量不可混用）
 function kbFingerprint(blocks) {
+  const cfg = readAiConfig();
   let h = 5381;
+  let s = `model=${cfg.model || 'kw'}|`;
   for (const b of blocks) {
-    const s = `${b.file}|${b.title}|${b.content.slice(0, 200)}`;
-    for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0;
+    s += `${b.file}|${b.title}|${b.content.slice(0, 200)}`;
   }
+  for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0;
   return h.toString(36);
 }
 
@@ -202,7 +210,7 @@ async function vectorSearch(blocks, query) {
   if (!cache || cache.fp !== fp) {
     // 重新生成全库向量（每条截断控制 token；失败则抛错走降级）
     const texts = blocks.map((b) => `${b.title}\n${b.content.slice(0, 600)}`);
-    console.log(`[knowledge] 生成知识库向量: ${texts.length} 块 (${EMB_MODEL})`);
+    console.log(`[knowledge] 生成知识库向量: ${texts.length} 块 (${readAiConfig().model})`);
     const vecs = await embedTexts(texts);
     cache = { fp, data: blocks.map((b, i) => ({ key: `${b.file}|${b.title}`, vec: vecs[i] })) };
     saveEmbedCache(cache);
@@ -219,12 +227,15 @@ async function vectorSearch(blocks, query) {
   return scored.slice(0, MAX_HITS);
 }
 
-// 检索入口（异步）：优先向量召回，任何失败降级关键词；失败后熔断 60 秒避免重复白等
+// 检索入口（异步）：优先向量召回（需用户配置嵌入模型/密钥/接口），
+// 未配置三字段或任何环节失败 → 本地关键词检索（免费离线兜底）；失败后熔断 60 秒避免重复白等
 async function searchKnowledge(query) {
   const blocks = loadBlocks();
   const t = String(query || '').trim();
   if (!blocks.length || t.length < 2) return [];
-  if (Date.now() - lastVecFailAt > VEC_FAIL_COOLDOWN_MS) {
+  const cfg = readAiConfig();
+  const vecOk = !!(cfg.model && cfg.apiKey && cfg.baseUrl);
+  if (vecOk && Date.now() - lastVecFailAt > VEC_FAIL_COOLDOWN_MS) {
     try {
       const hits = await vectorSearch(blocks, t);
       if (hits && hits.length) return hits;
