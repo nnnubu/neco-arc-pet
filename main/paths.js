@@ -25,9 +25,16 @@ function resolveVoiceEnv() {
   const roots = [getAppRoot()];
   if (app.isPackaged && process.resourcesPath !== getAppRoot()) roots.push(process.resourcesPath);
   for (const root of roots) {
-    const py = path.join(root, 'voice-env310', 'Scripts', 'python.exe');
+    // 独立 Python 优先（voice-env310\python\python.exe）：完整解释器随包分发，可移植，
+    // 不依赖开发机 Python 路径；旧版语音包回退 venv 启动器（Scripts\python.exe，曾因
+    // pyvenv.cfg 硬编码开发机路径导致换机后 "No Python at ..." 启动失败）
+    const pyCandidates = [
+      path.join(root, 'voice-env310', 'python', 'python.exe'),
+      path.join(root, 'voice-env310', 'Scripts', 'python.exe'),
+    ];
+    const py = pyCandidates.find((p) => fs.existsSync(p));
     const script = path.join(root, 'voice', 'voice_server.py');
-    if (fs.existsSync(py) && fs.existsSync(script)) {
+    if (py && fs.existsSync(script)) {
       return { py, script, voiceDir: path.join(root, 'voice'), appRoot: root };
     }
   }

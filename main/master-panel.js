@@ -436,7 +436,8 @@ function startVoiceUpgrade(zipPath) {
       const done = countVoiceFiles(appRoot);
       let stage = 1;
       if (fs.existsSync(path.join(appRoot, 'voice', 'voice_server.py'))) stage = 2;
-      if (fs.existsSync(path.join(appRoot, 'voice-env310', 'Scripts', 'python.exe'))) stage = 3;
+      if (fs.existsSync(path.join(appRoot, 'voice-env310', 'python', 'python.exe')) ||
+          fs.existsSync(path.join(appRoot, 'voice-env310', 'Scripts', 'python.exe'))) stage = 3;
       broadcastUpgrade({ state: 'unpacking', done, total, stage });
     }, 400);
     console.log('[voice-upgrade] 解压语音扩展包 ->', appRoot, '(zip 条目', total, ')');

@@ -14,7 +14,10 @@ if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8')
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # 项目根（voice/ 的上级）
-PY = os.path.join(ROOT, 'voice-env310', 'Scripts', 'python.exe')
+# 解释器：优先独立 Python（voice-env310\python\python.exe，随包分发可移植）；
+# 旧语音包回退 venv 启动器（曾因 pyvenv.cfg 硬编码开发机路径导致换机后 No Python at ...）
+_py_standalone = os.path.join(ROOT, 'voice-env310', 'python', 'python.exe')
+PY = _py_standalone if os.path.exists(_py_standalone) else os.path.join(ROOT, 'voice-env310', 'Scripts', 'python.exe')
 FFMPEG = os.path.join(ROOT, 'voice', 'bin', 'ffmpeg.exe')
 # 项目内 ffmpeg 不在 PATH，脚本内注入（与其他脚本一致）
 os.environ['PATH'] = os.path.join(ROOT, 'voice', 'bin') + os.pathsep + os.environ['PATH']

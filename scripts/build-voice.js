@@ -39,6 +39,11 @@ const EXCLUDES = [
   'voice/cache',        // 运行时缓存
   'voice/tmp', 'voice/output', 'voice/__pycache__',
   'voice/*.log', 'voice/ai_cache.json', 'voice/actions.log',
+  // 旧 venv 残留（Scripts 启动器 + 空壳 site-packages）：新语音包用独立 python（voice-env310\python），
+  // venv 曾因 pyvenv.cfg 硬编码开发机 Python 路径导致换机后 "No Python at ..." 启动失败，不再打包
+  'voice-env310/Scripts', 'voice-env310/Lib',
+  // 运行时字节码缓存：不进包（首次运行自动重新生成），可省数百 MB
+  '__pycache__', '*.pyc',
 ];
 const exArgs = EXCLUDES.map((p) => `--exclude="${p}"`).join(' ');
 
