@@ -412,7 +412,13 @@ async function askAI(userText, opts = {}) {
         if (!history.length) { aiCache[cacheKey] = cleaned; saveAiCache(); }
         return cleaned;
       }
-      const data = await resp.json();
+      // 非流式响应：先读全文再解析。resp.json() 遇损坏 body 会抛晦涩的
+      // "Extra data: line 1 column 5"——先取原文，解析失败时给出可诊断的错误（含响应片段）
+      const raw = await resp.text();
+      let data;
+      try { data = JSON.parse(raw); } catch (e) {
+        throw new Error(`AI 响应解析失败(${e.message}): ${raw.slice(0, 300)}`);
+      }
       const content = data?.choices?.[0]?.message?.content;
       if (!content) throw new Error('AI 返回空内容');
       const cleaned = cleanContent(content);
