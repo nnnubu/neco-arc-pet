@@ -133,23 +133,19 @@ def _current_cosy_model():
 
 
 def _tts_api_key():
-    """语音合成专用 API 密钥：面板 ttsApiKey 优先；留空共用文本生成密钥（LLM_API_KEY/.env/ai-config.apiKey）"""
+    """语音合成专用 API 密钥：必须由用户在面板填写（不留默认、不共用文本密钥）"""
     try:
-        k = str(_load_ai_cfg_json().get('ttsApiKey') or '').strip()
-        if k:
-            return k
+        return str(_load_ai_cfg_json().get('ttsApiKey') or '').strip()
     except Exception:
-        pass
-    return _load_api_key()
+        return ''
 
 
 def _tts_base_url():
-    """语音合成接口地址：面板 ttsBaseUrl 优先；留空用硅基默认（/v1 级，拼 /audio/speech）"""
+    """语音合成接口地址：必须由用户在面板填写（不留默认硅基地址）"""
     try:
-        u = str(_load_ai_cfg_json().get('ttsBaseUrl') or '').strip().rstrip('/')
-        return u if u else 'https://api.siliconflow.cn/v1'
+        return str(_load_ai_cfg_json().get('ttsBaseUrl') or '').strip().rstrip('/')
     except Exception:
-        return 'https://api.siliconflow.cn/v1'
+        return ''
 
 
 def _edge_fallback_enabled():
@@ -387,10 +383,13 @@ def _cosy_synth_once(text, voice, desc, gain, tmp_path):
     model/密钥/接口动态读面板配置（ttsModel/ttsApiKey/ttsBaseUrl），支持自定义任意硅基语音模型"""
     key = _tts_api_key()
     if not key:
-        raise RuntimeError('未配置 API 密钥（语音合成）：请在 AI 设置面板填写语音 API 密钥或文本 API 密钥')
+        raise RuntimeError('未配置语音 API 密钥（请在 AI 设置面板「语音 API 密钥」中填写）')
     model = _current_cosy_model()
     if not model:
         raise RuntimeError('未配置语音合成模型 ID（请在 AI 设置面板「语音合成模型」中填写）')
+    base = _tts_base_url()
+    if not base:
+        raise RuntimeError('未配置语音接口地址（请在 AI 设置面板「语音接口地址」中填写）')
     import requests
     payload = {
         'model': model,
@@ -401,7 +400,7 @@ def _cosy_synth_once(text, voice, desc, gain, tmp_path):
         'gain': gain,
     }
     r = requests.post(
-        _tts_base_url() + '/audio/speech',
+        base + '/audio/speech',
         headers={'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json'},
         json=payload,
         timeout=120,
