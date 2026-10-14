@@ -67,6 +67,16 @@ function registerAiConfigIpc() {
   // 恢复默认提示词（面板"恢复默认"用，只返回文本不写文件）
   ipcMain.handle('ai-config-default-prompt', () => defaultSystemPrompt());
 
+  // 测试知识库嵌入模型：用面板保存的 kbModel/kbApiKey/kbBaseUrl 生成一句向量
+  ipcMain.handle('ai-config-test-kb', async () => {
+    try {
+      const r = await require('./arc-knowledge').testEmbedding('猫姬是谁');
+      return { ok: true, dim: r.dim, ms: r.ms };
+    } catch (err) {
+      return { ok: false, error: err.message };
+    }
+  });
+
   // 测试连接：用当前表单值发一条固定消息，验证密钥/模型/接口是否可用（不写配置）
   ipcMain.handle('ai-config-test', async (_e, cfg) => {
     const { askAI } = require('./ai');

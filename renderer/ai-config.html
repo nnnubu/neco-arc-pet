@@ -116,11 +116,6 @@
         <div class="divider"></div>
       </div>
 
-      <label class="field">
-        <span data-i18n="lblPrompt">角色提示词（system prompt）</span>
-        <textarea id="inPrompt" rows="7" spellcheck="false"></textarea>
-      </label>
-
       <div class="divider"></div>
       <div class="section-title" data-i18n="secSearch">联网搜索</div>
       <label class="field">
@@ -138,6 +133,13 @@
     </div>
 
     <div id="colRight">
+      <!-- 角色提示词：整块移到右列顶部（主动说话标题之上） -->
+      <label class="field">
+        <span data-i18n="lblPrompt">角色提示词（system prompt）</span>
+        <textarea id="inPrompt" rows="7" spellcheck="false"></textarea>
+      </label>
+
+      <div class="divider"></div>
       <div class="section-title" data-i18n="secProactive">主动说话</div>
       <label class="field check" id="lblProactive">
         <input id="inProactive" type="checkbox">
@@ -182,11 +184,12 @@
   <div id="footer">
     <div id="msg"></div>
 
-    <!-- 第一行：三个测试按钮（文本/语音模型/免费兜底各自独立测试） -->
+    <!-- 第一行：四个测试按钮（文本/语音模型/免费兜底/嵌入模型各自独立测试） -->
     <div id="btns">
       <button id="btnTest" title="用当前文本生成配置发一条测试消息验证" data-i18n-title="btnTestTitle" data-i18n="btnTest">测试文本模型</button>
       <button id="btnTestCosy" title="用当前语音合成模型 ID 合成一句测试" data-i18n-title="btnTestCosy" data-i18n="btnTestCosy">测试语音模型</button>
       <button id="btnTestEdge" title="测试免费兜底链路（Edge TTS / 系统语音）" data-i18n-title="btnTestEdge" data-i18n="btnTestEdge">测试免费兜底</button>
+      <button id="btnTestKb" title="用当前嵌入模型配置生成一句向量测试" data-i18n-title="btnTestKb" data-i18n="btnTestKb">测试嵌入模型</button>
     </div>
     <!-- 第二行：其余操作按钮 -->
     <div id="btns2">

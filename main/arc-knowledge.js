@@ -257,4 +257,13 @@ function formatKnowledge(hits) {
   ].join('\n');
 }
 
-module.exports = { searchKnowledge, formatKnowledge, loadBlocks };
+// 嵌入配置连通性测试：用当前嵌入模型/密钥/接口对一句文本生成向量，返回维度与耗时（面板「测试嵌入模型」）
+async function testEmbedding(text) {
+  const cfg = readAiConfig();
+  if (!cfg.model || !cfg.apiKey || !cfg.baseUrl) throw new Error('未配置知识库嵌入模型/密钥/接口');
+  const t0 = Date.now();
+  const vecs = await embedTexts([String(text || '猫姬是谁').slice(0, 200)]);
+  return { dim: (vecs[0] || []).length, ms: Date.now() - t0 };
+}
+
+module.exports = { searchKnowledge, formatKnowledge, loadBlocks, testEmbedding };

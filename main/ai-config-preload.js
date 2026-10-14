@@ -7,6 +7,7 @@ contextBridge.exposeInMainWorld('aiConfigApi', {
   test: (cfg) => ipcRenderer.invoke('ai-config-test', cfg),
   proactiveNow: () => ipcRenderer.invoke('ai-config-proactive-now'),
   testTts: (provider) => ipcRenderer.invoke('voice-test-tts', provider),
+  testKb: () => ipcRenderer.invoke('ai-config-test-kb'),
   minimize: () => ipcRenderer.send('ai-config-minimize'),
   maximize: () => ipcRenderer.send('master-maximize'),
   onMaxState: (cb) => ipcRenderer.on('master-max-state', (_e, m) => cb(!!m)),

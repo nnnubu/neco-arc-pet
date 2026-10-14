@@ -173,6 +173,25 @@
   $('#btnTestCosy').addEventListener('click', () => runTtsTest('siliconflow'));
   $('#btnTestEdge').addEventListener('click', () => runTtsTest('edge'));
 
+  // 知识库嵌入模型测试：先保存（kb 字段落盘），再调后端生成一句向量返回维度与耗时
+  $('#btnTestKb').addEventListener('click', async () => {
+    const cfg = readForm();
+    if (!cfg.kbModel || !cfg.kbApiKey || !cfg.kbBaseUrl) { setMsg(t('msgNoKbConfig'), true); return; }
+    $('#btnSave').disabled = true;
+    const sv = await window.aiConfigApi.save(cfg);
+    $('#btnSave').disabled = false;
+    if (!(sv && sv.ok)) { setMsg(t('msgSaveFail') + (sv && sv.error), true); return; }
+    const btn = $('#btnTestKb');
+    btn.disabled = true;
+    btn.textContent = t('btnTesting');
+    setMsg(t('msgKbTesting'));
+    const r = await window.aiConfigApi.testKb();
+    btn.disabled = false;
+    btn.textContent = t('btnTestKb');
+    if (r && r.ok) setMsg(t('msgKbOk').replace('{dim}', String(r.dim)).replace('{ms}', String(r.ms)));
+    else setMsg(t('msgKbFail') + (r && r.error), true);
+  });
+
   // 标题栏按钮：最大化/还原 / 最小化 / 关闭
   const btnMax = $('#btnMax');
   let maxed = false;
