@@ -27,7 +27,7 @@
           </select>
         </label>
         <label class="field half">
-          <span data-i18n="lblModel">模型</span>
+          <span data-i18n="lblModel">文本生成模型</span>
           <input id="inModel" type="text" placeholder="模型名称">
         </label>
       </div>
@@ -54,6 +54,23 @@
           <input id="inMax" type="number" min="32" max="2048" step="32" value="256">
         </label>
       </div>
+
+      <!-- 语音合成模型：与文本生成模型同区统一配置（必填；指定模型失败才触发免费兜底） -->
+      <div class="divider"></div>
+      <div class="section-title" data-i18n="secTts">语音合成模型</div>
+      <label class="field">
+        <span data-i18n="lblTtsModel">语音合成模型 ID（必填）</span>
+        <input id="inTtsModel" type="text" placeholder="FunAudioLLM/CosyVoice2-0.5B" data-i18n-ph="ttsModelPh" autocomplete="off">
+      </label>
+      <label class="field check" id="lblEdgeFallback">
+        <input id="inEdgeFallback" type="checkbox" checked>
+        <span data-i18n="lblEdgeFallback">指定模型失败时自动用免费兜底（Edge TTS / 系统语音）</span>
+      </label>
+      <div class="row" id="ttsTestRow">
+        <button id="btnTestCosy" title="用当前语音合成模型 ID 合成一句测试" data-i18n-title="btnTestCosy" data-i18n="btnTestCosy">测试语音模型</button>
+        <button id="btnTestEdge" title="测试免费兜底链路（Edge TTS / 系统语音）" data-i18n-title="btnTestEdge" data-i18n="btnTestEdge">测试免费兜底</button>
+      </div>
+
       <label class="field">
         <span data-i18n="lblPrompt">角色提示词（system prompt）</span>
         <textarea id="inPrompt" rows="7" spellcheck="false"></textarea>
@@ -113,21 +130,6 @@
         <input id="inMute" type="checkbox">
         <span data-i18n="lblMute">让 arc 安静（AI 语音/随机发声静音，翻唱音乐不受影响）</span>
       </label>
-
-      <div class="divider"></div>
-      <div class="section-title" data-i18n="secTts">语音合成</div>
-      <label class="field">
-        <span data-i18n="lblTtsModel">TTS 模型 ID（留空用默认 CosyVoice2-0.5B）</span>
-        <input id="inTtsModel" type="text" placeholder="FunAudioLLM/CosyVoice2-0.5B" data-i18n-ph="ttsModelPh">
-      </label>
-      <label class="field check" id="lblEdgeFallback">
-        <input id="inEdgeFallback" type="checkbox" checked>
-        <span data-i18n="lblEdgeFallback">CosyVoice 失败时自动用 Edge TTS（免费）兜底</span>
-      </label>
-      <div class="row" id="ttsTestRow">
-        <button id="btnTestCosy" title="用当前 TTS 模型 ID 合成一句测试" data-i18n-title="btnTestCosy" data-i18n="btnTestCosy">测试硅基模型</button>
-        <button id="btnTestEdge" title="测试 Edge TTS 免费后端" data-i18n-title="btnTestEdge" data-i18n="btnTestEdge">测试 Edge TTS</button>
-      </div>
     </div>
   </div>
 

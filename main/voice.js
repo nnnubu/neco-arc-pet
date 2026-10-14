@@ -264,8 +264,14 @@ function ensureVoiceServer() {
         const cb = ttsCallbacks.get(msg.id);
         ttsCallbacks.delete(msg.id);
         if (cb) {
-          if (msg.ok) cb.resolve({ wav: msg.wav, out: msg.out || msg.wav, dur: msg.dur || 0, cached: !!msg.cached });
-          else cb.reject(new Error(msg.error || 'TTS 生成失败'));
+          // test-tts 连通性测试响应（含 provider 字段）：原始透传（ok/ms/used/error 完整保留）
+          if (msg.provider != null) {
+            cb.resolve(msg);
+          } else if (msg.ok) {
+            cb.resolve({ wav: msg.wav, out: msg.out || msg.wav, dur: msg.dur || 0, cached: !!msg.cached });
+          } else {
+            cb.reject(new Error(msg.error || 'TTS 生成失败'));
+          }
         }
       } else if (msg.ok && msg.wav) {
         if (activeReqs.has(msg.id)) activeReqs.delete(msg.id);

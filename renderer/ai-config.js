@@ -81,6 +81,7 @@
     const cfg = readForm();
     if (!cfg.model) { setMsg(t('msgNoModel'), true); return; }
     if (!cfg.baseUrl) { setMsg(t('msgNoBase'), true); return; }
+    if (!cfg.ttsModel) { setMsg(t('msgNoTtsModel'), true); return; }
     $('#btnSave').disabled = true;
     const r = await window.aiConfigApi.save(cfg);
     $('#btnSave').disabled = false;
@@ -123,6 +124,8 @@
   // 再调 voice-test-tts 让语音服务合成一句并返回耗时。硅基模型测试不需要 API Key 前置（错误会直接返回）
   async function runTtsTest(provider) {
     const cfg = readForm();
+    // 测语音模型需要模型 ID；测免费兜底不依赖（Edge/系统语音直接可用）
+    if (provider !== 'edge' && !cfg.ttsModel) { setMsg(t('msgNoTtsModel'), true); return; }
     $('#btnSave').disabled = true;
     const sv = await window.aiConfigApi.save(cfg);
     $('#btnSave').disabled = false;

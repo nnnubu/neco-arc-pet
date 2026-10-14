@@ -125,12 +125,11 @@ def _load_ai_cfg_json():
 
 
 def _current_cosy_model():
-    """生效的 TTS 模型 ID：面板自定义（ttsModel）优先，空则用默认 CosyVoice2-0.5B"""
+    """生效的 TTS 模型 ID：面板自定义；留空返回 ''（调用方校验必填，不再隐式用默认模型）"""
     try:
-        m = str(_load_ai_cfg_json().get('ttsModel') or '').strip()
-        return m if m else COSY_MODEL
+        return str(_load_ai_cfg_json().get('ttsModel') or '').strip()
     except Exception:
-        return COSY_MODEL
+        return ''
 
 
 def _edge_fallback_enabled():
@@ -370,6 +369,8 @@ def _cosy_synth_once(text, voice, desc, gain, tmp_path):
         raise RuntimeError('未配置 LLM_API_KEY（项目根 .env）')
     import requests
     model = _current_cosy_model()
+    if not model:
+        raise RuntimeError('未配置语音合成模型 ID（请在 AI 设置面板「语音合成模型」中填写）')
     payload = {
         'model': model,
         'voice': model + ':' + voice,
@@ -402,8 +403,11 @@ def _cosy_synth_once(text, voice, desc, gain, tmp_path):
 def _cosy_synth(text, voice, desc, gain, tmp_path):
     """CosyVoice API 合成带情绪的中文源音频到 tmp_path。
     短文本（≤55 字）单次合成；长文本自动分段合成再拼接，绕开 ~24s 单次输出上限截断。
-    任一步失败且启用 Edge 兜底（ttsEdgeFallback）时自动切 Edge TTS 免费后端整段重合成，
-    保证账户无余额（402）/接口异常时语音仍可用；两路都失败才抛错。"""
+    任一步失败且启用兜底（ttsEdgeFallback）时自动切免费后端（Edge TTS→系统语音）整段重合成，
+    保证账户无余额（402）/接口异常时语音仍可用；两路都失败才抛错。
+    注意：未配置语音合成模型 ID 属于配置错误，直接报错、绝不触发兜底。"""
+    if not _current_cosy_model():
+        raise RuntimeError('未配置语音合成模型 ID（请在 AI 设置面板「语音合成模型」中填写）')
     try:
         if len(text) <= MAX_CHARS_PER_REQ:
             _cosy_synth_once(text, voice, desc, gain, tmp_path)
