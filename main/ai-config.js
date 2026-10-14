@@ -23,19 +23,22 @@ function registerAiConfigIpc() {
       proactiveEnabled: c.proactiveEnabled, proactiveIntervalMin: c.proactiveIntervalMin, proactivePrompt: c.proactivePrompt,
       randomVoiceEnabled: c.randomVoiceEnabled, randomVoiceMin: c.randomVoiceMin, randomVoiceMax: c.randomVoiceMax,
       muteVoice: c.muteVoice,
+      ttsModel: c.ttsModel, ttsEdgeFallback: c.ttsEdgeFallback,
     };
   });
 
   // 保存配置：写 assets/ai-config.json + 更新内存（下次问答立即生效）
   ipcMain.handle('ai-config-save', (_e, cfg) => {
     try {
-      const prevKey = getAiConfig().apiKey;
+      const prev = getAiConfig();
       const saved = updateAiConfig(cfg);
       // 主动说话/随机发声配置可能变了：重启定时器（开关/间隔生效）
       try { require('./voice').restartProactiveTimer(); } catch (e) { console.error('[ai-config] 重启主动说话定时器失败:', e.message); }
       try { require('./voice').restartVoiceTimer(); } catch (e) { console.error('[ai-config] 重启随机发声定时器失败:', e.message); }
-      // 密钥变了才重启语音常驻服务（服务启动时读一次密钥；未变则保持模型常驻不重载）
-      if (String(prevKey) !== String(saved.apiKey)) {
+      // 密钥/TTS 模型/兜底开关变了才重启语音常驻服务（服务启动时读一次；未变则保持模型常驻不重载）
+      if (String(prev.apiKey) !== String(saved.apiKey) ||
+          String(prev.ttsModel || '') !== String(saved.ttsModel || '') ||
+          prev.ttsEdgeFallback !== saved.ttsEdgeFallback) {
         try { require('./voice').restartVoiceServer(); } catch (e) { console.error('[ai-config] 重启语音服务失败:', e.message); }
       }
       return { ok: true, config: saved };

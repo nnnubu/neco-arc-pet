@@ -53,3 +53,7 @@ _调试文件/
 
 # electron-builder 构建产物（可重新构建，不入库）
 dist/
+
+# 语音合成输出（本地保留不入库）
+voice/tts_output/
+

@@ -34,6 +34,8 @@
       searchMode: $('#inSearchMode').value === 'always' ? 'always' : ($('#inSearchMode').value === 'custom' ? 'custom' : 'auto'),
       searchWords: $('#inSearchWords').value.trim(),
       muteVoice: !!$('#inMute').checked,
+      ttsModel: $('#inTtsModel').value.trim(),
+      ttsEdgeFallback: !!$('#inEdgeFallback').checked,
     };
   }
 
@@ -55,6 +57,8 @@
     $('#inSearchMode').value = c.searchMode === 'always' ? 'always' : (c.searchMode === 'custom' ? 'custom' : 'auto');
     $('#inSearchWords').value = c.searchWords || '';
     $('#inMute').checked = !!c.muteVoice;
+    $('#inTtsModel').value = c.ttsModel || '';
+    $('#inEdgeFallback').checked = c.ttsEdgeFallback !== false;
     syncSearchWordsVisibility();
   });
 
@@ -114,6 +118,28 @@
     $('#inPrompt').value = d || '';
     setMsg(t('msgDefaultRestored'));
   });
+
+  // TTS 后端测试：先保存当前表单（模型 ID/兜底开关需落到 ai-config.json，voice_server 才能读到），
+  // 再调 voice-test-tts 让语音服务合成一句并返回耗时。硅基模型测试不需要 API Key 前置（错误会直接返回）
+  async function runTtsTest(provider) {
+    const cfg = readForm();
+    $('#btnSave').disabled = true;
+    const sv = await window.aiConfigApi.save(cfg);
+    $('#btnSave').disabled = false;
+    if (!(sv && sv.ok)) { setMsg(t('msgSaveFail') + (sv && sv.error), true); return; }
+    const btn = provider === 'edge' ? $('#btnTestEdge') : $('#btnTestCosy');
+    const label = provider === 'edge' ? t('btnTestEdge') : t('btnTestCosy');
+    btn.disabled = true;
+    btn.textContent = t('btnTesting');
+    setMsg('');
+    const r = await window.aiConfigApi.testTts(provider);
+    btn.disabled = false;
+    btn.textContent = label;
+    if (r && r.ok) setMsg(t('msgTtsOk').replace('{used}', String(r.used || provider)).replace('{ms}', String(r.ms)));
+    else setMsg(t('msgTtsFail') + (r && r.error), true);
+  }
+  $('#btnTestCosy').addEventListener('click', () => runTtsTest('siliconflow'));
+  $('#btnTestEdge').addEventListener('click', () => runTtsTest('edge'));
 
   // 标题栏按钮：最大化/还原 / 最小化 / 关闭
   const btnMax = $('#btnMax');

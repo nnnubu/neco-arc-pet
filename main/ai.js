@@ -83,6 +83,10 @@ let aiConfig = (() => {
     randomVoiceMax: file.randomVoiceMax != null ? Number(file.randomVoiceMax) : 8,
     // 静音模式：arc 的 AI 语音/随机发声全部静音，翻唱音乐不受影响
     muteVoice: file.muteVoice != null ? !!file.muteVoice : false,
+    // TTS 语音合成：ttsModel=自定义硅基语音模型 ID（空=默认 CosyVoice2-0.5B）；
+    // ttsEdgeFallback=CosyVoice 失败自动回退 Edge TTS 免费后端（默认开）
+    ttsModel: String(file.ttsModel || ''),
+    ttsEdgeFallback: file.ttsEdgeFallback != null ? !!file.ttsEdgeFallback : true,
   };
 })();
 
@@ -111,6 +115,8 @@ function updateAiConfig(cfg) {
     randomVoiceMin: merged.randomVoiceMin != null ? Number(merged.randomVoiceMin) : 3,
     randomVoiceMax: merged.randomVoiceMax != null ? Number(merged.randomVoiceMax) : 8,
     muteVoice: merged.muteVoice != null ? !!merged.muteVoice : false,
+    ttsModel: String(merged.ttsModel || '').trim(),
+    ttsEdgeFallback: merged.ttsEdgeFallback != null ? !!merged.ttsEdgeFallback : true,
   };
   aiConfig = next;
   try {

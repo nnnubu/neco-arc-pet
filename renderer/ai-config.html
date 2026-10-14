@@ -113,6 +113,21 @@
         <input id="inMute" type="checkbox">
         <span data-i18n="lblMute">让 arc 安静（AI 语音/随机发声静音，翻唱音乐不受影响）</span>
       </label>
+
+      <div class="divider"></div>
+      <div class="section-title" data-i18n="secTts">语音合成</div>
+      <label class="field">
+        <span data-i18n="lblTtsModel">TTS 模型 ID（留空用默认 CosyVoice2-0.5B）</span>
+        <input id="inTtsModel" type="text" placeholder="FunAudioLLM/CosyVoice2-0.5B" data-i18n-ph="ttsModelPh">
+      </label>
+      <label class="field check" id="lblEdgeFallback">
+        <input id="inEdgeFallback" type="checkbox" checked>
+        <span data-i18n="lblEdgeFallback">CosyVoice 失败时自动用 Edge TTS（免费）兜底</span>
+      </label>
+      <div class="row" id="ttsTestRow">
+        <button id="btnTestCosy" title="用当前 TTS 模型 ID 合成一句测试" data-i18n-title="btnTestCosy" data-i18n="btnTestCosy">测试硅基模型</button>
+        <button id="btnTestEdge" title="测试 Edge TTS 免费后端" data-i18n-title="btnTestEdge" data-i18n="btnTestEdge">测试 Edge TTS</button>
+      </div>
     </div>
   </div>
 

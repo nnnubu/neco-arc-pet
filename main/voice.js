@@ -421,6 +421,26 @@ function generateTts(text, params) {
 
 function registerVoiceIpc() {
   ipcMain.on('speak-text', (_e, text, force) => handleSpeakText(text, force));
+  // TTS 后端连通性测试（AI 设置面板"测试"按钮）：provider='siliconflow'|'edge'，
+  // 转发给 voice_server 合成一句短文本，返回 { ok, ms, error }（不播放）
+  ipcMain.handle('voice-test-tts', async (_e, provider) => {
+    if (!resolveVoiceEnv()) return { ok: false, error: noVoiceMsg() };
+    ensureVoiceServer();
+    const id = 'ttest-' + Date.now() + '-' + Math.floor(Math.random() * 1e6);
+    const req = { id, cmd: 'test-tts', provider: provider === 'edge' ? 'edge' : 'siliconflow' };
+    return new Promise((resolve) => {
+      const timer = setTimeout(() => { ttsCallbacks.delete(id); resolve({ ok: false, error: '语音服务响应超时' }); }, 120000);
+      ttsCallbacks.set(id, {
+        resolve: (r) => { clearTimeout(timer); resolve(r); },
+        reject: (e) => { clearTimeout(timer); resolve({ ok: false, error: String((e && e.message) || e) }); },
+      });
+      if (voiceReady && voiceProc) {
+        try { voiceProc.stdin.write(JSON.stringify(req) + '\n'); } catch (e) { ttsCallbacks.delete(id); clearTimeout(timer); resolve({ ok: false, error: String((e && e.message) || e) }); }
+      } else {
+        voiceQueue.push(req); // 模型加载中排队；flushVoiceQueue 原样写出
+      }
+    });
+  });
   // 翻唱播放状态：渲染层播放翻唱时发 sing-state('playing'/'paused'/'ended')，主动搭话/随机发声据此避开
   ipcMain.on('sing-state', (_e, s) => { singPlaying = s === 'playing'; });
   // 聊天语音播放状态：渲染层开始/结束播放语音时上报，随机发声倒计时暂停/恢复

@@ -104,6 +104,145 @@ def _load_api_key():
 
 API_KEY = _load_api_key()
 
+
+# ── TTS 后端可配置化（AI 设置面板新增字段）──
+# ① ttsModel：自定义硅基语音模型 ID（面板可填任意模型名；空=默认 CosyVoice2-0.5B）
+# ② ttsEdgeFallback：CosyVoice 失败自动回退 Edge TTS 免费后端（默认 true，
+#    账户余额不足 402 / 接口异常 / 网络失败时也能出声，不依赖付费接口）
+def _load_ai_cfg_json():
+    """读取 assets/ai-config.json（与 main/ai.js 同一配置；打包态在 resources/assets）"""
+    for p in (
+        os.path.join(os.path.dirname(BASE_DIR), 'assets', 'ai-config.json'),
+        os.path.join(os.path.dirname(BASE_DIR), 'resources', 'assets', 'ai-config.json'),
+    ):
+        try:
+            with open(p, encoding='utf-8') as f:
+                import json as _json
+                return _json.load(f)
+        except Exception:
+            pass
+    return {}
+
+
+def _current_cosy_model():
+    """生效的 TTS 模型 ID：面板自定义（ttsModel）优先，空则用默认 CosyVoice2-0.5B"""
+    try:
+        m = str(_load_ai_cfg_json().get('ttsModel') or '').strip()
+        return m if m else COSY_MODEL
+    except Exception:
+        return COSY_MODEL
+
+
+def _edge_fallback_enabled():
+    """Edge TTS 兜底开关（ttsEdgeFallback）：未配置时默认开启"""
+    try:
+        v = _load_ai_cfg_json().get('ttsEdgeFallback')
+        return v is None or bool(v)
+    except Exception:
+        return True
+
+
+# ── Edge TTS 免费后端（兜底）──
+# 微软 Edge 朗读接口，无需 API Key；输出 mp3 → 项目内 ffmpeg 转 44100/16bit wav →
+# 与 CosyVoice 同链路继续走 RVC 变声（最终仍是猫姬音色）。声线统一 zh-CN-XiaoxiaoNeural；
+# 微软接口无 ~24s 单次输出上限，长文本可整段合成。
+EDGE_VOICE = 'zh-CN-XiaoxiaoNeural'
+_EDGE_FFMPEG = os.path.join(BASE_DIR, 'bin', 'ffmpeg.exe')
+
+
+def _edge_synth_once(text, tmp_path):
+    """Edge TTS 合成中文源音频到 tmp_path（免费，需联网；微软接口在部分网络环境 403 不可达）"""
+    import subprocess as _sp
+    try:
+        import edge_tts
+    except Exception as e:
+        raise RuntimeError(f'Edge TTS 不可用（语音包缺少 edge-tts 库）: {e}')
+    mp3 = os.path.join(CACHE_DIR, '_edge_tmp.mp3')
+    try:
+        import asyncio
+
+        async def _run():
+            com = edge_tts.Communicate(text, EDGE_VOICE)
+            await com.save(mp3)
+
+        asyncio.run(_run())
+        if not os.path.exists(mp3) or os.path.getsize(mp3) < 100:
+            raise RuntimeError('Edge TTS 未产出有效音频（网络失败或接口拒绝）')
+        rr = _sp.run([_EDGE_FFMPEG, '-y', '-i', mp3, '-ac', '1', '-ar', '44100', '-sample_fmt', 's16', tmp_path],
+                     capture_output=True, timeout=120)
+        if rr.returncode != 0 or not os.path.exists(tmp_path):
+            raise RuntimeError(f'Edge TTS 音频转码失败: {((rr.stderr or b"") + (rr.stdout or b"")).decode("utf-8", "replace")[-200:]}')
+        _repair_wav(tmp_path)
+        _check_text_duration(text, tmp_path, 'Edge TTS 源音频')
+    finally:
+        try:
+            os.remove(mp3)
+        except OSError:
+            pass
+
+
+# ── Windows 系统语音（SAPI）兜底 ──
+# 离线、免费、零第三方依赖（.NET System.Speech，Win10/11 自带中文语音 Huihui/Yaoyao）。
+# 通过 PowerShell -EncodedCommand（base64 UTF-16LE）传参，彻底避开中文/引号在 cmd 的编码问题；
+# 输出 wav 用 ffmpeg 统一转 44100/16bit 后与 CosyVoice 同链路走 RVC 变声。
+# 无中文语音的系统（如英文 Windows）退用默认语音，仍能出声（只是普通话发音差）。
+def _sapi_synth_once(text, tmp_path):
+    """Windows 系统语音合成中文源音频到 tmp_path（离线免费，任何 Windows 都可用）"""
+    import subprocess as _sp
+    import base64
+    script = r'''
+param($tb, $ob)
+$ProgressPreference = 'SilentlyContinue'
+Add-Type -AssemblyName System.Speech | Out-Null
+$text = [System.Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($tb))
+$out  = [System.Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($ob))
+$s = New-Object System.Speech.Synthesis.SpeechSynthesizer
+$s.Rate = 0
+$voice = $s.GetInstalledVoices() | Where-Object { $_.VoiceInfo.Name -match 'Huihui|Yaoyao|zh-CN|zh_CN' } | Select-Object -First 1
+if ($voice) { $s.SelectVoice($voice.VoiceInfo.Name) }
+$s.SetOutputToWaveFile($out)
+$s.Speak($text)
+$s.Dispose()
+'''.strip()
+    tb = base64.b64encode(text.encode('utf-8')).decode('ascii')
+    ob = base64.b64encode(tmp_path.encode('utf-8')).decode('ascii')
+    cmd = '& { ' + script + ' } ' + tb + ' ' + ob
+    enc = base64.b64encode(cmd.encode('utf-16-le')).decode('ascii')
+    # 注意：不传 text=True，避免 subprocess 按 GBK 解码 PowerShell 输出抛 UnicodeDecodeError；
+    # 二进制读取后自行容错解码（PowerShell 的进度/CLIXML 噪音不进入日志）
+    rr = _sp.run(['powershell', '-NoProfile', '-NonInteractive', '-EncodedCommand', enc],
+                 capture_output=True, timeout=120)
+    if rr.returncode != 0 or not os.path.exists(tmp_path) or os.path.getsize(tmp_path) < 100:
+        err_txt = ((rr.stderr or b'') + b' ' + (rr.stdout or b''))
+        raise RuntimeError(f'系统语音合成失败: {err_txt.decode("utf-8", "replace")[-200:]}')
+    # SAPI 默认 22050Hz，统一转 44100/16bit 再进 RVC 链路
+    converted = tmp_path + '.n.wav'
+    cr = _sp.run([_EDGE_FFMPEG, '-y', '-i', tmp_path, '-ac', '1', '-ar', '44100', '-sample_fmt', 's16', converted],
+                 capture_output=True, timeout=120)
+    if cr.returncode != 0 or not os.path.exists(converted):
+        err_txt = ((cr.stderr or b'') + b' ' + (cr.stdout or b''))
+        raise RuntimeError(f'系统语音转码失败: {err_txt.decode("utf-8", "replace")[-200:]}')
+    os.replace(converted, tmp_path)
+    _repair_wav(tmp_path)
+    _check_text_duration(text, tmp_path, '系统语音源音频')
+
+
+def _fallback_synth_once(text, tmp_path):
+    """免费兜底双链：Edge TTS（微软接口）→ 失败降级 Windows 系统语音（SAPI，离线必达）。
+    返回实际使用的后端名（'edge' / 'sapi'）；两路都失败抛错"""
+    errs = []
+    try:
+        _edge_synth_once(text, tmp_path)
+        return 'edge'
+    except Exception as e:
+        errs.append(str(e))
+    try:
+        _sapi_synth_once(text, tmp_path)
+        return 'sapi'
+    except Exception as e:
+        errs.append(str(e))
+    raise RuntimeError(f'免费兜底失败（Edge TTS: {errs[0][:120]}；系统语音: {errs[1][:120]}）')
+
 # RVC 变声：复用单实例（避免每次重建加载模型，慢）；index 经 ascii 复制（faiss 读不了中文路径）
 _rvc = None
 _rvc_model = os.path.join(BASE_DIR, 'models', 'agg', 'model.pth')
@@ -225,13 +364,15 @@ def _split_synth_chunks(text, max_chars):
 
 
 def _cosy_synth_once(text, voice, desc, gain, tmp_path):
-    """单段 CosyVoice API 合成带情绪的中文源音频到 tmp_path（在线，按 UTF-8 字节计费）"""
+    """单段 CosyVoice API 合成带情绪的中文源音频到 tmp_path（在线，按 UTF-8 字节计费）。
+    model 动态读面板配置（ttsModel），支持自定义任意硅基语音模型 ID"""
     if not API_KEY:
         raise RuntimeError('未配置 LLM_API_KEY（项目根 .env）')
     import requests
+    model = _current_cosy_model()
     payload = {
-        'model': COSY_MODEL,
-        'voice': COSY_MODEL + ':' + voice,
+        'model': model,
+        'voice': model + ':' + voice,
         'input': f'请用{desc}的情感说这句话：<|endofprompt|>{text}',
         'response_format': 'wav',
         'sample_rate': 44100,
@@ -260,52 +401,63 @@ def _cosy_synth_once(text, voice, desc, gain, tmp_path):
 
 def _cosy_synth(text, voice, desc, gain, tmp_path):
     """CosyVoice API 合成带情绪的中文源音频到 tmp_path。
-    短文本（≤55 字）单次合成；长文本自动分段合成再拼接，绕开 ~24s 单次输出上限截断。"""
-    if len(text) <= MAX_CHARS_PER_REQ:
-        _cosy_synth_once(text, voice, desc, gain, tmp_path)
-        return
-    chunks = _split_synth_chunks(text, MAX_CHARS_PER_REQ)
-    import numpy as np
-    import wave as _wave
-    segs = []
+    短文本（≤55 字）单次合成；长文本自动分段合成再拼接，绕开 ~24s 单次输出上限截断。
+    任一步失败且启用 Edge 兜底（ttsEdgeFallback）时自动切 Edge TTS 免费后端整段重合成，
+    保证账户无余额（402）/接口异常时语音仍可用；两路都失败才抛错。"""
     try:
-        for i, seg in enumerate(chunks):
-            seg_tmp = os.path.join(CACHE_DIR, f'_cosy_seg_{i}.wav')
-            _cosy_synth_once(seg, voice, desc, gain, seg_tmp)
-            with _wave.open(seg_tmp, 'rb') as w:
-                sr = w.getframerate()
-                ch = w.getnchannels()
-                d = np.frombuffer(w.readframes(w.getnframes()), dtype=np.int16)
-            if ch > 1:
-                d = d.reshape(-1, ch).mean(axis=1).astype(np.int16)
-            if sr != 44100:
-                d = (_resample(d.astype(np.float32) / 32768.0, sr, 44100) * 32767).astype(np.int16)
-            segs.append(d)
+        if len(text) <= MAX_CHARS_PER_REQ:
+            _cosy_synth_once(text, voice, desc, gain, tmp_path)
+            return
+        chunks = _split_synth_chunks(text, MAX_CHARS_PER_REQ)
+        import numpy as np
+        import wave as _wave
+        segs = []
+        try:
+            for i, seg in enumerate(chunks):
+                seg_tmp = os.path.join(CACHE_DIR, f'_cosy_seg_{i}.wav')
+                _cosy_synth_once(seg, voice, desc, gain, seg_tmp)
+                with _wave.open(seg_tmp, 'rb') as w:
+                    sr = w.getframerate()
+                    ch = w.getnchannels()
+                    d = np.frombuffer(w.readframes(w.getnframes()), dtype=np.int16)
+                if ch > 1:
+                    d = d.reshape(-1, ch).mean(axis=1).astype(np.int16)
+                if sr != 44100:
+                    d = (_resample(d.astype(np.float32) / 32768.0, sr, 44100) * 32767).astype(np.int16)
+                segs.append(d)
+                try:
+                    os.remove(seg_tmp)
+                except OSError:
+                    pass
+            # 段间插入短暂静音作自然停顿，首尾相接成整段
+            joined = segs[0]
+            if len(segs) > 1:
+                pause = np.zeros(int(44100 * SEG_PAUSE_SEC), dtype=np.int16)
+                for d in segs[1:]:
+                    joined = np.concatenate([joined, pause, d])
+            with _wave.open(tmp_path, 'wb') as w:
+                w.setnchannels(1)
+                w.setsampwidth(2)
+                w.setframerate(44100)
+                w.writeframes(joined.astype(np.int16).tobytes())
+        except Exception:
+            for i in range(len(chunks)):
+                try:
+                    os.remove(os.path.join(CACHE_DIR, f'_cosy_seg_{i}.wav'))
+                except OSError:
+                    pass
+            raise
+        # 整段校验：拼接后时长应对应完整文本（防某段合成坏/缺段导致整体异常）
+        _repair_wav(tmp_path)
+        _check_text_duration(text, tmp_path, 'CosyVoice 源音频')
+    except Exception as cosy_err:
+        if _edge_fallback_enabled():
             try:
-                os.remove(seg_tmp)
-            except OSError:
-                pass
-        # 段间插入短暂静音作自然停顿，首尾相接成整段
-        joined = segs[0]
-        if len(segs) > 1:
-            pause = np.zeros(int(44100 * SEG_PAUSE_SEC), dtype=np.int16)
-            for d in segs[1:]:
-                joined = np.concatenate([joined, pause, d])
-        with _wave.open(tmp_path, 'wb') as w:
-            w.setnchannels(1)
-            w.setsampwidth(2)
-            w.setframerate(44100)
-            w.writeframes(joined.astype(np.int16).tobytes())
-    except Exception:
-        for i in range(len(chunks)):
-            try:
-                os.remove(os.path.join(CACHE_DIR, f'_cosy_seg_{i}.wav'))
-            except OSError:
-                pass
+                _fallback_synth_once(text, tmp_path)
+                return
+            except Exception as edge_err:
+                raise RuntimeError(f'CosyVoice 失败（{cosy_err}），免费兜底也失败（{edge_err}）') from edge_err
         raise
-    # 整段校验：拼接后时长应对应完整文本（防某段合成坏/缺段导致整体异常）
-    _repair_wav(tmp_path)
-    _check_text_duration(text, tmp_path, 'CosyVoice 源音频')
 
 
 def ensure_tts():
@@ -697,6 +849,24 @@ def main():
             if req.get("cmd") == "preset":
                 threading.Thread(target=run_preset, daemon=True).start()
                 print(json.dumps({"id": req.get("id"), "ok": True, "preset": "started"}), flush=True)
+                continue
+            # TTS 后端连通性测试（AI 设置面板"测试"按钮）：只合成一句不播放，返回耗时/错误
+            if req.get("cmd") == "test-tts":
+                provider = str(req.get("provider") or "siliconflow").strip().lower()
+                test_text = "你好，我是猫姬，语音测试成功喵。"
+                t0 = time.time()
+                try:
+                    tmp = os.path.join(CACHE_DIR, "_tts_test.wav")
+                    used = "siliconflow"
+                    if provider == "edge":
+                        used = _fallback_synth_once(test_text, tmp)
+                    else:
+                        _cosy_synth_once(test_text, "bella", "平静自然", 0, tmp)
+                    print(json.dumps({"id": req.get("id"), "ok": True, "provider": provider,
+                                      "used": used, "ms": int((time.time() - t0) * 1000)}), flush=True)
+                except Exception as e:
+                    print(json.dumps({"id": req.get("id"), "ok": False, "provider": provider,
+                                      "error": str(e)[:200]}), flush=True)
                 continue
             text = clean_text(req.get("text") or "")
             if not text:
