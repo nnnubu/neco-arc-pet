@@ -106,6 +106,9 @@ function showBubble(text, facing) {
   const wa = pet && !pet.isDestroyed() ? screen.getDisplayMatching(pet.getBounds()).workArea : null;
   const maxH = wa ? Math.max(90, wa.height - 24) : 900;
   b.webContents.send('bubble-text', { text: String(text), fontSize, color, maxH });
+  // 每次显示前重设一次最高层级置顶：focusable:false 的透明窗口在 Windows 上
+  // 与其他窗口交互后 Z 序可能被压低（被网页等窗口盖住），显示时重设最稳
+  try { b.setAlwaysOnTop(true, 'screen-saver'); } catch (e) {}
   if (!b.isVisible()) b.showInactive();
   passthrough(b); // 显示/置顶后穿透状态可能失效 → 重新应用，防挡 arc
 }

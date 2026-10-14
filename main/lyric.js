@@ -181,10 +181,10 @@ function showLyricWindow(lyrics, title) {
         sandbox: true,
       },
     });
-    // 层级用 floating（低于桌宠的 screen-saver）：两个窗口同为 screen-saver 时按显示先后排 Z 序，
-    // 歌词窗口后显示会压到桌宠上面，鼠标点击被歌词窗口拦截 → "arc 跑到歌词上后点不到拖不动"。
-    // floating 仍高于普通应用窗口（歌词照常可见），但桌宠永远在歌词之上，arc 始终可点可拖。
-    lyricWin.setAlwaysOnTop(true, 'floating');
+    // 层级用 pop-up-menu（介于桌宠的 screen-saver 与普通窗口之间）：
+    // 高于绝大多数应用窗口/网页置顶小窗（画中画等）→ 歌词不再被网页盖住；
+    // 仍低于桌宠（screen-saver）→ 歌词永远在桌宠之下，arc 始终可点可拖。
+    lyricWin.setAlwaysOnTop(true, 'pop-up-menu');
     lyricWin.loadFile(path.join(__dirname, '..', 'renderer', 'lyric.html'));
     startLyricHoverPoll(); // 控件显隐轮询（系统光标位置判定，不依赖 Chromium 鼠标事件）
     // loadFile 异步：必须等渲染层加载完成再发歌词数据，否则首帧数据丢失
@@ -195,6 +195,8 @@ function showLyricWindow(lyrics, title) {
     });
     lyricWin.on('closed', () => { lyricWin = null; });
   } else {
+    // 重新显示时重设一次置顶层级（focusable:false 透明窗口与其他窗口交互后 Z 序可能被压低）
+    try { lyricWin.setAlwaysOnTop(true, 'pop-up-menu'); } catch (e) {}
     lyricWin.show();
     lyricWin.webContents.send('lyric-data', payload);
   }
