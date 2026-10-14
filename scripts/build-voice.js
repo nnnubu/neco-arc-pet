@@ -47,8 +47,8 @@ const EXCLUDES = [
 ];
 const exArgs = EXCLUDES.map((p) => `--exclude="${p}"`).join(' ');
 
-log('正在打包语音扩展包（voice 引擎 + voice-env310，已排除翻唱/语音输出与缓存，约 4GB，需几分钟）…', 30);
-try { sh(`tar -a -c ${exArgs} -f "${zip}" voice voice-env310`); } catch (e) { fail('✗ 打包失败：' + String(e.message).split('\n')[0], 30); }
+log('正在打包语音扩展包（voice 引擎 + voice-env310 + 口癖原版音频，已排除翻唱/语音输出与缓存，约 4GB，需几分钟）…', 30);
+try { sh(`tar -a -c ${exArgs} -f "${zip}" voice voice-env310 assets/voice-clips`); } catch (e) { fail('✗ 打包失败：' + String(e.message).split('\n')[0], 30); }
 
 const sizeMB = Math.round(fs.statSync(zip).size / 1048576);
 log(`✓ 完成：NecoArc-语音扩展包.zip ${sizeMB} MB → 发布包目录`, 100);
