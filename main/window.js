@@ -65,8 +65,8 @@ function createWindow() {
   mouseTimer = setInterval(() => {
     if (!win || win.isDestroyed()) return;
     // 水平环绕：窗口完全出左/出右 → 对侧同偏移补回（主进程驱动，出屏期间渲染暂停也不中断）
-    const wa = screen.getPrimaryDisplay().workArea;
     const b = win.getBounds();
+    const wa = waOf(win, b);
     const wx2 = wrapAroundX(b, wa);
     if (wx2 !== b.x) win.setPosition(Math.round(wx2), b.y);
     const p = screen.getCursorScreenPoint();
@@ -77,6 +77,23 @@ function createWindow() {
 
 function clampTo(v, lo, hi) {
   return Math.max(lo, Math.min(hi, v));
+}
+
+// 当前显示器工作区：所有边界/环绕/下落/缩放限制都基于"窗口当前所在显示器"而非主屏。
+// 多显示器（笔记本+外接大屏）下若用主屏工作区判定：桌宠进外接屏会被误判"已出屏"，
+// wrapAroundX 每 40ms 拉回主屏宽度位置 → 撞"透明墙"永远到不了屏边；外接屏排列不同时
+// fallCheckTimer 用主屏工作区判上下越界还会误触发下落（表现为按 A 却向左下移动）。
+// 用窗口中心点最近显示器，出屏时也能取到正确的屏（点在外接屏区域 → 外接屏）。
+function waOf(win, b) {
+  try {
+    const disp = screen.getDisplayNearestPoint({
+      x: Math.round(b.x + b.width / 2),
+      y: Math.round(b.y + b.height / 2),
+    });
+    return disp.workArea;
+  } catch (e) {
+    return screen.getPrimaryDisplay().workArea;
+  }
 }
 
 // 水平环绕穿屏（仅左右）：出屏量超过窗口宽度一半时，把窗口整体平移到对侧——出右半身、左半身
@@ -123,11 +140,11 @@ function registerWindowIpc() {
     dragState.dragging = false;
   });
 
-  // 钻地联动：窗口移到屏幕内随机位置（渲染层 33 挖地消失后随机钻出用）
+  // 钻地联动：窗口移到当前屏内随机位置（渲染层 33 挖地消失后随机钻出用）
   ipcMain.on('pet-teleport-random', () => {
     if (!win || win.isDestroyed()) return;
-    const wa = screen.getPrimaryDisplay().workArea;
     const b = win.getBounds();
+    const wa = waOf(win, b);
     const x = wa.x + Math.round(Math.random() * (wa.width - b.width));
     const y = wa.y + Math.round(Math.random() * (wa.height - b.height));
     win.setPosition(x, y);
@@ -180,7 +197,7 @@ function registerWindowIpc() {
       // 放大后 clamp 到工作区内：桌宠在屏幕上方时，keepBottom 会让窗口顶部超出屏幕
       // （火箭内容跑到屏外不可见），clamp 保证窗口/画面完整可见
       const b = win.getBounds();
-      const wa = screen.getPrimaryDisplay().workArea;
+      const wa = waOf(win, b);
       const x = Math.round(clampTo(b.x + (b.width - width) / 2, wa.x, wa.x + wa.width - width));
       const y = Math.round(clampTo(b.y + b.height - height, wa.y, wa.y + wa.height - height));
       // 透明化-移动-恢复：避免透明窗口快速 resize 时 DWM 合成拖影（左上/右上残影）。
@@ -211,8 +228,8 @@ function registerWindowIpc() {
   let fallAnim = null;
   function startFallBack() {
     if (fallAnim || !win || win.isDestroyed()) return;
-    const wa = screen.getPrimaryDisplay().workArea;
     const b0 = win.getBounds();
+    const wa = waOf(win, b0);
     const targetBottom = wa.y + wa.height;
     const startT = Date.now();
     const DUR = 2200; // 2.2 秒掉到工作区底部（比 1.5s 慢：每帧位移更小更平滑，且更接近 act_19 动画时长）
@@ -248,8 +265,8 @@ function registerWindowIpc() {
       if (fallAnim) {
         clearInterval(fallAnim); fallAnim = null;
         try {
-          const wa2 = screen.getPrimaryDisplay().workArea;
           const b3 = win.getBounds();
+          const wa2 = waOf(win, b3);
           win.setPosition(Math.round(b3.x), Math.max(b0.y, wa2.y + wa2.height - b3.height));
           win.webContents.send('pet-fall-done');
           if (process.env.PET_DEBUG === '1') console.log('[fallback] hard-stop at bottom');
@@ -266,7 +283,7 @@ function registerWindowIpc() {
   const fallCheckTimer = setInterval(() => {
     if (!win || win.isDestroyed()) return;
     const b = win.getBounds();
-    const wa = screen.getPrimaryDisplay().workArea;
+    const wa = waOf(win, b);
     if (b.y < wa.y - Math.round(b.height * 0.4)) {
       outTopMs += 1000;
       if (outTopMs >= FALL_BACK_DELAY) {
@@ -300,12 +317,12 @@ function registerWindowIpc() {
 
   ipcMain.on('pet-scale', (_e, scale) => {
     if (!win || win.isDestroyed()) return;
-    const wa = screen.getPrimaryDisplay().workArea;
+    const b = win.getBounds();
+    const wa = waOf(win, b);
     const maxScale = Math.max(1, Math.min(wa.width / WIN_W, wa.height / WIN_H));
     const s = Math.max(0.5, Math.min(scale, maxScale));
     const tw = Math.round(WIN_W * s);
     const th = Math.round(WIN_H * s);
-    const b = win.getBounds();
     const tnx = clampTo(Math.round(b.x + (b.width - tw) / 2), wa.x, wa.x + wa.width - tw);
     const tny = clampTo(Math.round(b.y + b.height - th), wa.y, wa.y + wa.height - th);
     console.log(`[scale] req=${scale} applied=${s} target=(${tnx},${tny},${tw},${th})`);
@@ -350,9 +367,11 @@ function registerWindowIpc() {
     }, 16);
   });
 
-  // 渲染层查询最大缩放倍率（窗口不超出工作区）
+  // 渲染层查询最大缩放倍率（窗口不超出当前屏工作区）
   ipcMain.handle('pet-get-max-scale', () => {
-    const wa = screen.getPrimaryDisplay().workArea;
+    if (!win || win.isDestroyed()) return 3;
+    const b = win.getBounds();
+    const wa = waOf(win, b);
     return Math.max(1, Math.min(wa.width / WIN_W, wa.height / WIN_H));
   });
 

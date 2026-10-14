@@ -114,6 +114,12 @@ window.Controls = (() => {
       if (!k) return;
       shared.keys[k] = false;
     });
+    // 失焦时清空全部按键状态：窗口失焦瞬间 keyup 可能丢失（按键在别处松开/焦点切换），
+    // 残留方向键会导致移动方向叠加——比如 down 残留后按 A 就变成"向左下移动"
+    window.addEventListener('blur', () => {
+      for (const k of Object.values(KEY_MAP)) shared.keys[k] = false;
+      shared.keys.shift = false;
+    });
     window.addEventListener('mouseenter', () => window.pet.focusWindow());
   }
 
