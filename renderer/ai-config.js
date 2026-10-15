@@ -73,8 +73,13 @@
     $('#inKbBase').value = c.kbBaseUrl || '';
     $('#inKbMode').value = c.kbMode === 'always' ? 'always' : (c.kbMode === 'custom' ? 'custom' : 'auto');
     $('#inKbWords').value = c.kbWords || '';
-    // 未安装语音扩展包：隐藏语音合成配置区（含分隔线）
-    if (c.voiceInstalled === false) $('#ttsSection').classList.add('hidden');
+    // 未安装语音扩展包：隐藏语音合成配置区 + 两个语音测试按钮（测试语音模型/测试微软语音模型）
+    // 注：随机发声不依赖语音扩展包（素材在基础包 assets/voice-clips，electron-builder 已打包），始终显示
+    if (c.voiceInstalled === false) {
+      $('#ttsSection').classList.add('hidden');
+      $('#btnTestCosy').classList.add('hidden');
+      $('#btnTestEdge').classList.add('hidden');
+    }
     syncSearchWordsVisibility();
     syncKbWordsVisibility();
   });
