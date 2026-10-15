@@ -18,32 +18,32 @@
 
   <div id="body">
     <div id="colLeft">
+      <!-- 界面语言独占一行 -->
+      <label class="field">
+        <span data-i18n="lblLang">界面语言</span>
+        <select id="inLang">
+          <option value="zh">中文</option>
+          <option value="en">English</option>
+        </select>
+      </label>
+      <!-- 文本生成模型组：模型 + 密钥并列，接口地址单独一行（与语音/嵌入组格式完全一致） -->
       <div class="row">
-        <label class="field half">
-          <span data-i18n="lblLang">界面语言</span>
-          <select id="inLang">
-            <option value="zh">中文</option>
-            <option value="en">English</option>
-          </select>
-        </label>
         <label class="field half">
           <span data-i18n="lblModel">文本生成模型</span>
           <input id="inModel" type="text" placeholder="模型名称">
         </label>
-      </div>
-      <div class="row">
         <label class="field half">
-          <span data-i18n="lblKey">API 密钥</span>
+          <span data-i18n="lblKey">文本 API 密钥</span>
           <div id="keyRow">
             <input id="inKey" type="password" placeholder="请输入 API 密钥" autocomplete="off">
             <button id="btnKeyEye" type="button" title="显示/隐藏密钥" data-i18n-title="keyEyeTitle">👁</button>
           </div>
         </label>
-        <label class="field half">
-          <span data-i18n="lblBase">接口地址（Base URL）</span>
-          <input id="inBase" type="text" placeholder="https://…">
-        </label>
       </div>
+      <label class="field">
+        <span data-i18n="lblBase">文本接口地址（Base URL）</span>
+        <input id="inBase" type="text" placeholder="https://…">
+      </label>
       <div id="row2">
         <label class="field half">
           <span data-i18n="lblTemp">温度（0~2）</span>
@@ -60,7 +60,7 @@
         <div class="divider"></div>
         <div class="row">
           <label class="field half">
-            <span data-i18n="lblTtsModel">语音合成模型 ID</span>
+            <span data-i18n="lblTtsModel">语音合成模型</span>
             <input id="inTtsModel" type="text" autocomplete="off">
           </label>
           <label class="field half">
@@ -86,7 +86,7 @@
         <div class="divider"></div>
         <div class="row">
           <label class="field half">
-            <span data-i18n="lblKbModel">嵌入模型 ID</span>
+            <span data-i18n="lblKbModel">嵌入模型</span>
             <input id="inKbModel" type="text" autocomplete="off">
           </label>
           <label class="field half">
