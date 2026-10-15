@@ -107,11 +107,11 @@
   bindKeyEye('#inTtsKey', '#btnTtsKeyEye');
   bindKeyEye('#inKbKey', '#btnKbKeyEye');
 
-  // 保存（语音合成模型非必填：未装语音模块/暂不启用语音的用户可留空保存；运行时未填会提示）
+  // 保存（必填只有文本生成模型；语音/嵌入模型及各类密钥/接口均可留空保存，
+  // 未配置的模块运行时给出明确提示，不阻止保存）
   $('#btnSave').addEventListener('click', async () => {
     const cfg = readForm();
     if (!cfg.model) { setMsg(t('msgNoModel'), true); return; }
-    if (!cfg.baseUrl) { setMsg(t('msgNoBase'), true); return; }
     $('#btnSave').disabled = true;
     const r = await window.aiConfigApi.save(cfg);
     $('#btnSave').disabled = false;
@@ -178,10 +178,14 @@
   $('#btnTestCosy').addEventListener('click', () => runTtsTest('siliconflow'));
   $('#btnTestEdge').addEventListener('click', () => runTtsTest('edge'));
 
-  // 知识库嵌入模型测试：先保存（kb 字段落盘），再调后端生成一句向量返回维度与耗时
+  // 知识库嵌入模型测试：先保存（kb 字段落盘），再调后端生成一句向量返回维度与耗时。
+  // 嵌入模型是可选配置：未配置时提示走本地关键词检索（不视为错误，也不阻止保存）
   $('#btnTestKb').addEventListener('click', async () => {
     const cfg = readForm();
-    if (!cfg.kbModel || !cfg.kbApiKey || !cfg.kbBaseUrl) { setMsg(t('msgNoKbConfig'), true); return; }
+    if (!cfg.kbModel || !cfg.kbApiKey || !cfg.kbBaseUrl) {
+      setMsg(t('msgKbNotConfigured'));
+      return;
+    }
     $('#btnSave').disabled = true;
     const sv = await window.aiConfigApi.save(cfg);
     $('#btnSave').disabled = false;
