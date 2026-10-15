@@ -425,9 +425,13 @@ def _cosy_synth(text, voice, desc, gain, tmp_path):
     短文本（≤55 字）单次合成；长文本自动分段合成再拼接，绕开 ~24s 单次输出上限截断。
     任一步失败且启用兜底（ttsEdgeFallback）时自动切免费后端（Edge TTS→系统语音）整段重合成，
     保证账户无余额（402）/接口异常时语音仍可用；两路都失败才抛错。
-    注意：未配置语音合成模型 ID 属于配置错误，直接报错、绝不触发兜底。"""
+    注意：语音合成模型是可选配置——未配置模型时若启用免费兜底则直接走微软语音（Edge TTS→系统语音）；
+    未配置且未开兜底才报错（属用户未启用语音，不视为系统故障）。"""
     if not _current_cosy_model():
-        raise RuntimeError('未配置语音合成模型 ID（请在 AI 设置面板「语音合成模型」中填写）')
+        if _edge_fallback_enabled():
+            _fallback_synth_once(text, tmp_path)
+            return
+        raise RuntimeError('未配置语音合成模型（可在 AI 设置面板填写，或勾选「免费兜底」使用微软语音）')
     try:
         if len(text) <= MAX_CHARS_PER_REQ:
             _cosy_synth_once(text, voice, desc, gain, tmp_path)

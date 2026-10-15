@@ -200,6 +200,13 @@ async function handleProactiveSpeak(force = false) {
     broadcast('speak-state', { state: 'done' });
     return true;
   }
+  // 语音模型可选：未配置语音模型且未启用免费兜底 → 静默降级为纯文本（不播语音也不报错）；
+  // 已配置模型或开启免费兜底 → 继续走合成（兜底链路由 voice_server 负责：未配模型+兜底开启时自动用微软语音）
+  if (!cfg.ttsModel && cfg.ttsEdgeFallback === false) {
+    broadcast('bubble-text-only', { text: speakText });
+    broadcast('speak-state', { state: 'done' });
+    return true;
+  }
   ensureVoiceServer();
   const id = Date.now();
   activeReqs.add(id);
@@ -365,6 +372,13 @@ async function handleSpeakText(text, force) {
   broadcast('speak-state', { state: 'generating' });
   // 无语音扩展包：只出文本不合成（基础包降级，不报错打扰用户聊天）——文本仍显示在 arc 旁气泡
   if (!resolveVoiceEnv()) {
+    broadcast('bubble-text-only', { text: speakText });
+    broadcast('speak-state', { state: 'done' });
+    return;
+  }
+  // 语音模型可选：未配置语音模型且未启用免费兜底 → 静默降级为纯文本（回复已显示，不播语音也不报错）；
+  // 已配置模型或开启免费兜底 → 继续合成（未配模型+兜底开启时 voice_server 自动走微软语音）
+  if (!getAiConfig().ttsModel && getAiConfig().ttsEdgeFallback === false) {
     broadcast('bubble-text-only', { text: speakText });
     broadcast('speak-state', { state: 'done' });
     return;
