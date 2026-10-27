@@ -1,9 +1,0 @@
-{
-  "randomAction": {
-    "enabled": true,
-    "intervalMin": 10,
-    "intervalMax": 30,
-    "intervalSec": 10
-  },
-  "lang": "zh"
-}

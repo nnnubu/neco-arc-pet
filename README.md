@@ -1,107 +1,85 @@
 # 猫姬桌宠（Neco Arc Pet）
 
-本地桌宠 + Neco Arc 语音管道成品。
-技术栈：Electron + Pixi.js（像素动画桌宠）+ edge-tts / RVC（Neco Arc 音色语音）。
+像素风 Neco Arc 桌面宠物。技术栈：Electron + Pixi.js（像素动画）+ Python（TTS / RVC 变声 / 翻唱）。
 
 ## 快速启动
 
-双击 `启动桌宠.vbs`（无控制台窗口，最省事）。
+- 双击 `启动桌宠.vbs`（无控制台窗口，路径无关，按自身位置定位）
+- 或 `npm start`
 
 ## 功能
 
-- 透明置顶像素桌宠，右下角初始位置
-- 右键菜单切换动作（思考/后空翻/得意/吐舌/挡脸等 13+ 种）
-- WASD / 方向键移动，Shift 加速奔跑（循环动画），滚轮缩放大小
-- **说句话…**：右键 → 输入文字 → 生成 Neco Arc 音色语音并播放（Aggressive 600e 模型，已验收）
-
-## 语音管道
-
-| 文件 | 作用 |
+| 模块 | 说明 |
 |---|---|
-| `voice/voice_server.py` | 长驻服务（stdin/stdout JSON），桌宠懒启动、模型常驻，转换约 10~40 秒 |
-| `voice/neco_speak.py` | 命令行入口：`voice-env310\Scripts\python.exe voice\neco_speak.py "文本" --model agg` |
-| `voice/scan_sids.py` | 多说话人扫描工具（原模型 109 说话人用） |
+| 对话 | 与猫姬 AI 聊天（文本生成模型可配置），气泡文本、消息记录、主动说话 |
+| 翻唱 | 本地分离人声 → RVC 变声喵声 → 混音；桌面歌词（本地 `.lrc` 优先，网易云兜底）；历史播放 |
+| 语音合成 | 文本 → 猫姬音色语音（语音模型可配置）；声线 / 情绪强度 / 音高可调，可应用到聊天与翻唱 |
+| 动作 | 100+ 像素动作播放、随机动作、大动作 |
+| AI 设置 | 文本 / 语音 / 嵌入三组模型独立配置；角色提示词、触发方式、随机发声、静音等 |
+| 随机发声 | 偶尔播放 `assets/voice-clips/` 本地语音素材（基础包自带，无需语音扩展包） |
+| 知识库 | 向量检索（嵌入模型可配置）或本地关键词检索（免费离线兜底）；资料放 `assets/arc-knowledge/*.md`，重启生效 |
+| 联网搜索 | AI 回答前自动联网检索，触发方式可自定义 |
+| 国际化 | 界面中 / 英切换 |
 
-- 模型：`voice/models/agg/`（Neco Arc Aggressive 600e，英语+日语训练数据，已验收）；备选 `voice/models/lumina/`（Melty Blood 官方游戏数据 600e）
-- **已知坑**：faiss（C++）无法读取中文路径下的 index 文件，模型 index 已复制到纯 ASCII 路径 `C:\neco-voice\models\`（voice_server / neco_speak 已指向该处，勿删除）
+## AI 配置（AI 设置面板）
 
-## 环境（本目录已内置完整可运行副本）
+- **文本生成模型**：模型 / API 密钥 / 接口地址，必填
+- **语音合成模型**：可选；模型 / 独立密钥 / 独立接口。未配置且开启「免费兜底」时自动用微软语音（Edge TTS → 系统语音）；未配置且关闭兜底时静默降级为纯文本
+- **嵌入模型**：可选；模型 / 独立密钥 / 独立接口。未配置时知识库使用本地关键词检索
+- 配置落盘 `assets/ai-config.json`（含密钥，本地保存不入库）
 
-- Node 依赖：`node_modules/`（Electron 44 + Pixi.js 7 + pixi-live2d-display，可 `npm install` 重建）
-- Python 3.10 venv：`voice-env310/`（torch CPU + tts-with-rvc + edge-tts + ffmpeg；重建步骤见下）
-- 语音辅助模型：`voice/assets/`（hubert_base.pt + rmvpe.pt，tts-with-rvc 首次运行自动下载到 models_dir，已预置）
+> 兼容旧配置：项目根 `.env`（`LLM_API_KEY / LLM_BASE_URL / LLM_MODEL`）仍可被读取。
 
-### 重建 Python 环境（如需）
+## 打包发布
 
+| 产物 | 内容 | 如何生成 |
+|---|---|---|
+| 基础包 | 桌面宠本体 + 素材 + 代码（无语音引擎） | 开发版侧边栏「生成基础包」（`scripts/build-basic.js`）→ `发布包/NecoArc-基础包.zip`，解压即用 |
+| 语音扩展包 | Python 语音引擎 + 模型 + 依赖（约 1.4GB） | 开发版侧边栏「生成语音扩展包」（`scripts/build-voice.js`），解压到程序根目录自动生效 |
+
+基础包即可使用：对话、动作、随机发声、知识库本地检索；语音合成 / 翻唱需安装语音扩展包，并在 AI 设置中填写语音模型（或使用免费兜底）。
+
+## 环境与依赖
+
+```bash
+npm install          # Electron + Pixi.js
 ```
-# 需 Python 3.10（RVC 生态硬性要求，3.11+ 装不了）
+
+语音扩展包需要 Python 3.10（RVC 生态硬性要求，3.11+ 装不了）：
+
+```bash
 python -m venv voice-env310
 voice-env310\Scripts\pip install torch --index-url https://download.pytorch.org/whl/cpu
 voice-env310\Scripts\pip install "setuptools<70" tts-with-rvc
 # ffmpeg.exe 放 voice\bin\（脚本启动时自动加入 PATH）
 ```
 
-## Git 说明
-
-模型文件（约 1.4GB）与依赖目录（node_modules / voice-env310）体积大，已由 `.gitignore` 排除，不入版本库；它们物理保留在本目录内，因此本文件夹整体可独立运行。git 仓库仅管理代码与素材。
-
-## 项目结构（代码分层）
+## 项目结构
 
 ```
 猫姬桌宠-成品/
-├── main/                          # 主进程（Node/Electron 侧）—— 窗口、菜单、语音服务
-│   ├── index.js                   # 入口：应用生命周期，装配下面三个模块
-│   ├── window.js                  # 窗口模块：透明置顶窗口、拖拽、走动、缩放、鼠标轮询、调试截图
-│   ├── menu.js                    # 右键菜单模块：菜单模板与点击分发
-│   └── voice.js                   # 语音服务模块：Python 子进程管理、stdin/stdout 协议、排队
-├── preload.js                     # 桥接层：contextBridge 暴露 window.pet API（渲染进程唯一入口）
-├── renderer/                      # 渲染进程（浏览器侧）—— 画面与交互
-│   ├── index.html                 # 页面骨架：canvas 舞台 + 语音输入条 UI + 脚本加载顺序
-│   ├── index.js                   # 入口：创建 PIXI 应用、共享状态、装配模块、主循环
-│   ├── sprite.js                  # 精灵动画核心：帧加载、动画播放、循环规则、缩放适配
-│   ├── controls.js                # 交互控制：拖拽、滚轮缩放、右键菜单、键盘移动
-│   ├── voice-ui.js                # 语音输入条：显示/发送/播放/状态提示
-│   └── debug.js                   # 调试序列：PET_DEBUG=1 时自动抽帧验证动画
-├── voice/                         # 语音管道（Python 3.10）
-│   ├── voice_server.py            # 长驻服务：模型常驻，stdin/stdout JSON 协议（桌宠调用）
-│   ├── neco_speak.py              # 命令行入口：edge-tts + RVC 转换（可独立测试）
-│   ├── scan_sids.py               # 说话人扫描工具（原 300e 模型用）
-│   ├── models/                    # RVC 模型（agg=已验收 / lumina=备选），不入 git
-│   ├── assets/                    # hubert / rmvpe 辅助模型，不入 git
-│   ├── bin/                       # ffmpeg.exe，不入 git
-│   ├── output/                    # 生成的语音 wav（运行时产物）
-│   └── tmp/                       # 临时文件
-├── assets/                        # 素材
-│   ├── sprite/animations/         # 像素帧图（每动作一个目录：standing/walking/running/…）
-│   └── vendor/pixi.min.js         # PixiJS 7 本地库
-├── voice-env310/                  # Python 3.10 虚拟环境（torch CPU + tts-with-rvc），不入 git
-├── node_modules/                  # npm 依赖（Electron/Pixi），不入 git
-├── 启动桌宠.vbs                   # 双击启动（路径无关：按自身位置定位，无控制台窗口）
-├── package.json                   # npm 配置：入口 main/index.js、依赖、npm start
+├── main/            # 主进程（Electron 侧）：窗口、总面板、AI 问答、语音/翻唱/歌词服务、知识库、i18n
+├── renderer/        # 渲染进程：桌宠舞台与各面板 UI（对话/翻唱/语音合成/动作/AI 设置）
+├── preload.js       # 桥接层：contextBridge 暴露 window.pet API
+├── voice/           # 语音管道（Python 3.10）：voice_server.py / sing.py / neco_speak.py / presets.json
+├── assets/
+│   ├── sprite/      # 像素动画帧（每动作一个目录）
+│   ├── icons/       # 应用图标
+│   ├── vendor/      # PixiJS 7 本地库
+│   ├── voice-clips/ # 随机发声素材
+│   └── arc-knowledge/  # RAG 知识库资料（*.md，可自行添加）
+├── scripts/         # 打包脚本（build-basic.js / build-voice.js）
+├── 启动桌宠.vbs     # 双击启动（无控制台窗口）
+├── package.json
 └── README.md / .gitignore
 ```
 
-### 分层原则
+## Git 说明
 
-- **三进程边界清晰**：主进程（main/）只做窗口/系统能力与子进程管理，绝不碰画面；渲染进程（renderer/）只做画面与交互，绝不直接访问 Node；两者通过 `preload.js` 的 `window.pet` API 通信（IPC）。
-- **模块按职责拆分**：每个模块只做一件事，改动一处不影响其他。例如想改动画规则只动 `renderer/sprite.js`；想改菜单项只动 `main/menu.js`；想改语音协议只动 `main/voice.js` + `voice/voice_server.py`。
-- **共享状态收敛**：键盘/鼠标/缩放等跨模块状态集中在 `renderer/index.js` 的 `shared` 对象，模块间不互相引用，通过参数注入。
+- **不入库**：`node_modules/`、`voice-env310/`、`voice/models|assets|bin|output|cache`、`dist/`（体积大，物理保留，可重建）
+- **本地配置不入库**：`.env`、`assets/ai-config.json`（含 API 密钥）、`assets/tts-config.json`、`assets/user-config.json`、`assets/ai_cache.json`、`assets/kb_embeddings.json`、日志文件
+- 克隆后按需新建上述本地配置；模型文件（约 1.4GB）需通过语音扩展包获取
 
-### 关键配置（想自己调整时看这里）
+## 版权声明
 
-| 想改什么 | 改哪里 |
-|---|---|
-| 走路/跑步速度 | `renderer/sprite.js` update() 里 `spd = run ? 430 : 260` |
-| 滚动缩放的步长/最小倍率 | `renderer/controls.js` `SCALE_STEP = 0.1` / `SCALE_MIN = 0.5` |
-| 待机随机动作频率 | `renderer/sprite.js` `nextActionAt` 间隔（12000~20000ms） |
-| 某动作重复几遍 | `renderer/sprite.js` `ACTION_REPEATS`（如 thinking: 3） |
-| 某动作是否停留末帧 | `renderer/sprite.js` `SMUG_HOLD_MS = 2000`（smug 专属） |
-| 右键菜单项 | `main/menu.js` 的 template |
-| 语音默认参数（模型/音高/声线） | `voice/neco_speak.py` 顶部 `DEFAULT_*` 常量 |
-| 窗口初始大小 | `main/window.js` `WIN_W / WIN_H` |
-
-## 历史版本要点（v1.0）
-
-- 像素模式（Live2D 已移除，仅保留 pixi-live2d-display 依赖）
-- 动作循环规则：走路/跑步按住循环（跑步用 ping-pong 帧序列衔接平滑）；thinking/push/star/pose1/hide/lie 重复 3 遍；smug 播完保持最后一帧 2 秒
-- 语音：Aggressive 600e（默认，原音高 pitch 0）+ 中文声线 zh-CN-XiaoxiaoNeural
+Neco Arc 角色素材（`assets/sprite/`、`assets/voice-clips/`）版权归原版权方所有，本项目仅作个人学习与演示用途，请勿商用或再分发。
