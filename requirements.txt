@@ -1,0 +1,127 @@
+# 猫姬桌宠 Python 语音环境依赖（Python 3.10 / Windows x64）
+#
+# 重建环境：
+#   python -m venv voice-env310
+#   voice-env310\Scripts\activate
+#   pip install -r requirements.txt
+#
+# 注意：torch / torchaudio 必须使用 PyTorch 官方 CUDA 12.4 轮子，
+# 直接 pip 安装会默认拉到 CPU 版。建议先单独安装 PyTorch：
+#   pip install torch==2.6.0+cu124 torchaudio==2.11.0 --index-url https://download.pytorch.org/whl/cu124
+# 再执行 pip install -r requirements.txt 安装其余依赖。
+#
+# fairseq-built 为 Windows 预构建轮子；从源码编译 fairseq 在 Windows 上容易失败，
+# 若安装失败请使用与打包环境相同的预构建包。
+
+--extra-index-url https://download.pytorch.org/whl/cu124
+
+# ---- PyTorch ----
+torch==2.6.0+cu124
+torchaudio==2.11.0
+torchcrepe==0.0.20
+torch-einops-utils==0.1.36
+
+# ---- RVC / 语音转换 ----
+tts-with-rvc==0.1.10
+fairseq-built==0.12.4
+faiss-cpu==1.10.0
+local-attention==1.11.2
+sphn==0.2.1
+hyper-connections==0.4.11
+einops==0.8.2
+pyworld==0.3.5
+praat-parselmouth==0.4.7
+lameenc==1.8.4
+bitarray==3.11.0
+resampy==0.4.3
+julius==0.2.8
+onnxruntime==1.23.2
+
+# ---- 音频分离 / 识别 / 播放 ----
+demucs==4.1.0
+faster-whisper==1.2.1
+ctranslate2==4.8.2
+librosa==0.9.1
+audioread==3.1.0
+soundfile==0.14.0
+av==17.1.0
+ffmpeg-python==0.2.0
+edge-tts==7.2.8
+
+# ---- HTTP / 模型下载 ----
+aiohttp==3.14.4
+aiohappyeyeballs==2.7.1
+aiosignal==1.4.0
+async-timeout==5.0.1
+yarl==1.25.1
+multidict==6.9.1
+frozenlist==1.8.0
+propcache==0.5.4
+httpx==0.28.1
+httpcore==1.0.9
+h11==0.16.0
+httpx2==2.13.1
+httpcore2==2.13.1
+requests==2.34.2
+urllib3==2.8.0
+certifi==2026.7.22
+charset-normalizer==3.5.2
+idna==3.20
+truststore==0.10.4
+huggingface-hub==1.33.0
+hf-xet==1.6.0
+tqdm==4.70.1
+
+# ---- 数值 / 科学计算 ----
+numpy==1.26.0
+scipy==1.15.3
+scikit-learn==1.7.2
+numba==0.60.0
+llvmlite==0.43.0
+mkl==2021.4.0
+intel-openmp==2021.4.0
+tbb==2021.13.1
+networkx==3.4.2
+sympy==1.13.1
+mpmath==1.3.0
+joblib==1.6.0
+threadpoolctl==3.7.0
+cloudpickle==3.1.2
+future==1.0.0
+decorator==5.3.1
+pooch==1.9.0
+portalocker==4.4.0
+
+# ---- 序列化 / 配置 / 其他 ----
+tokenizers==0.23.2
+sacrebleu==2.6.0
+omegaconf==2.3.1
+hydra-core==1.3.7
+antlr4-python3-runtime==4.9.3
+pyyaml==6.0.3
+safetensors==0.8.0
+filelock==4.0.12
+fsspec==2026.9.0
+packaging==26.3
+platformdirs==4.12.3
+regex==2026.9.29
+jinja2==3.1.6
+markupsafe==3.0.4
+lxml==6.1.3
+click==8.5.0
+colorama==0.4.6
+coloredlogs==15.0.1
+humanfriendly==10.0
+anyio==4.15.1
+exceptiongroup==1.3.1
+attrs==26.1.0
+cffi==1.17.1
+pycparser==3.0
+flatbuffers==25.12.19
+protobuf==7.36.2
+tabulate==0.10.0
+tomli==2.4.1
+pillow==12.3.0
+typing-extensions==4.16.0
+setuptools==80.10.2
+wheel==0.48.0

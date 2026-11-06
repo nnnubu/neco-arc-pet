@@ -54,14 +54,34 @@
 ### 语音扩展包
 
 - 语音合成与翻唱依赖 Python 语音引擎（约 1.4GB，不入代码仓库）
+- 扩展包内含：Python 依赖环境、RVC 音色模型与特征索引、hubert/rmvpe 权重、ffmpeg、口癖音频
 - 将语音扩展包解压到程序根目录（与 `启动桌宠.vbs` 同级），重启桌宠自动生效
 - 也可在开发版侧边栏用「生成语音扩展包」按钮自行打包
+
+## 从源码自建（开发者）
+
+普通用户无需自建，直接使用发布的基础包 + 语音扩展包即可。从源码重建开发环境：
+
+1. **Node 侧**：安装 Node.js 后执行 `npm install`，再 `npm start` 启动。
+2. **Python 侧**：安装 Python 3.10（Windows x64），新建虚拟环境后安装锁定依赖：
+   ```
+   pip install -r requirements.txt
+   ```
+   torch / torchaudio 需使用 PyTorch 官方 CUDA 12.4 轮子（`requirements.txt` 头部有对应说明与命令）；默认安装会拉到 CPU 版。
+3. **模型权重与二进制文件不在源码仓库**，需按下表补齐到对应路径：
+
+   | 路径 | 文件 | 来源 |
+   | --- | --- | --- |
+   | `voice/assets/` | `hubert_base.pt` | Hubert 内容编码器，tts-with-rvc 框架首次运行联网从 HuggingFace 拉取 |
+   | `voice/assets/` | `rmvpe.pt` | 音高提取模型，同上 |
+   | `voice/models/agg/` | `model.pth`、`model.index` | agg 猫姬音色模型与特征索引，随语音扩展包提供 |
+   | `voice/models/lumina/` | `Neco-ArcLumina.pth`、`*.index` | lumina 音色模型与特征索引，随语音扩展包提供 |
+   | `voice/bin/` | `ffmpeg.exe` | 音频转码工具，取 ffmpeg 官方 Windows 构建 |
 
 ## 常见问题
 
 - **对话没声音**：未安装语音扩展包，或未配置语音模型且未开启免费兜底——属于正常降级，文本照常显示
 - **知识库资料不生效**：新增 `.md` 后需完全退出并重启桌宠
-- **想自己构建**：`npm install`；语音扩展包环境需 Python 3.10，`voice-env310\Scripts\pip install torch --index-url https://download.pytorch.org/whl/cpu && pip install "setuptools<70" tts-with-rvc`，ffmpeg.exe 放 `voice\bin\`
 
 ## 配置与隐私
 
